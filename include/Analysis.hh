@@ -2,7 +2,7 @@
 #ifndef ANALYSIS_h
 #define ANALYSIS_h
 
-#include <OutFileRoot.hh>
+#include "OutFileRoot.hh"
 
 #include "TGraphErrors.h"
 
@@ -13,10 +13,11 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
-
+#include <utility>
 using namespace std;
 
-struct RAWData {
+struct RAWData 
+{
     int             iEvent;     //Event i
     int             TDCNHits;   //Number of hits in event i
     vector<int>    *TDCCh;      //List of channels giving hits per event
@@ -26,41 +27,33 @@ struct RAWData {
 class Analysis : public OutFileRoot
 {
 public:
-
-  //! constructor
-  Analysis();
-
-  //! destructor
-  virtual ~Analysis();
-
-  void setThreshold(double *threshold);
-  void setVoltage(double *voltage);
-  void setMask(int firstW, int lastW, int *Mask, int nChMask);
-  int loop(char** inputFileNames, char* dirName, char* plotName, int numInFiles, char* nameType, double *param, int numParam);
+  void setThreshold(std::vector<double>& threshold);
+  void setVoltage(std::vector<double>& voltage);
+  void setMask(int firstW, int lastW, std::vector<int>& Mask, int nChMask);
+  int loop(std::vector<std::string>& inputFileNames, std::string&  dirName,std::string& plotName, int numInFiles, std::string&  nameType, std::vector<double>& param, int numParam);
 
 protected:
 
-  double *threshold;
-  double *voltage;
-  
+  std::vector<double>threshold;
+  std::vector<double>voltage;
   int firstCh;
   int lastCh;
   int numChMask;
-  int *mask;
-
-  double thrEff(char* inputFileName, double lowTSThr, double highTSThr);
-  double thrEffErr(char* inputFileName, double lowTSThr, double highTSThr);
-  double thrCorr(char* inputFileName, double lowTSThr, double highTSThr, double lowTSThr2, double highTSThr2, int ch1, int ch2);
-  double noise(char* inputFileName, double acqTime);
+  std::vector<int> mask;
+  TGraphErrors* Construct_Plot(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,  int numInFiles,
+                          double lowTimeStampThr, double highTimeStampThr);
+  std::pair<double,double>Eff_ErrorEff(std::string& inputFileName, double lowTSThr, double highTSThr);
+  //double thrEffErr(std::string& inputFileName, double lowTSThr, double highTSThr);
+  double thrCorr(std::string& inputFileName, double lowTSThr, double highTSThr, double lowTSThr2, double highTSThr2, int ch1, int ch2);
+  double noise(std::string& inputFileName, double acqTime);
  
-  int thrEffScan(char** inputFileNames, char* dirName, char* plotName,  int numInFiles,
+  int thrEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,  int numInFiles,
                  double lowTimeStapThr, double highTimeStapThr);
-  int volEffScan(char** inputFileNames, char* dirName, char* plotName, int numInFiles,
+  int volEffScan(std::vector<std::string>&, std::string& dirName, std::string& plotName, int numInFiles,
                  double lowTimeStampThr, double highTimeStampThr);
-  int noiseHist(char* inputFileName, char* dirName, char* plotName, double acqTime);
-  int stripHist(char* inputFileName, char*dirName, char* plotName, double lowTSThr, double highTSThr);
-  int noiseThrScan(char** inputFileNames, char* dirName, char* plotName, int numInFiles, double acqTime);
-  int noiseVolScan(char** inputFileNames, char* dirName, char* plotName, int numInFiles, double acqTime);
-
+  int noiseHist(std::string& inputFileName, std::string& dirName, std::string& plotName, double acqTime);
+  int stripHist(std::string& inputFileName, std::string& dirName, std::string& plotName, double lowTSThr, double highTSThr);
+  int noiseThrScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName, int numInFiles, double acqTime);
+  int noiseVolScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName, int numInFiles, double acqTime);
 };
 #endif

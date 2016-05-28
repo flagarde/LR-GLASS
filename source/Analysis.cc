@@ -1,30 +1,17 @@
 #include "Analysis.hh"
-/*! \fn Analysis
-* \brief   constructtor
-*/
-Analysis::Analysis()
-{
-}
-
-/*! \fn ~Analysis
-* \brief  destructor
-*/
-Analysis::~Analysis()
-{
-}
 
 //-------------------------------------------------------
-void Analysis::setThreshold(double *thr) 
+void Analysis::setThreshold(std::vector<double>& thr) 
 {
   threshold = thr;
 }
 
-void Analysis::setVoltage(double *volt) 
+void Analysis::setVoltage(std::vector<double>& volt) 
 {
   voltage = volt;
 }
 
-void  Analysis::setMask(int firstW, int lastW, int *Mask, int nChMask) 
+void  Analysis::setMask(int firstW, int lastW,std::vector<int>& Mask, int nChMask) 
 {
   firstCh = firstW;
   lastCh = lastW;
@@ -33,18 +20,45 @@ void  Analysis::setMask(int firstW, int lastW, int *Mask, int nChMask)
 }
 //-------------------------------------------------------
 
+TGraphErrors* Analysis::Construct_Plot(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,  int numInFiles,
+                          double lowTimeStampThr, double highTimeStampThr)
+{
+  std::vector<double> eff;
+  std::vector<double> eEff;
+  std::vector<double> vol;
+  std::vector<double> eVol;
+  for(int i = 0; i < numInFiles; i ++) 
+  {
+    std::cout<<eff.size()<<std::endl;
+    std::pair<double,double>eff_erroreff=Eff_ErrorEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
+    if(eff_erroreff.first==-1)continue;
+    else
+    {
+      eff.push_back(eff_erroreff.first); //thrEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
+      eEff.push_back(eff_erroreff.second) ;//thrEffErr(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
+      vol.push_back(voltage[i]);
+      eVol.push_back(0.0);
+    }
+  }
+  if(eff.size()==0) 
+  {
+    return nullptr;
+  }
+  else return new TGraphErrors(eff.size(),&(vol[0]),&(eff[0]),&(eVol[0]),&(eEff[0]));
+}
+
+
 
 //-------------------------------------------------------
-double Analysis::thrEff(char* inputFileName, double lowTSThr, double highTSThr)
+std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, double lowTSThr, double highTSThr)
 {
   //****************** ROOT FILE ***********************************
   // input ROOT data file containing the RAWData TTree that we'll
   // link to our RAWData structure
-  
-  TFile   dataFile(inputFileName);
+  TFile   dataFile(inputFileName.c_str());
+  if(dataFile.IsOpen()!=true)return std::pair<double,double>(-1.0,-1.0);
   TTree*  dataTree = (TTree*)dataFile.Get("RAWData");
-  if(!dataTree)
-    return -1; // can't read file
+  if(!dataTree) return std::pair<double,double>(-1.0,-1.0); // can't read file
   RAWData data;
   
   data.TDCCh = new vector<int>; //List of hits and their channels
@@ -58,42 +72,43 @@ double Analysis::thrEff(char* inputFileName, double lowTSThr, double highTSThr)
   dataTree->SetBranchAddress("TDC_TimeStamp",  &data.TDCTS);
   
   //****************** MACRO ***************************************
-  double numGoodEvents = 0; 
+  double numGoodEvents = 0.0; 
   unsigned int nEntries = dataTree->GetEntries();
   
-  for(unsigned int i = 0; i < nEntries; i++) {
+  for(unsigned int i = 0; i < nEntries; i++) 
+  {
     dataTree->GetEntry(i);
-  
-    for(int h = 0; h < data.TDCNHits; h++) {
+    for(int h = 0; h < data.TDCNHits; h++) 
+    {
       bool isCh = true;
-      if(data.TDCTS->at(h) > lowTSThr && data.TDCTS->at(h) < highTSThr && 
-         data.TDCCh->at(h) >= firstCh && data.TDCCh->at(h) <= lastCh) {
-      for(int i = 0; i < numChMask; i++) {
-        if(data.TDCCh->at(h) == mask[i])
+      if(data.TDCTS->at(h) > lowTSThr && data.TDCTS->at(h) < highTSThr && data.TDCCh->at(h) >= firstCh && data.TDCCh->at(h) <= lastCh) 
+      {
+        for(int i = 0; i < numChMask; i++) 
+        {
+          if(data.TDCCh->at(h) == mask[i])
           isCh = false;
-      }
-      if(isCh) {
-        numGoodEvents++;
-        break;
-      }
+        }
+        if(isCh) 
+        {
+          numGoodEvents++;
+          break;
+        }
       }
     }
   }
   dataFile.Close();
-
-  return numGoodEvents/nEntries;
+  return std::pair<double,double>(numGoodEvents/nEntries,sqrt((numGoodEvents*(nEntries-numGoodEvents))/nEntries)/numGoodEvents);
 }
 
-double Analysis::thrEffErr(char* inputFileName, double lowTSThr, double highTSThr)
+/*double Analysis::thrEffErr(std::string& inputFileName, double lowTSThr, double highTSThr)
 {
   //****************** ROOT FILE ***********************************
   // input ROOT data file containing the RAWData TTree that we'll
   // link to our RAWData structure
   
-  TFile   dataFile(inputFileName);
+  TFile   dataFile(inputFileName.c_str());
   TTree*  dataTree = (TTree*)dataFile.Get("RAWData");
-  if(!dataTree)
-    return -1; // can't read file
+  if(!dataTree)return -1; // can't read file
   RAWData data;
   
   data.TDCCh = new vector<int>; //List of hits and their channels
@@ -114,14 +129,7 @@ double Analysis::thrEffErr(char* inputFileName, double lowTSThr, double highTSTh
     // You are looping on all the entries (1 trigger = 1 event = 1 entry) 
     dataTree->GetEntry(i);
   
-    //Loop over the TDC hits
-    for(int h = 0; h < data.TDCNHits; h++) {
-      /* You are looping on the hits recorded for entry i
-         Here do whatever you need to
-         You can for example print out all the hit information */
-    
-//      printf("Hit %u - Time stamp = %f", data.TDCCh->at(h),data.TDCTS->at(h));
-//      cout << endl;
+
       if(data.TDCTS->at(h) > lowTSThr && data.TDCTS->at(h) < highTSThr) {
        numGoodEvents++;
       break;
@@ -131,15 +139,15 @@ double Analysis::thrEffErr(char* inputFileName, double lowTSThr, double highTSTh
   dataFile.Close();
 
   return sqrt((numGoodEvents*(nEntries-numGoodEvents))/nEntries)/numGoodEvents;
-}
+}*/
 
-double Analysis::thrCorr(char* inputFileName, double lowTSThr, double highTSThr, double lowTSThr2, double highTSThr2, int ch1, int ch2)
+double Analysis::thrCorr(std::string& inputFileName, double lowTSThr, double highTSThr, double lowTSThr2, double highTSThr2, int ch1, int ch2)
 {
   //****************** ROOT FILE ***********************************
   // input ROOT data file containing the RAWData TTree that we'll
   // link to our RAWData structure
   
-  TFile   dataFile(inputFileName);
+  TFile   dataFile(inputFileName.c_str());
   TTree*  dataTree = (TTree*)dataFile.Get("RAWData");
   if(!dataTree)
     return -1; // can't read file
@@ -225,13 +233,13 @@ double Analysis::thrCorr(char* inputFileName, double lowTSThr, double highTSThr,
   return corr/sqrt(d1*d2);
 }
 
-double Analysis::noise(char* inputFileName, double acqTime)
+double Analysis::noise(std::string& inputFileName, double acqTime)
 {
   //****************** ROOT FILE ***********************************
   // input ROOT data file containing the RAWData TTree that we'll
   // link to our RAWData structure
   
-  TFile   dataFile(inputFileName);
+  TFile   dataFile(inputFileName.c_str());
   TTree*  dataTree = (TTree*)dataFile.Get("RAWData");
   if(!dataTree)
     return -1; // can't read file
@@ -282,25 +290,32 @@ double Analysis::noise(char* inputFileName, double acqTime)
 
 
 //-------------------------------------------------------
-int Analysis::thrEffScan(char** inputFileNames, char* dirName, char* plotName,  int numInFiles,
+int Analysis::thrEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,  int numInFiles,
                           double lowTimeStampThr, double highTimeStampThr)
 {
-  double eff[numInFiles];
+  /*double eff[numInFiles];
   double eEff[numInFiles];
   double thr[numInFiles];
   double eThr[numInFiles];
-  for(int i = 0; i < numInFiles; i ++) {
-    eff[i] = thrEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
-    if(eff[i] == -1)
-      return 0;
-    eEff[i] = thrEffErr(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
-  
-    thr[i] = threshold[i];
-    eThr[i] = 0;
+  for(int i = 0; i < numInFiles; i ++) 
+  {
+    std::pair<double,double>eff_erroreff=Eff_ErrorEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
+    if(eff_erroreff.first== -1)continue;
+    else
+    {
+      eff[i] =eff_erroreff.first; //thrEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
+      eEff[i] =eff_erroreff.second ;//thrEffErr(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
+      thr[i] = threshold[i];
+      eThr[i] = 0;
+    }
   }
   
+  
+  TGraphErrors *thrEff = new TGraphErrors(numInFiles, thr, eff, eThr, eEff);*/
+  TGraphErrors *thrEff=Construct_Plot(inputFileNames,dirName,plotName,numInFiles,lowTimeStampThr,highTimeStampThr);
+  if(thrEff==nullptr) return 0;
+  std::cout<<"Here"<<std::endl;
   double vol = voltage[0];
-  TGraphErrors *thrEff = new TGraphErrors(numInFiles, thr, eff, eThr, eEff);
   thrEff->SetName(Form("%s Efficiency, voltage = %.2fV", plotName, vol));
   thrEff->SetTitle(Form("%s Efficiency, voltage = %.2fV", plotName, vol));
   thrEff->GetXaxis()->SetTitle("Threshold, mV");
@@ -309,57 +324,51 @@ int Analysis::thrEffScan(char** inputFileNames, char* dirName, char* plotName,  
   thrEff->SetLineStyle(9);
   thrEff->SetFillColor(0);
   thrEff->SetLineWidth(1);
-   TString dir(dirName);
-   dir+="_"; dir+="param_";
-   dir+="lowTSThr-"; dir+=lowTimeStampThr; dir+="_"; 
-   dir+="highTSThr-";dir+=highTimeStampThr;  dir+="_"; 
-   const char* dirc=dir.Data();
-   writeObject(dirc, thrEff);
-   thrEff->Delete();
-  
+  dirName+="_param_lowTSThr-"+std::to_string(lowTimeStampThr)+"_highTSThr-"+std::to_string(highTimeStampThr)+"_"; 
+  writeObject(dirName, thrEff);
+  thrEff->Delete();
   return 1;
 }
 
-int Analysis::volEffScan(char** inputFileNames, char* dirName, char* plotName, int numInFiles,
+int Analysis::volEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName, int numInFiles,
                           double lowTimeStampThr, double highTimeStampThr)
 {
-  double eff[numInFiles];
-  double eEff[numInFiles];
-  double vol[numInFiles];
-  double eVol[numInFiles];
-  for(int i = 0; i < numInFiles; i ++) {
-    eff[i] = thrEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
-    if(eff[i] == -1)
-      return 0;
-    eEff[i] = thrEffErr(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
+  /*std::vector<double> eff;
+  std::vector<double> eEff;
+  std::vector<double> vol;
+  std::vector<double> eVol;
+  for(int i = 0; i < numInFiles; i ++) 
+  {
   
-    vol[i] = voltage[i];
-    eVol[i] = 0;
-  }
-  
-  double thr = threshold[0];
-  TGraphErrors *volEff = new TGraphErrors(numInFiles,vol,eff,eVol,eEff);
-  volEff->SetName(Form("%s Efficiency, threshold = %.2fmV", plotName, thr));
-  volEff->SetTitle(Form("%s Efficiency, threshold = %.2fmV", plotName, thr));
-  volEff->GetXaxis()->SetTitle("Voltage, V");
-  volEff->GetYaxis()->SetTitle("Efficiency");
-  volEff->GetYaxis()->SetRange(0.3, 0);
-  volEff->SetMarkerStyle(8);
-  volEff->SetLineStyle(9);
-  volEff->SetFillColor(0);
-  volEff->SetLineWidth(1);
-   TString dir(dirName);
-   dir+="_"; dir+="param_";
-   dir+="lowTSThr-"; dir+=lowTimeStampThr; dir+="_"; 
-   dir+="highTSThr-";dir+=highTimeStampThr;  dir+="_"; 
-   const char* dirc=dir.Data();
-   writeObject(dirc, volEff);
-   volEff->Delete();
-  
+    std::pair<double,double>eff_erroreff=Eff_ErrorEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
+    if(eff_erroreff.first== -1)continue;
+    else
+    {
+      eff[i] =eff_erroreff.first; //thrEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
+      eEff[i] =eff_erroreff.second ;//thrEffErr(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
+      vol[i] = voltage[i];
+      eVol[i] = 0;
+    }
+  }*/
+    TGraphErrors *volEff=Construct_Plot(inputFileNames,dirName,plotName,numInFiles,lowTimeStampThr,highTimeStampThr);
+    if(volEff==nullptr) return 0;
+    double thr = threshold[0];
+    volEff->SetName(Form("%s Efficiency, threshold = %.2fmV", plotName, thr));
+    volEff->SetTitle(Form("%s Efficiency, threshold = %.2fmV", plotName, thr));
+    volEff->GetXaxis()->SetTitle("Voltage, V");
+    volEff->GetYaxis()->SetTitle("Efficiency");
+    volEff->GetYaxis()->SetRange(0.3, 0);
+    volEff->SetMarkerStyle(8);
+    volEff->SetLineStyle(9);
+    volEff->SetFillColor(0);
+    volEff->SetLineWidth(1);
+    dirName+="_param_lowTSThr-"+std::to_string(lowTimeStampThr)+"_highTSThr-"+std::to_string(highTimeStampThr)+"_"; 
+    writeObject(dirName, volEff);
+    volEff->Delete();
   return 1;
 }
 
-int Analysis::noiseHist(char* inputFileName, char*dirName, char* plotName, double acqTime)
+int Analysis::noiseHist(std::string& inputFileName,std::string& dirName,std::string& plotName, double acqTime)
 {
     TH1F *hHit = new TH1F("Noise", "Noise", lastCh-firstCh, firstCh - 0.5, lastCh - 0.5);
     hHit->GetXaxis()->SetTitle("channel");
@@ -368,7 +377,7 @@ int Analysis::noiseHist(char* inputFileName, char*dirName, char* plotName, doubl
   // input ROOT data file containing the RAWData TTree that we'll
   // link to our RAWData structure 
 
-  TFile   dataFile(inputFileName);
+  TFile   dataFile(inputFileName.c_str());
   TTree*  dataTree = (TTree*)dataFile.Get("RAWData");
   if(!dataTree)
     return -1; // can't read file
@@ -431,7 +440,7 @@ int Analysis::noiseHist(char* inputFileName, char*dirName, char* plotName, doubl
   hHit->SetTitle(Form("From left to right: A,B,C,D. %s", plotName));
   hHit->Scale(1/acqTime);
   hHit->SetStats(0);
-  TCanvas *c1 = new TCanvas(plotName);
+  TCanvas *c1 = new TCanvas(plotName.c_str());
   hHit->Draw();
   Float_t ymax = hHit->GetMaximum();
   TLine *line = new TLine(firstCh - 0.5, ymax, firstCh - 0.5, 0);
@@ -445,17 +454,13 @@ int Analysis::noiseHist(char* inputFileName, char*dirName, char* plotName, doubl
   line->Draw(); 
   line2->Draw(); 
   line3->Draw(); 
-  line4->Draw(); 
-
-   TString dir(dirName);
-   dir+="_"; dir+="param_";
-   dir+=acqTime; 
-   const char* dirc=dir.Data();
-  writeObject(dirc, c1);
+  line4->Draw();
+  dirName+="_param_"+std::to_string(acqTime); 
+  writeObject(dirName, c1);
   return 1;
 }
 
-int Analysis::stripHist(char* inputFileName, char*dirName, char* plotName, double lowTSThr, double highTSThr)
+int Analysis::stripHist(std::string& inputFileName,std::string& dirName,std::string& plotName, double lowTSThr, double highTSThr)
 {
     TH1F *hHit = new TH1F("beam", "beam", lastCh-firstCh, firstCh - 0.5, lastCh - 0.5);
     hHit->GetXaxis()->SetTitle("channel");
@@ -464,7 +469,7 @@ int Analysis::stripHist(char* inputFileName, char*dirName, char* plotName, doubl
   // input ROOT data file containing the RAWData TTree that we'll
   // link to our RAWData structure 
 
-  TFile   dataFile(inputFileName);
+  TFile   dataFile(inputFileName.c_str());
   TTree*  dataTree = (TTree*)dataFile.Get("RAWData");
   if(!dataTree)
     return -1; // can't read file
@@ -506,19 +511,15 @@ int Analysis::stripHist(char* inputFileName, char*dirName, char* plotName, doubl
   dataFile.Close();
   hHit->SetTitle(Form("%s", plotName));
   hHit->SetStats(0);
-  TCanvas *c1 = new TCanvas(plotName);
+  TCanvas *c1 = new TCanvas(plotName.c_str());
   hHit->Draw();
 
-   TString dir(dirName);
-   dir+="_"; dir+="param_";
-   dir+="lowTsThr-"; dir+=lowTSThr;
-   dir+="_highTSThr-"; dir+=highTSThr;
-   const char* dirc=dir.Data();
-  writeObject(dirc, c1);
+  dirName+="_param_lowTsThr-"+std::to_string(lowTSThr)+"_highTSThr-"+std::to_string(highTSThr);
+  writeObject(dirName, c1);
   return 1;
 }
 
-int Analysis::noiseThrScan(char** inputFileNames, char* dirName, char* plotName, int numInFiles,  double acqTime)
+int Analysis::noiseThrScan(std::vector<std::string>& inputFileNames,std::string& dirName,std::string& plotName, int numInFiles,  double acqTime)
 {
   double valueNoise[numInFiles];
   double thr[numInFiles];
@@ -538,37 +539,26 @@ int Analysis::noiseThrScan(char** inputFileNames, char* dirName, char* plotName,
   grNoise->SetLineStyle(9);
   grNoise->SetFillColor(0);
   grNoise->SetLineWidth(1);
-   TString dir(dirName);
-   dir+="_"; dir+="param_";
-   dir+="ch1-"; dir+=firstCh; dir+="_"; 
-   dir+="ch2-";dir+=lastCh;  dir+="_";
-   dir+="acqTime-"; dir+=Form("%.2f", acqTime);
-   const char* dirc=dir.Data();
-  writeObject(dirc, grNoise);
+  dirName+="_param_ch1-"+std::to_string(firstCh)+"_ch2-"+std::to_string(lastCh)+"_acqTime-"+std::to_string(acqTime);
+  writeObject(dirName, grNoise);
   grNoise->Delete();
   return 1;
 }
 
-int Analysis::noiseVolScan(char** inputFileNames, char* dirName, char* plotName, int numInFiles,  double acqTime)
+int Analysis::noiseVolScan(std::vector<std::string>& inputFileNames,std::string& dirName,std::string& plotName, int numInFiles,  double acqTime)
 {
   double valueNoise[numInFiles];
   double vol[numInFiles];
   for(int i = 0; i < numInFiles; i++) {
     valueNoise[i] = noise(inputFileNames[i], acqTime);
-    if(valueNoise[i] == -1)
-      return 0;
+    if(valueNoise[i] == -1)return 0;
     vol[i] = voltage[i];
   }
-  TString dir(plotName);
-  dir+="_"; dir+="param_";
-  dir+="ch1-"; dir+=firstCh; dir+="_"; 
-  dir+="ch2-";dir+=lastCh;  dir+="_"; 
-  dir+="acqTime-"; dir+=Form("%.2f", acqTime);
-  const char* dirc=dir.Data();
+  plotName+="_param_ch1-"+std::to_string(firstCh)+"_ch2-"+std::to_string(lastCh)+"_acqTime-"+std::to_string(acqTime);
   double thr = threshold[0];
-  TGraph *grNoise = new TGraph(numInFiles, voltage, valueNoise);
-  grNoise->SetName(Form("%s, threshold = %.2fmV", dirc, thr));
-  grNoise->SetTitle(Form("%s, threshold = %.2fmV", plotName, thr));
+  TGraph *grNoise = new TGraph(numInFiles, vol, valueNoise);
+  grNoise->SetName(Form("%s, threshold = %.2fmV", plotName.c_str(), thr));
+  grNoise->SetTitle(Form("%s, threshold = %.2fmV", plotName.c_str(), thr));
   grNoise->GetXaxis()->SetTitle("Voltage, V");
   grNoise->GetYaxis()->SetTitle("hits/sec/spill, Hz");
   grNoise->SetMarkerStyle(8);
@@ -583,9 +573,9 @@ int Analysis::noiseVolScan(char** inputFileNames, char* dirName, char* plotName,
 
 
 //-------------------------------------------------------
-int Analysis::loop(char** inputFileNames, char* dirName, char* plotName, int numInFiles, char* nameType, double *param, int numParam)
+int Analysis::loop(std::vector<std::string>& inputFileNames, std::string& dirName,std::string& plotName, int numInFiles, std::string& nameType, std::vector<double>& param, int numParam)
 {
-  if(strncmp(nameType, "thrEff", 6) == 0) { // reshold scan
+  if(nameType=="thrEff") { // reshold scan
     if(numParam != 2) {
       cout << "ERROR: incorrect number for parameters!" << endl;
       cout << "For Type: " << nameType << " Need two parametors." << endl;
@@ -600,7 +590,7 @@ int Analysis::loop(char** inputFileNames, char* dirName, char* plotName, int num
       return 1;
   }
   
-  if(strncmp(nameType, "volEff", 6) == 0) { // voltage scan
+  if(nameType=="volEff") { // voltage scan
     
     if(numParam != 2) {
       cout << "ERROR: incorrect number for parameters!" << endl;
@@ -611,12 +601,12 @@ int Analysis::loop(char** inputFileNames, char* dirName, char* plotName, int num
     double highTimeStampThr = param[1]; 
 
     int isVolEff = volEffScan(inputFileNames, dirName, plotName, numInFiles, lowTimeStampThr, highTimeStampThr);
-    if(isVolEff == 0)
-      cout << "ERROR: Can't calculate efficiency for HV scan." << endl;
-      return 1;
+    if(isVolEff == 0)cout << "ERROR: Can't calculate efficiency for HV scan." << endl;
+    return 1;
   }
   
-  if(strncmp(nameType, "noiseHist", 9) == 0) { // noise
+  if(nameType=="noiseHist") 
+  { // noise
     
     if(numParam != 1) {
       cout << "ERROR: incorrect number for parameters!" << endl;
@@ -633,7 +623,7 @@ int Analysis::loop(char** inputFileNames, char* dirName, char* plotName, int num
       return 1;
   }
   
-  if(strncmp(nameType, "stripHist", 9) == 0) { // voltage scan
+  if(nameType=="stripHist") { // voltage scan
     
     if(numParam != 2) {
       cout << "ERROR: incorrect number for parameters!" << endl;
@@ -653,7 +643,7 @@ int Analysis::loop(char** inputFileNames, char* dirName, char* plotName, int num
       return 1;
   }
   
-  if(strncmp(nameType, "noiseVolScan", 12) == 0) { // noise
+  if(nameType=="noiseVolScan") { // noise
     
     if(numParam != 1) {
       cout << "ERROR: incorrect number for parameters!" << endl;
@@ -666,7 +656,7 @@ int Analysis::loop(char** inputFileNames, char* dirName, char* plotName, int num
       return 1;
   }
 
-  if(strncmp(nameType, "noiseThrScan", 12) == 0) { // noise
+  if(nameType=="noiseThrScan") { // noise
     
     if(numParam != 1) {
       cout << "ERROR: incorrect number for parameters!" << endl;

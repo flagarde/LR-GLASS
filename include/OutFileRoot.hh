@@ -19,28 +19,21 @@
 // C++ includes
 #include <string>
 #include <iostream>
-using namespace std;
 
 class OutFileRoot
 {
 public:
-
-  //! constructor
-  OutFileRoot();
-
-  //! destructor
-  virtual ~OutFileRoot();
-
-  bool setOutputFile(char *outputFileName, char *outputTreeName);
-  bool setBranch(double *data, string branchName);
-
-  bool writeObject(string dirName, TObject *object);
+  ~OutFileRoot();
+  bool setOutputFile(std::string& outputFileName,std::string& outputTreeName);
+ // OutFileRoot(std::string& outputFileName,std::string& outputTreeName);
+  bool writeObject(std::string& dirName, TObject *object);
 
 protected:
-  
+  std::string _outputFileName;
+  std::string _outputTreeName;
   bool isOutFile_;
-  TFile *outFile_;
-  TTree *outTree_;
+  TFile* outFile_;
+  TTree* outTree_;
    
 };
 

@@ -6,28 +6,23 @@
 #include <iostream>
 #include <fstream>
 #include <TFile.h>
-
-using namespace std;
+#include <string>
+#include <vector>
 
 class Configure
 {
 public:
-
-  //! constructor
   Configure();
+  ~Configure();
 
-  //! destructor
-  virtual ~Configure();
-
-  void getParam(char* inputTextFile, double* param, char** nameParam);
-  int getType(char* inputTextFile, char* nameType);
-  int getNumParam(char* inputTextFile);
-  int getNumFiles(char* inputTextFile);
-  void getNamesFiles(char* inputTextFile, char** inputFileNames, int numInFiles); 
-  int getThrVolt(char* inputTextFile, double* thr, double* voltage, int numInFiles);
-  int getMaskNumParam(char* inputTextFile);
-  void getMask(char* inputTextFile, int* mask, int* firstCh, int* lastCh);
+  void getParam(std::string& inputTextFile,std::vector<double>& param,std::vector<std::string>& nameParam);
+  int getType(std::string& inputTextFile, std::string& nameType);
+  int getNumParam(std::string& inputTextFile);
+  int getNumFiles(std::string& inputTextFile);
+  void getNamesFiles(std::string& inputTextFile,std::vector<std::string>& inputFileNames, int numInFiles); 
+  int getThrVolt(std::string& inputTextFile, std::vector<double>& thr, std::vector<double>& voltage, int numInFiles);
+  int getMaskNumParam(std::string& inputTextFile);
+  void getMask(std::string& inputTextFile,std::vector<int>& mask, int& firstCh,int& lastCh);
 };
-
 #endif
 //-------------------------------------------------------------
