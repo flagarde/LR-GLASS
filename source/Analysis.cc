@@ -1,4 +1,9 @@
 #include "Analysis.hh"
+#include <algorithm>
+#include<vector>
+#include<map>
+#include<utility>
+
 
 //-------------------------------------------------------
 void Analysis::setThreshold(std::vector<double>& thr) 
@@ -70,7 +75,13 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
   dataTree->SetBranchAddress("number_of_hits", &data.TDCNHits);
   dataTree->SetBranchAddress("TDC_channel",    &data.TDCCh);
   dataTree->SetBranchAddress("TDC_TimeStamp",  &data.TDCTS);
-  
+  std::map<int,std::vector<int>>Hits_classed_by_timestamp;
+  std::map<int,std::vector<int>>Hits_adjacents_in_time;
+  std::vector<std::pair<int,std::vector<std::vector<int>>>>Clusters;
+  TH1F* general_multilicity = new TH1F("General Multiplicity","General Multiplicity",1000,0,1000);
+  TH1F* nbr_cluster = new TH1F("Number of Cluster","Number of Cluster",1000,0,1000);
+  TH1F* cluster_multiplicity = new TH1F("cluster_multiplicity","cluster_multiplicity",1000,0,1000);
+  TH1F* when=new TH1F("when","when",10000,0,10000);
   //****************** MACRO ***************************************
   double numGoodEvents = 0.0; 
   unsigned int nEntries = dataTree->GetEntries();
@@ -80,66 +91,77 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
     dataTree->GetEntry(i);
     for(int h = 0; h < data.TDCNHits; h++) 
     {
-      bool isCh = true;
+      unsigned int isCh = 0;
       if(data.TDCTS->at(h) > lowTSThr && data.TDCTS->at(h) < highTSThr && data.TDCCh->at(h) >= firstCh && data.TDCCh->at(h) <= lastCh) 
       {
         for(int i = 0; i < numChMask; i++) 
         {
-          if(data.TDCCh->at(h) == mask[i])
-          isCh = false;
+          if(data.TDCCh->at(h) != mask[i]) 
+          {
+            ++isCh;
+            Hits_classed_by_timestamp[data.TDCTS->at(h)].push_back(data.TDCCh->at(h));
+          }
         }
-        if(isCh) 
+        if(isCh>=0) 
         {
           numGoodEvents++;
-          break;
         }
+      }
+      general_multilicity->Fill(isCh);
+      int firs=(Hits_classed_by_timestamp.begin())->first;
+      for(std::map<int,std::vector<int>>::iterator it=Hits_classed_by_timestamp.begin();it!=Hits_classed_by_timestamp.end();++it)
+      {
+        Hits_adjacents_in_time[firs].insert(Hits_adjacents_in_time[firs].end(),(it->second).begin(),(it->second).end());
+        map<int,std::vector<int>>::iterator itt=it;
+        if(it!=Hits_classed_by_timestamp.end()) ++itt;
+        if(it->first!=(itt->first+1)) firs=itt->first;
+      }
+      for(std::map<int,std::vector<int>>::iterator it=Hits_adjacents_in_time.begin();it!=Hits_adjacents_in_time.end();++it)
+      {
+        std::vector<vector<int>>vecc;
+        std::vector<int>vec=(it->second);
+        std::sort(vec.begin(),vec.end());
+        std::vector<int>vec2;
+        for(std::vector<int>::iterator y=vec.begin();y!=vec.end();++y)
+        {
+          std::vector<int>::iterator it=y;
+          if(it==vec.begin())vec2.push_back(*it);
+          if(it!=vec.end())
+          {
+            ++it;
+            if(fabs(*it-*y)==1)vec2.push_back(*it);
+            else
+            {
+              vecc.push_back(vec2);
+              vec2.clear();
+              vec2.push_back(*it);
+            } 
+          }
+        }
+        Clusters.push_back({it->first,vecc});
+      }
+      int nbclus=0;
+      for(unsigned int i=0;i!=Clusters.size();++i)
+      {
+          when->Fill(Clusters[i].first);
+          nbclus+=(Clusters[i].second).size();
+          for(unsigned int j=0;j!=(Clusters[i].second).size();++i)
+          {
+              cluster_multiplicity->Fill((Clusters[i].second)[j].size());
+          }
       }
     }
   }
   dataFile.Close();
+  std::string name="tt";
+  writeObject(name,general_multilicity);
+  writeObject(name,when);
+  writeObject(name,cluster_multiplicity);
+  writeObject(name,nbr_cluster);
+  
   return std::pair<double,double>(numGoodEvents/nEntries,sqrt((numGoodEvents*(nEntries-numGoodEvents))/nEntries)/numGoodEvents);
 }
 
-/*double Analysis::thrEffErr(std::string& inputFileName, double lowTSThr, double highTSThr)
-{
-  //****************** ROOT FILE ***********************************
-  // input ROOT data file containing the RAWData TTree that we'll
-  // link to our RAWData structure
-  
-  TFile   dataFile(inputFileName.c_str());
-  TTree*  dataTree = (TTree*)dataFile.Get("RAWData");
-  if(!dataTree)return -1; // can't read file
-  RAWData data;
-  
-  data.TDCCh = new vector<int>; //List of hits and their channels
-  data.TDCTS = new vector<float>; //List of the corresponding time stamps
-  data.TDCCh->clear();
-  data.TDCTS->clear();
-  
-  dataTree->SetBranchAddress("EventNumber",    &data.iEvent);
-  dataTree->SetBranchAddress("number_of_hits", &data.TDCNHits);
-  dataTree->SetBranchAddress("TDC_channel",    &data.TDCCh);
-  dataTree->SetBranchAddress("TDC_TimeStamp",  &data.TDCTS);
-  
-  //****************** MACRO ***************************************
-  double numGoodEvents = 0; 
-  unsigned int nEntries = dataTree->GetEntries();
-  
-  for(unsigned int i = 0; i < nEntries; i++) {
-    // You are looping on all the entries (1 trigger = 1 event = 1 entry) 
-    dataTree->GetEntry(i);
-  
-
-      if(data.TDCTS->at(h) > lowTSThr && data.TDCTS->at(h) < highTSThr) {
-       numGoodEvents++;
-      break;
-      }
-    }
-  }
-  dataFile.Close();
-
-  return sqrt((numGoodEvents*(nEntries-numGoodEvents))/nEntries)/numGoodEvents;
-}*/
 
 double Analysis::thrCorr(std::string& inputFileName, double lowTSThr, double highTSThr, double lowTSThr2, double highTSThr2, int ch1, int ch2)
 {
