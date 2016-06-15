@@ -11,7 +11,7 @@
 #include <vector>
 // Analysis class
 #include "Analysis.hh"
-
+#include <TInterpreter.h>
 // Configure class
 #include "Configure.hh"
 
@@ -19,6 +19,7 @@ using namespace std;
 
 int main(int argc, char* argv[]) 
 {
+ gInterpreter->EnableAutoLoading();
   cout <<"#------------------------------------------------------------" << endl;
   cout <<"#------------------------------------------------------------" << endl;
   cout <<"#       LR-GLASS, Life is Endless Analysis."                   << endl;
