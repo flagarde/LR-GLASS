@@ -3,10 +3,11 @@
 #include<vector>
 #include<map>
 #include<utility>
-  TH1F* general_multilicity = new TH1F("General Multiplicity","General Multiplicity",1000,0,1000);
-  TH1F* nbr_cluster = new TH1F("Number of Cluster","Number of Cluster",1000,0,1000);
-  TH1F* cluster_multiplicity = new TH1F("cluster_multiplicity","cluster_multiplicity",1000,0,1000);
-  TH1F* when=new TH1F("when","when",10000,0,10000);
+  TH1F* general_multilicity = new TH1F("General Multiplicity","General Multiplicity",100,0,100);
+  TH1F* nbr_cluster = new TH1F("Number of Cluster","Number of Cluster",100,0,100);
+  TH1F* cluster_multiplicity = new TH1F("cluster_multiplicity","cluster_multiplicity",100,0,100);
+  TH1F* when=new TH1F("when","when",200000,0,100000);
+  TH1F* when2=new TH1F("distr_temp_cluster_time","distr_temp_cluster_time",2000,0,1000);
 //-------------------------------------------------------
 void Analysis::setThreshold(std::vector<double>& thr) 
 {
@@ -36,7 +37,6 @@ TGraphErrors* Analysis::Construct_Plot(std::vector<std::string>& inputFileNames,
   std::vector<double> eVol;
   for(int i = 0; i < numInFiles; i ++) 
   {
-    std::cout<<eff.size()<<std::endl;
     std::pair<double,double>eff_erroreff=Eff_ErrorEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
     if(eff_erroreff.first==-1)continue;
     else
@@ -126,9 +126,17 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
       {
         Hits_adjacents_in_time[firs].insert(Hits_adjacents_in_time[firs].end(),(it->second).begin(),(it->second).end());
         map<float,std::vector<int>>::iterator itt=it;
-        if(it!=Hits_classed_by_timestamp.end()) ++itt;
-        if(fabs(it->first-(itt->first+1))>25) firs=itt->first;
+        ++itt;
+          
+          
+        if(itt!=Hits_classed_by_timestamp.end())
+        {
+            if(fabs(it->first-itt->first)>25) firs=itt->first;
+            else when2->Fill(itt->first-it->first);
+            //std::cout<<it->first<<"  "<<itt->first<<std::endl;
+        }
       }
+      std::cout<<"ttt "<<Hits_adjacents_in_time.size()<<std::endl;
       for(std::map<float,std::vector<int>>::iterator it=Hits_adjacents_in_time.begin();it!=Hits_adjacents_in_time.end();++it)
       {
         std::vector<vector<int>>vecc;
@@ -163,7 +171,7 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
               cluster_multiplicity->Fill((Clusters[i].second)[j].size());
           }
      }
-      nbr_cluster->Fill(nbclus);
+     nbr_cluster->Fill(nbclus);
     
       
     
@@ -392,10 +400,10 @@ int Analysis::thrEffScan(std::vector<std::string>& inputFileNames, std::string& 
   TGraphErrors *thrEff = new TGraphErrors(numInFiles, thr, eff, eThr, eEff);*/
   TGraphErrors *thrEff=Construct_Plot(inputFileNames,dirName,plotName,numInFiles,lowTimeStampThr,highTimeStampThr);
   if(thrEff==nullptr) return 0;
-  std::cout<<"Here"<<std::endl;
+
   double vol = voltage[0];
-  thrEff->SetName(Form("%s Efficiency, voltage = %.2fV", plotName, vol));
-  thrEff->SetTitle(Form("%s Efficiency, voltage = %.2fV", plotName, vol));
+  thrEff->SetName(Form("%s Efficiency, voltage = %.2fV", plotName.c_str(), vol));
+  thrEff->SetTitle(Form("%s Efficiency, voltage = %.2fV", plotName.c_str(), vol));
   thrEff->GetXaxis()->SetTitle("Threshold, mV");
   thrEff->GetYaxis()->SetTitle("Efficiency");
   thrEff->SetMarkerStyle(8);
@@ -404,11 +412,12 @@ int Analysis::thrEffScan(std::vector<std::string>& inputFileNames, std::string& 
   thrEff->SetLineWidth(1);
   dirName+="_param_lowTSThr-"+std::to_string(lowTimeStampThr)+"_highTSThr-"+std::to_string(highTimeStampThr)+"_"; 
   writeObject(dirName, thrEff);
-    std::string name="tt";
+    std::string name="Lagarde_Multi";
   writeObject(name,general_multilicity);
   writeObject(name,when);
   writeObject(name,cluster_multiplicity);
   writeObject(name,nbr_cluster);
+  writeObject(name,when2);
   thrEff->Delete();
   return 1;
 }
@@ -436,8 +445,8 @@ int Analysis::volEffScan(std::vector<std::string>& inputFileNames, std::string& 
     TGraphErrors *volEff=Construct_Plot(inputFileNames,dirName,plotName,numInFiles,lowTimeStampThr,highTimeStampThr);
     if(volEff==nullptr) return 0;
     double thr = threshold[0];
-    volEff->SetName(Form("%s Efficiency, threshold = %.2fmV", plotName, thr));
-    volEff->SetTitle(Form("%s Efficiency, threshold = %.2fmV", plotName, thr));
+    volEff->SetName(Form("%s Efficiency, threshold = %.2fmV", plotName.c_str(), thr));
+    volEff->SetTitle(Form("%s Efficiency, threshold = %.2fmV", plotName.c_str(), thr));
     volEff->GetXaxis()->SetTitle("Voltage, V");
     volEff->GetYaxis()->SetTitle("Efficiency");
     volEff->GetYaxis()->SetRange(0.3, 0);
@@ -520,7 +529,7 @@ int Analysis::noiseHist(std::string& inputFileName,std::string& dirName,std::str
     }
   }
   dataFile.Close();
-  hHit->SetTitle(Form("From left to right: A,B,C,D. %s", plotName));
+  hHit->SetTitle(Form("From left to right: A,B,C,D. %s", plotName.c_str()));
   hHit->Scale(1/acqTime);
   hHit->SetStats(0);
   TCanvas *c1 = new TCanvas(plotName.c_str());
@@ -592,7 +601,7 @@ int Analysis::stripHist(std::string& inputFileName,std::string& dirName,std::str
     }
   }
   dataFile.Close();
-  hHit->SetTitle(Form("%s", plotName));
+  hHit->SetTitle(Form("%s", plotName.c_str()));
   hHit->SetStats(0);
   TCanvas *c1 = new TCanvas(plotName.c_str());
   hHit->Draw();
