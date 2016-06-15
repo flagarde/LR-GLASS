@@ -8,6 +8,7 @@
   TH1F* cluster_multiplicity = new TH1F("cluster_multiplicity","cluster_multiplicity",100,0,100);
   TH1F* when=new TH1F("when","when",200000,0,100000);
   TH1F* when2=new TH1F("distr_temp_cluster_time","distr_temp_cluster_time",2000,0,1000);
+  TH1F* center=new TH1F("center","center",10000,0,10000);
 //-------------------------------------------------------
 void Analysis::setThreshold(std::vector<double>& thr) 
 {
@@ -164,68 +165,30 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
       int nbclus=0;
       for(unsigned int i=0;i!=Clusters.size();++i)
       {
+          
           when->Fill(Clusters[i].first);
           nbclus+=(Clusters[i].second).size();
           for(unsigned int j=0;j!=(Clusters[i].second).size();++j)
           {
+              double min=999999999;
+              double max=-99999999;
               cluster_multiplicity->Fill((Clusters[i].second)[j].size());
+              for(unsigned int k=0;k!=(Clusters[i].second)[j].size();++k)
+              {
+                 if((Clusters[i].second)[j][k]<min)min=(Clusters[i].second)[j][k];
+                 if((Clusters[i].second)[j][k]>max)max=(Clusters[i].second)[j][k];
+              }
+              center->Fill((max+min)/2);
           }
+          
      }
      nbr_cluster->Fill(nbclus);
-    
-      
-    
-      
-      
-      
-      
-      
       
     }
   dataFile.Close();
   return std::pair<double,double>(numGoodEvents/nEntries,sqrt((numGoodEvents*(nEntries-numGoodEvents))/nEntries)/numGoodEvents);
 }
 
-/*double Analysis::thrEffErr(std::string& inputFileName, double lowTSThr, double highTSThr)
-{
-  //****************** ROOT FILE ***********************************
-  // input ROOT data file containing the RAWData TTree that we'll
-  // link to our RAWData structure
-  
-  TFile   dataFile(inputFileName.c_str());
-  TTree*  dataTree = (TTree*)dataFile.Get("RAWData");
-  if(!dataTree)return -1; // can't read file
-  RAWData data;
-  
-  data.TDCCh = new vector<int>; //List of hits and their channels
-  data.TDCTS = new vector<float>; //List of the corresponding time stamps
-  data.TDCCh->clear();
-  data.TDCTS->clear();
-  
-  dataTree->SetBranchAddress("EventNumber",    &data.iEvent);
-  dataTree->SetBranchAddress("number_of_hits", &data.TDCNHits);
-  dataTree->SetBranchAddress("TDC_channel",    &data.TDCCh);
-  dataTree->SetBranchAddress("TDC_TimeStamp",  &data.TDCTS);
-  
-  //****************** MACRO ***************************************
-  double numGoodEvents = 0; 
-  unsigned int nEntries = dataTree->GetEntries();
-  
-  for(unsigned int i = 0; i < nEntries; i++) {
-    // You are looping on all the entries (1 trigger = 1 event = 1 entry) 
-    dataTree->GetEntry(i);
-  
-
-      if(data.TDCTS->at(h) > lowTSThr && data.TDCTS->at(h) < highTSThr) {
-       numGoodEvents++;
-      break;
-      }
-    }
-  }
-  dataFile.Close();
-
-  return sqrt((numGoodEvents*(nEntries-numGoodEvents))/nEntries)/numGoodEvents;
-}*/
 
 double Analysis::thrCorr(std::string& inputFileName, double lowTSThr, double highTSThr, double lowTSThr2, double highTSThr2, int ch1, int ch2)
 {
@@ -379,25 +342,6 @@ double Analysis::noise(std::string& inputFileName, double acqTime)
 int Analysis::thrEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,  int numInFiles,
                           double lowTimeStampThr, double highTimeStampThr)
 {
-  /*double eff[numInFiles];
-  double eEff[numInFiles];
-  double thr[numInFiles];
-  double eThr[numInFiles];
-  for(int i = 0; i < numInFiles; i ++) 
-  {
-    std::pair<double,double>eff_erroreff=Eff_ErrorEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
-    if(eff_erroreff.first== -1)continue;
-    else
-    {
-      eff[i] =eff_erroreff.first; //thrEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
-      eEff[i] =eff_erroreff.second ;//thrEffErr(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
-      thr[i] = threshold[i];
-      eThr[i] = 0;
-    }
-  }
-  
-  
-  TGraphErrors *thrEff = new TGraphErrors(numInFiles, thr, eff, eThr, eEff);*/
   TGraphErrors *thrEff=Construct_Plot(inputFileNames,dirName,plotName,numInFiles,lowTimeStampThr,highTimeStampThr);
   if(thrEff==nullptr) return 0;
 
@@ -418,6 +362,7 @@ int Analysis::thrEffScan(std::vector<std::string>& inputFileNames, std::string& 
   writeObject(name,cluster_multiplicity);
   writeObject(name,nbr_cluster);
   writeObject(name,when2);
+  writeObject(name,center);
   thrEff->Delete();
   return 1;
 }
@@ -425,23 +370,6 @@ int Analysis::thrEffScan(std::vector<std::string>& inputFileNames, std::string& 
 int Analysis::volEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName, int numInFiles,
                           double lowTimeStampThr, double highTimeStampThr)
 {
-  /*std::vector<double> eff;
-  std::vector<double> eEff;
-  std::vector<double> vol;
-  std::vector<double> eVol;
-  for(int i = 0; i < numInFiles; i ++) 
-  {
-  
-    std::pair<double,double>eff_erroreff=Eff_ErrorEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
-    if(eff_erroreff.first== -1)continue;
-    else
-    {
-      eff[i] =eff_erroreff.first; //thrEff(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
-      eEff[i] =eff_erroreff.second ;//thrEffErr(inputFileNames[i], lowTimeStampThr, highTimeStampThr);
-      vol[i] = voltage[i];
-      eVol[i] = 0;
-    }
-  }*/
     TGraphErrors *volEff=Construct_Plot(inputFileNames,dirName,plotName,numInFiles,lowTimeStampThr,highTimeStampThr);
     if(volEff==nullptr) return 0;
     double thr = threshold[0];
