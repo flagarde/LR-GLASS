@@ -18,6 +18,32 @@
  std::map<std::string,TH1F*> clu;
  //=new TH1F("multipicity_clusterised","multipicity_clusterised",100,0,100);
 //-------------------------------------------------------
+
+void Analysis::WriteMe()
+{
+   std::string name="Lagarde_Multi";
+  for(std::map<std::string,TH1F*>::iterator it =clu.begin();it!=clu.end();++it)
+  {
+     static int i=1;
+     std::string namee=name+"_File"+it->first;
+     writeObject(namee,general_multilicity[it->first]);
+     writeObject(namee,when[it->first]);
+     writeObject(namee,cluster_multiplicity[it->first]);
+     writeObject(namee,nbr_cluster[it->first]);
+     writeObject(namee,when2[it->first]);
+     writeObject(namee,center[it->first]);
+     writeObject(namee,clu[it->first]);
+     delete general_multilicity[it->first];
+     delete when[it->first];
+     delete cluster_multiplicity[it->first];
+     delete nbr_cluster[it->first];
+     delete when2[it->first];
+     delete center[it->first];
+     delete clu[it->first];
+  }
+ 
+}
+
 void Analysis::setThreshold(std::vector<double>& thr) 
 {
   threshold = thr;
@@ -374,27 +400,7 @@ int Analysis::thrEffScan(std::vector<std::string>& inputFileNames, std::string& 
   thrEff->SetLineWidth(1);
   dirName+="_param_lowTSThr-"+std::to_string(lowTimeStampThr)+"_highTSThr-"+std::to_string(highTimeStampThr)+"_"; 
   writeObject(dirName, thrEff);
-    std::string name="Lagarde_Multi";
-  for(std::map<std::string,TH1F*>::iterator it =clu.begin();it!=clu.end();++it)
-  {
-     static int i=1;
-     std::string namee=name+"_File"+it->first;
-     writeObject(namee,general_multilicity[it->first]);
-     writeObject(namee,when[it->first]);
-     writeObject(namee,cluster_multiplicity[it->first]);
-     writeObject(namee,nbr_cluster[it->first]);
-     writeObject(namee,when2[it->first]);
-     writeObject(namee,center[it->first]);
-     writeObject(namee,clu[it->first]);
-     delete general_multilicity[it->first];
-     delete when[it->first];
-     delete cluster_multiplicity[it->first];
-     delete nbr_cluster[it->first];
-     delete when2[it->first];
-     delete center[it->first];
-     delete clu[it->first];
-  }
- 
+  WriteMe();
   thrEff->Delete();
   return 1;
 }
@@ -416,6 +422,7 @@ int Analysis::volEffScan(std::vector<std::string>& inputFileNames, std::string& 
     volEff->SetLineWidth(1);
     dirName+="_param_lowTSThr-"+std::to_string(lowTimeStampThr)+"_highTSThr-"+std::to_string(highTimeStampThr)+"_"; 
     writeObject(dirName, volEff);
+    WriteMe();
     volEff->Delete();
   return 1;
 }
@@ -492,8 +499,6 @@ int Analysis::noiseHist(std::string& inputFileName,std::string& dirName,std::str
   hHit->SetTitle(Form("From left to right: A,B,C,D. %s", plotName.c_str()));
   hHit->Scale(1/acqTime);
   hHit->SetStats(0);
-  TCanvas *c1 = new TCanvas(plotName.c_str());
-  hHit->Draw();
   Float_t ymax = hHit->GetMaximum();
   TLine *line = new TLine(firstCh - 0.5, ymax, firstCh - 0.5, 0);
   TLine *line2 = new TLine(firstCh+1*31 + 0.5, ymax, firstCh+1*31+0.5, 0);
@@ -507,8 +512,8 @@ int Analysis::noiseHist(std::string& inputFileName,std::string& dirName,std::str
   line2->Draw(); 
   line3->Draw(); 
   line4->Draw();
-  dirName+="_param_"+std::to_string(acqTime); 
-  writeObject(dirName, c1);
+  dirName+="param_"+std::to_string(acqTime); 
+  writeObject(dirName, hHit);
   return 1;
 }
 
@@ -563,11 +568,8 @@ int Analysis::stripHist(std::string& inputFileName,std::string& dirName,std::str
   dataFile.Close();
   hHit->SetTitle(Form("%s", plotName.c_str()));
   hHit->SetStats(0);
-  TCanvas *c1 = new TCanvas(plotName.c_str());
-  hHit->Draw();
-
-  dirName+="_param_lowTsThr-"+std::to_string(lowTSThr)+"_highTSThr-"+std::to_string(highTSThr);
-  writeObject(dirName, c1);
+  dirName+="param_lowTsThr-"+std::to_string(lowTSThr)+"_highTSThr-"+std::to_string(highTSThr);
+  writeObject(dirName, hHit);
   return 1;
 }
 

@@ -33,7 +33,7 @@ public:
   int loop(std::vector<std::string>& inputFileNames, std::string&  dirName,std::string& plotName, int numInFiles, std::string&  nameType, std::vector<double>& param, int numParam);
 
 protected:
-
+  void WriteMe();
   std::vector<double>threshold;
   std::vector<double>voltage;
   int firstCh;
