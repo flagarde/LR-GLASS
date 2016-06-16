@@ -3,12 +3,20 @@
 #include<vector>
 #include<map>
 #include<utility>
-  TH1F* general_multilicity = new TH1F("General Multiplicity","General Multiplicity",100,0,100);
-  TH1F* nbr_cluster = new TH1F("Number of Cluster","Number of Cluster",100,0,100);
-  TH1F* cluster_multiplicity = new TH1F("cluster_multiplicity","cluster_multiplicity",100,0,100);
-  TH1F* when=new TH1F("when","when",200000,0,100000);
-  TH1F* when2=new TH1F("distr_temp_cluster_time","distr_temp_cluster_time",2000,0,1000);
-  TH1F* center=new TH1F("center","center",10000,0,10000);
+  std::map<std::string,TH1F*>general_multilicity;
+  // new TH1F("General Multiplicity","General Multiplicity",100,0,100);
+  std::map<std::string,TH1F*> nbr_cluster;
+   //= new TH1F("Number of Cluster","Number of Cluster",100,0,100);
+  std::map<std::string,TH1F*>cluster_multiplicity;
+   //= new TH1F("cluster_multiplicity","cluster_multiplicity",100,0,100);
+  std::map<std::string,TH1F*>when;
+  //=new TH1F("when","when",200000,0,100000);
+  std::map<std::string,TH1F*>when2;
+  //=new TH1F("distr_temp_cluster_time","distr_temp_cluster_time",2000,0,1000);
+  std::map<std::string,TH1F*>center;
+  //=new TH1F("center","center",10000,0,10000);
+ std::map<std::string,TH1F*> clu;
+ //=new TH1F("multipicity_clusterised","multipicity_clusterised",100,0,100);
 //-------------------------------------------------------
 void Analysis::setThreshold(std::vector<double>& thr) 
 {
@@ -61,6 +69,13 @@ TGraphErrors* Analysis::Construct_Plot(std::vector<std::string>& inputFileNames,
 std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, double lowTSThr, double highTSThr)
 {
 
+  general_multilicity[inputFileName]=new TH1F("General Multiplicity","General Multiplicity",100,0,100);
+  nbr_cluster[inputFileName]= new TH1F("Number of Cluster","Number of Cluster",100,0,100);
+  cluster_multiplicity[inputFileName]= new TH1F("cluster_multiplicity","cluster_multiplicity",100,0,100);
+  when[inputFileName]=new TH1F("when","when",200000,0,100000);
+  when2[inputFileName]=new TH1F("distr_temp_cluster_time","distr_temp_cluster_time",2000,0,1000);
+  center[inputFileName]=new TH1F("center","center",10000,0,10000);
+  clu[inputFileName]=new TH1F("multipicity_clusterised","multipicity_clusterised",100,0,100);
   //****************** ROOT FILE ***********************************
   // input ROOT data file containing the RAWData TTree that we'll
   // link to our RAWData structure
@@ -121,7 +136,7 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
     {
       numGoodEvents++;
     }
-      general_multilicity->Fill(isCh);
+      general_multilicity[inputFileName]->Fill(isCh);
      float firs=(Hits_classed_by_timestamp.begin())->first;
       for(std::map<float,std::vector<int>>::iterator it=Hits_classed_by_timestamp.begin();it!=Hits_classed_by_timestamp.end();++it)
       {
@@ -132,12 +147,12 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
           
         if(itt!=Hits_classed_by_timestamp.end())
         {
-            if(fabs(it->first-itt->first)>25) firs=itt->first;
-            else when2->Fill(itt->first-it->first);
+            if(fabs(it->first-itt->first)>1) firs=itt->first;
+            else when2[inputFileName]->Fill(itt->first-it->first);
             //std::cout<<it->first<<"  "<<itt->first<<std::endl;
         }
       }
-      std::cout<<"ttt "<<Hits_adjacents_in_time.size()<<std::endl;
+      //std::cout<<"ttt "<<Hits_adjacents_in_time.size()<<std::endl;
       for(std::map<float,std::vector<int>>::iterator it=Hits_adjacents_in_time.begin();it!=Hits_adjacents_in_time.end();++it)
       {
         std::vector<vector<int>>vecc;
@@ -166,23 +181,26 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
       for(unsigned int i=0;i!=Clusters.size();++i)
       {
           
-          when->Fill(Clusters[i].first);
+          when[inputFileName]->Fill(Clusters[i].first);
           nbclus+=(Clusters[i].second).size();
+          int clus_hit_sum=0;
           for(unsigned int j=0;j!=(Clusters[i].second).size();++j)
           {
               double min=999999999;
               double max=-99999999;
-              cluster_multiplicity->Fill((Clusters[i].second)[j].size());
+              cluster_multiplicity[inputFileName]->Fill((Clusters[i].second)[j].size());
+              clus_hit_sum+=(Clusters[i].second)[j].size();
               for(unsigned int k=0;k!=(Clusters[i].second)[j].size();++k)
               {
                  if((Clusters[i].second)[j][k]<min)min=(Clusters[i].second)[j][k];
                  if((Clusters[i].second)[j][k]>max)max=(Clusters[i].second)[j][k];
               }
-              center->Fill((max+min)/2);
+              center[inputFileName]->Fill((max+min)/2);
           }
-          
+          clu[inputFileName]->Fill(clus_hit_sum);
      }
-     nbr_cluster->Fill(nbclus);
+     nbr_cluster[inputFileName]->Fill(nbclus);
+     
       
     }
   dataFile.Close();
@@ -357,12 +375,26 @@ int Analysis::thrEffScan(std::vector<std::string>& inputFileNames, std::string& 
   dirName+="_param_lowTSThr-"+std::to_string(lowTimeStampThr)+"_highTSThr-"+std::to_string(highTimeStampThr)+"_"; 
   writeObject(dirName, thrEff);
     std::string name="Lagarde_Multi";
-  writeObject(name,general_multilicity);
-  writeObject(name,when);
-  writeObject(name,cluster_multiplicity);
-  writeObject(name,nbr_cluster);
-  writeObject(name,when2);
-  writeObject(name,center);
+  for(std::map<std::string,TH1F*>::iterator it =clu.begin();it!=clu.end();++it)
+  {
+     static int i=1;
+     std::string namee=name+"_File"+it->first;
+     writeObject(namee,general_multilicity[it->first]);
+     writeObject(namee,when[it->first]);
+     writeObject(namee,cluster_multiplicity[it->first]);
+     writeObject(namee,nbr_cluster[it->first]);
+     writeObject(namee,when2[it->first]);
+     writeObject(namee,center[it->first]);
+     writeObject(namee,clu[it->first]);
+     delete general_multilicity[it->first];
+     delete when[it->first];
+     delete cluster_multiplicity[it->first];
+     delete nbr_cluster[it->first];
+     delete when2[it->first];
+     delete center[it->first];
+     delete clu[it->first];
+  }
+ 
   thrEff->Delete();
   return 1;
 }
