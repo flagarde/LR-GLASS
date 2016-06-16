@@ -24,7 +24,7 @@ struct RAWData
     vector<float>  *TDCTS;      //List of the corresponding time stamps
 };
 
-class Analysis : public OutFileRoot
+class Analysis:public OutFileRoot
 {
 public:
   void setThreshold(std::vector<double>& threshold);

@@ -19,11 +19,18 @@ using namespace std;
 
 int main(int argc, char* argv[]) 
 {
+  std::system("clear");
  gInterpreter->EnableAutoLoading();
-  cout <<"#------------------------------------------------------------" << endl;
-  cout <<"#------------------------------------------------------------" << endl;
-  cout <<"#       LR-GLASS, Life is Endless Analysis."                   << endl;
-  cout <<"#------------------------------------------------------------" << endl;
+  cout <<"#------------------------------------------------------------#" << endl;
+  cout <<"#------------------------------------------------------------#" << endl;
+  cout<<"#      m      mmmmm           mmm  mmmmm  mmmmm    mmm       #"<<endl;
+  cout<<"#      #      #   \"#        m\"   \" #   \"# #   \"# m\"   \"      #"<<endl;
+  cout<<"#      #      #mmmm\"        #   mm #mmmm\" #mmm#\" #           #"<<endl;
+  cout<<"#      #      #   \"m  \"\"\"   #    # #   \"m #      #           #"<<endl;
+  cout<<"#      mmmmm  #    m         \"mmm\" #    \" #       \"mmm\"      #"<<endl;
+  cout <<"#------------------------------------------------------------#" << endl;
+  cout <<"#       LR-GLASS, Life is Endless Analysis.                  #"                   << endl;
+  cout <<"#------------------------------------------------------------#" << endl;
   if (argc < 3) {
     cout <<"#------------------------------------------------------------" << endl;
     cout <<"To run LR-GLASS:                                           " << endl;

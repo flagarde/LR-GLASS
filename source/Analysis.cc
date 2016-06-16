@@ -4,19 +4,12 @@
 #include<map>
 #include<utility>
   std::map<std::string,TH1F*>general_multilicity;
-  // new TH1F("General Multiplicity","General Multiplicity",100,0,100);
   std::map<std::string,TH1F*> nbr_cluster;
-   //= new TH1F("Number of Cluster","Number of Cluster",100,0,100);
   std::map<std::string,TH1F*>cluster_multiplicity;
-   //= new TH1F("cluster_multiplicity","cluster_multiplicity",100,0,100);
-  std::map<std::string,TH1F*>when;
-  //=new TH1F("when","when",200000,0,100000);
+  std::map<std::string,TH1F*>when;;
   std::map<std::string,TH1F*>when2;
-  //=new TH1F("distr_temp_cluster_time","distr_temp_cluster_time",2000,0,1000);
   std::map<std::string,TH1F*>center;
-  //=new TH1F("center","center",10000,0,10000);
  std::map<std::string,TH1F*> clu;
- //=new TH1F("multipicity_clusterised","multipicity_clusterised",100,0,100);
 //-------------------------------------------------------
 
 void Analysis::WriteMe()
@@ -94,14 +87,15 @@ TGraphErrors* Analysis::Construct_Plot(std::vector<std::string>& inputFileNames,
 //-------------------------------------------------------
 std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, double lowTSThr, double highTSThr)
 {
-
-  general_multilicity[inputFileName]=new TH1F("General Multiplicity","General Multiplicity",100,0,100);
-  nbr_cluster[inputFileName]= new TH1F("Number of Cluster","Number of Cluster",100,0,100);
-  cluster_multiplicity[inputFileName]= new TH1F("cluster_multiplicity","cluster_multiplicity",100,0,100);
-  when[inputFileName]=new TH1F("when","when",200000,0,100000);
-  when2[inputFileName]=new TH1F("distr_temp_cluster_time","distr_temp_cluster_time",2000,0,1000);
-  center[inputFileName]=new TH1F("center","center",10000,0,10000);
-  clu[inputFileName]=new TH1F("multipicity_clusterised","multipicity_clusterised",100,0,100);
+  static int nn=0;
+  general_multilicity[inputFileName]=new TH1F(("General Multiplicity"+std::to_string(nn)).c_str(),"General Multiplicity",100,0,100);
+  nbr_cluster[inputFileName]= new TH1F(("Number of Cluster"+std::to_string(nn)).c_str(),"Number of Cluster",100,0,100);
+  cluster_multiplicity[inputFileName]= new TH1F(("cluster_multiplicity"+std::to_string(nn)).c_str(),"cluster_multiplicity",100,0,100);
+  when[inputFileName]=new TH1F(("when"+std::to_string(nn)).c_str(),"when",200000,0,100000);
+  when2[inputFileName]=new TH1F(("distr_temp_cluster_time"+std::to_string(nn)).c_str(),"distr_temp_cluster_time",2000,0,1000);
+  center[inputFileName]=new TH1F(("center"+std::to_string(nn)).c_str(),"center",10000,0,10000);
+  clu[inputFileName]=new TH1F(("multipicity_clusterised"+std::to_string(nn)).c_str(),"multipicity_clusterised",100,0,100);
+  ++nn;
   //****************** ROOT FILE ***********************************
   // input ROOT data file containing the RAWData TTree that we'll
   // link to our RAWData structure
