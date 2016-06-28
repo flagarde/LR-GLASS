@@ -3,21 +3,42 @@
 #include<vector>
 #include<map>
 #include<utility>
+#include "TH2F.h"
   std::map<std::string,TH1F*>general_multilicity;
   std::map<std::string,TH1F*> nbr_cluster;
   std::map<std::string,TH1F*>cluster_multiplicity;
   std::map<std::string,TH1F*>when;;
   std::map<std::string,TH1F*>when2;
   std::map<std::string,TH1F*>center;
- std::map<std::string,TH1F*> clu;
+  std::map<std::string,TH1F*> clu;
+  std::map<std::string,std::map<std::string,TH2F*>> Correlation;
+  std::map<std::string,std::map<std::string,TH1F*>> Correlation_time;
+  std::vector<double>Val{0,20};
 //-------------------------------------------------------
 
 void Analysis::WriteMe()
 {
    std::string name="Lagarde_Multi";
+  for(std::map<std::string,std::map<std::string,TH2F*>>::iterator it=Correlation.begin();it!=Correlation.end();++it)
+  {
+    std::string namee=name+"_File"+it->first;
+    for(std::map<std::string,TH2F*>::iterator itt =Correlation[it->first].begin();itt!=Correlation[it->first].end();++itt)
+    {
+      writeObject(namee,Correlation[it->first][itt->first]);
+      delete Correlation[it->first][itt->first];
+    }
+  }
+  for(std::map<std::string,std::map<std::string,TH1F*>>::iterator it=Correlation_time.begin();it!=Correlation_time.end();++it)
+  {
+    std::string namee=name+"_File"+it->first;
+    for(std::map<std::string,TH1F*>::iterator itt =Correlation_time[it->first].begin();itt!=Correlation_time[it->first].end();++itt)
+    {
+      writeObject(namee,Correlation_time[it->first][itt->first]);
+      delete Correlation_time[it->first][itt->first];
+    }
+  }
   for(std::map<std::string,TH1F*>::iterator it =clu.begin();it!=clu.end();++it)
   {
-     static int i=1;
      std::string namee=name+"_File"+it->first;
      writeObject(namee,general_multilicity[it->first]);
      writeObject(namee,when[it->first]);
@@ -88,6 +109,12 @@ TGraphErrors* Analysis::Construct_Plot(std::vector<std::string>& inputFileNames,
 std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, double lowTSThr, double highTSThr)
 {
   static int nn=0;
+  
+  for(unsigned int o=0;o!=Val.size()-1;++o) 
+  {
+    Correlation[inputFileName][std::to_string(Val[o])]=new TH2F(("Correlation"+std::to_string(nn)+"_"+std::to_string(Val[o])+"_"+std::to_string(Val[o+1])).c_str(),"Correlation",fabs(firstCh-lastCh),firstCh,lastCh,fabs(firstCh-lastCh),firstCh,lastCh);
+    Correlation_time[inputFileName][std::to_string(Val[o])]=new TH1F(("Correlation_time_dist"+std::to_string(nn)+"_"+std::to_string(Val[o])).c_str(),"Correlation_time_dist",int(2*Val[o+1]+2),-Val[o]-1,Val[o+1]+1);
+  }
   general_multilicity[inputFileName]=new TH1F(("General Multiplicity"+std::to_string(nn)).c_str(),"General Multiplicity",100,0,100);
   nbr_cluster[inputFileName]= new TH1F(("Number of Cluster"+std::to_string(nn)).c_str(),"Number of Cluster",100,0,100);
   cluster_multiplicity[inputFileName]= new TH1F(("cluster_multiplicity"+std::to_string(nn)).c_str(),"cluster_multiplicity",100,0,100);
@@ -96,6 +123,7 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
   center[inputFileName]=new TH1F(("center"+std::to_string(nn)).c_str(),"center",10000,0,10000);
   clu[inputFileName]=new TH1F(("multipicity_clusterised"+std::to_string(nn)).c_str(),"multipicity_clusterised",100,0,100);
   ++nn;
+  std::cout<<nn<<std::endl;
   //****************** ROOT FILE ***********************************
   // input ROOT data file containing the RAWData TTree that we'll
   // link to our RAWData structure
@@ -119,8 +147,7 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
   double numGoodEvents = 0.0; 
   unsigned int nEntries = dataTree->GetEntries();
   for(unsigned int i = 0; i < nEntries; i++) 
-  {
-  
+  {        
       std::map<float,std::vector<int>>Hits_classed_by_timestamp;
   std::map<float,std::vector<int>>Hits_adjacents_in_time;
   std::vector<std::pair<float,std::vector<std::vector<int>>>>Clusters;
@@ -129,7 +156,28 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
     
     for(int h = 0; h < data.TDCNHits; h++) 
     {
-      bool yes=true;
+    
+         for(int l = 0; l < data.TDCNHits; l++) 
+        { 
+          if(data.TDCTS->at(l) > lowTSThr && data.TDCTS->at(l) < highTSThr && data.TDCCh->at(l) >= firstCh && data.TDCCh->at(l) <= lastCh)
+          {
+            for(int val=0;val!=Val.size();++val)
+            {
+              if( fabs(data.TDCTS->at(h)-data.TDCTS->at(l))<=Val[val])
+              {
+                
+                for(int y=0;y!=val;++y) 
+                {
+                  //std::cout<<data.TDCCh->at(h)<<"  "<<data.TDCCh->at(l)<<" "<<data.TDCTS->at(h)-data.TDCTS->at(l)<<std::endl;
+                  Correlation[inputFileName][std::to_string(Val[y])]->Fill(data.TDCCh->at(h),data.TDCCh->at(l));
+                  Correlation_time[inputFileName][std::to_string(Val[y])]->Fill(data.TDCTS->at(h)-data.TDCTS->at(l));
+                }
+              }       
+            }  
+          } 
+        }
+    
+      bool yes=true;         
       if(data.TDCTS->at(h) > lowTSThr && data.TDCTS->at(h) < highTSThr && data.TDCCh->at(h) >= firstCh && data.TDCCh->at(h) <= lastCh) 
       {
         for(int i = 0; i < numChMask; i++) 
@@ -143,6 +191,7 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
         }
         if(yes==true)
         {
+            ////////////////////
             //std::cout<<data.TDCTS->at(h)<<"  "<<data.TDCCh->at(h)<<std::endl;
             if(Hits_classed_by_timestamp.find(data.TDCTS->at(h))==Hits_classed_by_timestamp.end())Hits_classed_by_timestamp.insert(std::pair<float,std::vector<int>>(data.TDCTS->at(h),std::vector<int>()));
             Hits_classed_by_timestamp[data.TDCTS->at(h)].push_back(data.TDCCh->at(h));
@@ -155,7 +204,7 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
     if(isCh>0) 
     {
       numGoodEvents++;
-    }
+    
       general_multilicity[inputFileName]->Fill(isCh);
      float firs=(Hits_classed_by_timestamp.begin())->first;
       for(std::map<float,std::vector<int>>::iterator it=Hits_classed_by_timestamp.begin();it!=Hits_classed_by_timestamp.end();++it)
@@ -167,7 +216,7 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
           
         if(itt!=Hits_classed_by_timestamp.end())
         {
-            if(fabs(it->first-itt->first)>1) firs=itt->first;
+            if(fabs(it->first-itt->first)>20) firs=itt->first;
             else when2[inputFileName]->Fill(itt->first-it->first);
             //std::cout<<it->first<<"  "<<itt->first<<std::endl;
         }
@@ -223,102 +272,11 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
      
       
     }
+    }
   dataFile.Close();
   return std::pair<double,double>(numGoodEvents/nEntries,sqrt((numGoodEvents*(nEntries-numGoodEvents))/nEntries)/numGoodEvents);
 }
 
-
-double Analysis::thrCorr(std::string& inputFileName, double lowTSThr, double highTSThr, double lowTSThr2, double highTSThr2, int ch1, int ch2)
-{
-  //****************** ROOT FILE ***********************************
-  // input ROOT data file containing the RAWData TTree that we'll
-  // link to our RAWData structure
-  
-  TFile   dataFile(inputFileName.c_str());
-  TTree*  dataTree = (TTree*)dataFile.Get("RAWData");
-  if(!dataTree)
-    return -1; // can't read file
-  RAWData data;
-  
-  data.TDCCh = new vector<int>; //List of hits and their channels
-  data.TDCTS = new vector<float>; //List of the corresponding time stamps
-  data.TDCCh->clear();
-  data.TDCTS->clear();
-  
-  dataTree->SetBranchAddress("EventNumber",    &data.iEvent);
-  dataTree->SetBranchAddress("number_of_hits", &data.TDCNHits);
-  dataTree->SetBranchAddress("TDC_channel",    &data.TDCCh);
-  dataTree->SetBranchAddress("TDC_TimeStamp",  &data.TDCTS);
-  
-  //****************** MACRO ***************************************
-  double corr = 0; 
-  double d1 = 0; 
-  double d2 = 0; 
-  double Hit1 = 0; 
-  double sumHit1 = 0; 
-  double numHit1 = 0; 
-  double middleHit1 = 0; 
-  double Hit2 = 0; 
-  double sumHit2 = 0; 
-  double numHit2 = 0; 
-  double middleHit2 = 0; 
-  unsigned int nEntries = dataTree->GetEntries();
-  
-  for(unsigned int i = 0; i < nEntries; i++) {
-    // You are looping on all the entries (1 trigger = 1 event = 1 entry) 
-    dataTree->GetEntry(i);
-  
-    //Loop over the TDC hits
-    for(int h = 0; h < data.TDCNHits; h++) {
-      /* You are looping on the hits recorded for entry i
-         Here do whatever you need to
-         You can for example print out all the hit information */
-    
-//      printf("Hit %u - Time stamp = %f", data.TDCCh->at(h),data.TDCTS->at(h));
-//      cout << endl;
-      if(data.TDCTS->at(h) > lowTSThr && data.TDCTS->at(h) < highTSThr 
-         && data.TDCCh->at(h) >= ch1 && data.TDCCh->at(h) <= ch2) {
-       sumHit1 = sumHit1 + 1; 
-      }
-      if(data.TDCTS->at(h) > lowTSThr2 && data.TDCTS->at(h) < highTSThr2 
-         && data.TDCCh->at(h) >= ch1 && data.TDCCh->at(h) <= ch2) {
-       sumHit2 = sumHit2 + 1; 
-      }
-    }
-  }
-  middleHit1 = sumHit1/nEntries;
-  middleHit2 = sumHit2/nEntries;
-  for(unsigned int i = 0; i < nEntries; i++) {
-    sumHit1 = 0; 
-    sumHit2 = 0; 
-    // You are looping on all the entries (1 trigger = 1 event = 1 entry) 
-    dataTree->GetEntry(i);
-  
-    //Loop over the TDC hits
-    for(int h = 0; h < data.TDCNHits; h++) {
-      /* You are looping on the hits recorded for entry i
-         Here do whatever you need to
-         You can for example print out all the hit information */
-    
-//      printf("Hit %u - Time stamp = %f", data.TDCCh->at(h),data.TDCTS->at(h));
-//      cout << endl;
-      if(data.TDCTS->at(h) > lowTSThr && data.TDCTS->at(h) < highTSThr
-         && data.TDCCh->at(h) >= ch1 && data.TDCCh->at(h) <= ch2) {
-       sumHit1 = sumHit1 +  1; 
-      }
-      if(data.TDCTS->at(h) > lowTSThr2 && data.TDCTS->at(h) < highTSThr2
-         && data.TDCCh->at(h) >= ch1 && data.TDCCh->at(h) <= ch2) {
-       sumHit2 = sumHit2 + 1; 
-      }
-    }
-      corr += (sumHit1-middleHit1)*(sumHit2-middleHit2);
-      d1 += (sumHit1-middleHit1)*(sumHit1-middleHit1);
-      d2 += (sumHit2-middleHit2)*(sumHit2-middleHit2);
-  }
-  dataFile.Close();
-
-  return corr/sqrt(d1*d2);
-}
 
 double Analysis::noise(std::string& inputFileName, double acqTime)
 {
