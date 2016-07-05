@@ -36,6 +36,6 @@ bool OutFileRoot::writeObject(std::string& dirName, TObject *object)
     outFile_->cd(dirName.c_str());
   }
   else outFile_->cd(dirName.c_str());
-  object->Write();
+  if(object!=nullptr)object->Write();
   return true;
 }

@@ -34,26 +34,18 @@ public:
 
 protected:
   void WriteMe();
+  void WriteMeShift();
   std::vector<double>threshold;
   std::vector<double>voltage;
   int firstCh;
   int lastCh;
   int numChMask;
   std::vector<int> mask;
-  TGraphErrors* Construct_Plot(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,  int numInFiles,
-                          double lowTimeStampThr, double highTimeStampThr);
-  std::pair<double,double>Eff_ErrorEff(std::string& inputFileName, double lowTSThr, double highTSThr);
-  //double thrEffErr(std::string& inputFileName, double lowTSThr, double highTSThr);
-  double thrCorr(std::string& inputFileName, double lowTSThr, double highTSThr, double lowTSThr2, double highTSThr2, int ch1, int ch2);
-  double noise(std::string& inputFileName, double acqTime);
- 
-  int thrEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,  int numInFiles,
-                 double lowTimeStapThr, double highTimeStapThr);
-  int volEffScan(std::vector<std::string>&, std::string& dirName, std::string& plotName, int numInFiles,
-                 double lowTimeStampThr, double highTimeStampThr);
-  int noiseHist(std::string& inputFileName, std::string& dirName, std::string& plotName, double acqTime);
-  int stripHist(std::string& inputFileName, std::string& dirName, std::string& plotName, double lowTSThr, double highTSThr);
-  int noiseThrScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName, int numInFiles, double acqTime);
-  int noiseVolScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName, int numInFiles, double acqTime);
+  TGraphErrors* Construct_Plot(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,  int numInFiles,double lowTimeStampThr, double highTimeStampThr,std::string na);
+  std::pair<double,double>Eff_ErrorEff(std::string& inputFileName, double lowTSThr, double highTSThr, std::string na);
+  int thrEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,  int numInFiles,double lowTimeStapThr, double highTimeStapThr,std::string,double );
+  int volEffScan(std::vector<std::string>&, std::string& dirName, std::string& plotName, int numInFiles, double lowTimeStampThr, double highTimeStampThr,std::string,double);
+  int sourceEffScan(std::vector<std::string>&, std::string& dirName, std::string& plotName, int numInFiles, double lowTimeStampThr, double highTimeStampThr,std::string,double);
+  int ShiftTime(std::vector<std::string>& inputFileNames,double lowTimeStampThr, double highTimeStampThr);
 };
 #endif
