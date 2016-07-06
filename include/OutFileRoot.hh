@@ -23,8 +23,12 @@ class OutFileRoot
 {
 public:
   ~OutFileRoot();
+  OutFileRoot(){};
+  OutFileRoot(std::string& outputFileName,std::string& outputTreeName)
+  {
+    setOutputFile(outputFileName,outputTreeName);
+  }
   bool setOutputFile(std::string& outputFileName,std::string& outputTreeName);
- // OutFileRoot(std::string& outputFileName,std::string& outputTreeName);
   bool writeObject(std::string& dirName, TObject *object);
 
 protected:

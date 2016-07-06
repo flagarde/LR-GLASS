@@ -8,9 +8,9 @@
 #include "TCanvas.h"
 #define time_range 35
 //shift vector for the noise windows in sigmas 
-std::vector<double>shift={1};
+std::vector<double>shift={};
 //time vector for correlation maps
-std::vector<double>Val{1,5,10,20,50,100};
+std::vector<double>Val{1};
 
 //Crystal ball function for signal, parameters are 0:alpha,1:n,2:mean,3:sigma,4:normalization;
 Double_t CrystalBall(Double_t *x,Double_t *par) 
@@ -460,6 +460,10 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
   when2[inputFileName+na]=new TH1F((na+"distr_temp_cluster_time"+std::to_string(nn)).c_str(),(na+"distr_temp_cluster_time").c_str(),2000,0,2000);
   center[inputFileName+na]=new TH1F((na+"center"+std::to_string(nn)).c_str(),(na+"center").c_str(),10000,0,10000);
   clu[inputFileName+na]=new TH1F((na+"multipicity_clusterised"+std::to_string(nn)).c_str(),(na+"multipicity_clusterised").c_str(),100,0,100);
+  std::string fr=na+std::to_string(nn)+"_Chamber";
+  std::string fr2=na+std::to_string(nn)+"Time_Chamber";
+  cham.CreateTH2(fr);
+  cham.CreateTH2(fr2,500);
   ++nn;
   std::cout<<"File : "<<nn-1<<std::endl;
   //****************** ROOT FILE ***********************************
@@ -493,6 +497,9 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
     
     for(int h = 0; h < data.TDCNHits; h++) 
     {
+      cham.Fill(fr,data.TDCCh->at(h));
+      cham.Fill(fr2,data.TDCCh->at(h),data.TDCTS->at(h));
+      //std::cout<<b.first<<"        "<<b.second<<std::endl;
       if((data.TDCTS->at(h)-time_dist_moy2[inputFileName][data.TDCCh->at(h)]) > lowTSThr && (data.TDCTS->at(h)-time_dist_moy2[inputFileName][data.TDCCh->at(h)]) < highTSThr && data.TDCCh->at(h) >= firstCh && data.TDCCh->at(h) <= lastCh) 
       {
          for(int l = 0; l < data.TDCNHits; l++) 
@@ -609,7 +616,10 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
      
       
     }
+    
     }
+    cham.Write(fr);
+    cham.Write(fr2);
   dataFile.Close();
   Mean_cluster_size[na].push_back(cluster_multiplicity[inputFileName+na]->GetMean());
   Mean_cluster_nbr[na].push_back(nbr_cluster[inputFileName+na]->GetMean());

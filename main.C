@@ -101,12 +101,15 @@ int main(int argc, char* argv[])
   std::cout <<"#OUTPUT FILES:"                                                << std::endl;
   std::cout << "outF=" << outputFileName << std::endl;
   std::cout <<"#------------------------------------------------------------" <<std::endl;
-
-    Analysis analysis;
+    
+    //Declare OutRoot
+    OutFileRoot out(outputFileName,outputTreeName);
+    Analysis analysis(out);
+    Chambers cham(out,inputTextFile);
+    analysis.setChambersMapping(cham);
     analysis.setThreshold(threshold);
     analysis.setVoltage(voltage);
     analysis.setMask(firstCh, lastCh, mask, numChMask);
-    analysis.setOutputFile(outputFileName, outputTreeName);
     int isLoop = analysis.loop(inputFileNames, dirName, plotName, numInFiles, nameType, param, numParam);
     if(isLoop == 1) std::cout << "The End." << std::endl;
     if(isLoop == -1) 
@@ -114,5 +117,6 @@ int main(int argc, char* argv[])
       std::cout << "ERROR: Can't read file." << std::endl;
       std::cout << "The End." << std::endl;
     }
+    //cham.Write();
   return 1;
 }
