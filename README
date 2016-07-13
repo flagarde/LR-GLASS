@@ -17,25 +17,20 @@ Content:
   example_data	  : data files for example cards
 --------------------------------------------------------------------------------
 
-Syntax: ./lrGlass outputFile.root card.txt dirName plotName 
+Syntax: ./lrGlass outputFile.root card.txt 
 
 for help execute: ./lrGlass
 
 --------------------------------------------------------------------------------
 
-Card Types: 
-	-thrEff: Calculate efficiency for threshold scan.
-	-volEff: Calculate efficiency for voltage scan.
---------------------------------------------------------------------------------
-
 Support:
 
-  Shchablo@gmail.com
+  f.lagarde@ipnl.in2p3.fr
 --------------------------------------------------------------------------------
 
 System Requirements:
 
-  - ROOT 6.05/02 CERN Library (https://root.cern.ch)
+  - ROOT CERN Library (https://root.cern.ch)
 --------------------------------------------------------------------------------
 
 
