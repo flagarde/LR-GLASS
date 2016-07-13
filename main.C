@@ -1,115 +1,70 @@
 //-------------------------------------------------------
 // Description: main file for analysis LR-GLASS test beam
-// Authors:  Shchablo, Shchablo@gmail.com
+// Authors:  
+//Shchablo, Shchablo@gmail.com 
+//Lagarde, lagarde@ipnl.in2p3.fr
 //-------------------------------------------------------
 
 // C++ includes
+#include "Colors.h"
+#include "OutFileRoot.hh"
+#include "Chambers.h"
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include "ReaderTXT.h"
+#include "ReaderCSV.h"
+#include "Reader.h"
 // Analysis class
 #include "Analysis.hh"
 #include <TInterpreter.h>
-// Configure class
-#include "Configure.hh"
 
 using namespace std;
 
 int main(int argc, char* argv[]) 
 {
-  std::system("clear");
- gInterpreter->EnableAutoLoading();
-  cout <<"#------------------------------------------------------------#" << endl;
-  cout <<"#------------------------------------------------------------#" << endl;
-  cout<<"#      m      mmmmm           mmm  mmmmm  mmmmm    mmm       #"<<endl;
-  cout<<"#      #      #   \"#        m\"   \" #   \"# #   \"# m\"   \"      #"<<endl;
-  cout<<"#      #      #mmmm\"        #   mm #mmmm\" #mmm#\" #           #"<<endl;
-  cout<<"#      #      #   \"m  \"\"\"   #    # #   \"m #      #           #"<<endl;
-  cout<<"#      mmmmm  #    m         \"mmm\" #    \" #       \"mmm\"      #"<<endl;
-  cout <<"#------------------------------------------------------------#" << endl;
-  cout <<"#       LR-GLASS, Life is Endless Analysis.                  #"                   << endl;
-  cout <<"#------------------------------------------------------------#" << endl;
-  if (argc < 3) {
-    cout <<"#------------------------------------------------------------" << endl;
-    cout <<"To run LR-GLASS:                                           " << endl;
-    cout <<"Syntax: ./lrGlass outputFile.root card.txt dirName plotName" << endl;
-    cout <<"Syntax for cards files: Use example cards." << endl;
-
+  if (argc < 3) 
+  {
+    std::cout<<red<<"#--------------------------------------------------#"<<normal<<std::endl;
+    std::cout<<red<<"# To run LR-GLASS:                                 #"<<normal<<std::endl;
+    std::cout<<red<<"# Syntax: ./lrGlass outputFile.root card.{txt|csv} #"<<normal<<std::endl;
+    std::cout<<red<<"#--------------------------------------------------#"<<normal<<std::endl;
     return 0;
   }
-  std::string outputFileName=argv[1];
-  std::string outputTreeName="default";
-  std::string inputTextFile=argv[2];
-  std::string dirName="";
-  std::string plotName="";
-  if(argc == 4) dirName=argv[3];
-  if(argc == 5) 
+  gInterpreter->EnableAutoLoading();
+  std::string ConfigFile=argv[2];
+  std::string RootFile=argv[1];
+  std::system("clear");
+  std::cout<<std::endl;
+  std::cout<<yellow<<"#------------------------------------------------------------#"<<normal<<std::endl;
+  std::cout<<yellow<<"#------------------------------------------------------------#"<<normal<<std::endl;
+  std::cout<<yellow<<"#"<<green<<"      m      mmmmm           mmm  mmmmm  mmmmm    mmm       "<<yellow<<"#"<<normal<<std::endl;
+  std::cout<<yellow<<"#"<<green<<"      #      #   \"#        m\"   \" #   \"# #   \"# m\"   \"      "<<yellow<<"#"<<normal<<std::endl;
+  std::cout<<yellow<<"#"<<green<<"      #      #mmmm\"        #   mm #mmmm\" #mmm#\" #           "<<yellow<<"#"<<normal<<std::endl;
+  std::cout<<yellow<<"#"<<green<<"      #      #   \"m  \"\"\"   #    # #   \"m #      #           "<<yellow<<"#"<<normal<<std::endl;
+  std::cout<<yellow<<"#"<<green<<"      mmmmm  #    m         \"mmm\" #    \" #       \"mmm\"      "<<yellow<<"#"<<normal<<std::endl;
+  std::cout<<yellow<<"#------------------------------------------------------------#"<<normal<<std::endl;
+  std::cout<<yellow<<"# "<<green<<"            LR-GLASS, Life is Endless Analysis.            "<<yellow<<"#"<<normal<<std::endl;
+  std::cout<<yellow<<"#------------------------------------------------------------#"<<normal<<std::endl;
+  std::cout<<std::endl;
+  Reader* reader=nullptr;
+  if(ConfigFile.rfind(".txt")!=std::string::npos&&ConfigFile.rfind(".txt")==ConfigFile.size()-4) reader= new ReaderTXT(ConfigFile);
+  else if (ConfigFile.rfind(".csv")!=std::string::npos&&ConfigFile.rfind(".csv")==ConfigFile.size()-4) reader= new ReaderCSV(ConfigFile);
+  else
   {
-    dirName=argv[3];
-    plotName=argv[4];
+    std::cout<<red<<"Please provide a .txt or .csv "<<normal<<std::endl;
+    std::exit(1);
   }
-  Configure configure;
-
-  /* get type and parameters for type */
-  /* BEGIN: */
-  int nType = 0;
-  std::string nameType="";
-  nType = configure.getType(inputTextFile, nameType);
-  if(nType == 0) return 0;
-  int numParam = configure.getNumParam(inputTextFile);
-  std::vector<double>param(numParam);
-  std::vector<std::string>nameParam(numParam);
-  configure.getParam(inputTextFile, param, nameParam);
-  int numInFiles = configure.getNumFiles(inputTextFile);
-  std::vector<std::string>inputFileNames(numInFiles);
-  if(numInFiles == 0)return 0;
-  configure.getNamesFiles(inputTextFile,inputFileNames,numInFiles);
-
-  std::vector<double>voltage(numInFiles);
-  std::vector<double>threshold(numInFiles);
-  int isThrVol = configure.getThrVolt(inputTextFile, threshold, voltage, numInFiles);
-  if(!isThrVol) 
-  {
-    std::cout << "ERROR: Check numbers of files and numbers of voltage and threshold values. It shond be the same." << std::endl;
-    return 1;
-  }
-
-  int numChMask = configure.getMaskNumParam(inputTextFile);
-  if(numChMask < 0) 
-  {
-    std::cout << "ERROR: Check Mask syntax." << std::endl;
-    return 1;
-  }
-  std::vector<int>mask(numChMask);
-  int firstCh = 0;
-  int lastCh = 0;
-  configure.getMask(inputTextFile, mask, firstCh, lastCh);
- 
-
-  std::cout <<"# INFORMATION ABOUT RUN"                                       << std::endl;
-  std::cout <<"#------------------------------------------------------------" << std::endl;
-  std::cout <<"#RUN TYPE: " << nameType << std::endl;
-  for(int i = 0; i < numParam; i++) std::cout << nameParam[i] << "=" << param[i] << std::endl;
-  std::cout <<"#INPUT FILES:"                                                << endl;
-  for(int i = 0; i < numInFiles; i++) std::cout << "inF[" << i << "]=" << inputFileNames[i] << std::endl;
-  std::cout <<"#MASK:"                                                       << std::endl;
-  std::cout << "-firstCh=" << firstCh <<std::endl;
-  std::cout << "-lastCh=" << lastCh << std::endl;
-  for(int i = 0; i < numChMask; i++) std::cout << "-ch[" << i << "]=" << mask[i] << std::endl;
-  std::cout <<"#OUTPUT FILES:"                                                << std::endl;
-  std::cout << "outF=" << outputFileName << std::endl;
-  std::cout <<"#------------------------------------------------------------" <<std::endl;
-    
-    //Declare OutRoot
-    OutFileRoot out(outputFileName,outputTreeName);
-    Analysis analysis(out);
-    Chambers cham(out,inputTextFile);
-    analysis.setChambersMapping(cham);
-    analysis.setThreshold(threshold);
-    analysis.setVoltage(voltage);
-    analysis.setMask(firstCh, lastCh, mask, numChMask);
+  if(RootFile.find(".root")!=std::string::npos&&RootFile.find(".root")==ConfigFile.size()-5)RootFile+=".root";
+  std::string type=reader->getType();
+  OutFileRoot out(RootFile);
+  Chambers cham(out,*reader);
+  Analysis analysis(out,*reader,cham);
+  analysis.ShiftTimes();
+  delete reader;
+  /*
     int isLoop = analysis.loop(inputFileNames, dirName, plotName, numInFiles, nameType, param, numParam);
     if(isLoop == 1) std::cout << "The End." << std::endl;
     if(isLoop == -1) 
@@ -117,6 +72,6 @@ int main(int argc, char* argv[])
       std::cout << "ERROR: Can't read file." << std::endl;
       std::cout << "The End." << std::endl;
     }
-    //cham.Write();
+    //cham.Write();*/
   return 1;
 }

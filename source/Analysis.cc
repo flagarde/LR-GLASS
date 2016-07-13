@@ -6,45 +6,299 @@
 #include "TH2F.h"
 #include "TMath.h"
 #include "TCanvas.h"
+#include "Func.h"
+#include "TTree.h"
+#include "RAWData.h"
+#include "Colors.h"
+#include "TLegend.h"
+#define longueur 20
+#define largeur 1
 #define time_range 35
+
+void Analysis::writeObject(std::string& dirName, TObject *object)
+{
+  out.writeObject(dirName,object);
+}
+
+void Analysis::ShiftTimes()
+{
+  for(unsigned int file=0;file!=read.getDAQFiles().size();++file) 
+  {
+    std::cout<<normal<<"Running ShiftTime for file : "<<read.getDAQFiles()[file]<<normal<<std::endl;
+    std::map<int,std::pair<int,int>>sum_time_strip;
+    std::map<int,std::pair<int,int>>sum_time_chamber;
+    std::map<int,float>moy_time_strip;
+    std::map<int,float>moy_time_chamber;
+    std::map<int,TH1F*>time_dist_strip;
+    std::map<int,TH1F*>time_dist_strip2;
+    std::string time_distr="Time_Distribution_Channel_timeunaligned_Nbr";
+    std::string time_distrr="Time_Distribution_Channel_timealigned_Nbr";
+    std::string th11="profile_time_unaligned_File"+std::to_string(file);
+    std::string th12="profile_time_aligned_File"+std::to_string(file);
+    std::string th13="Mean_time_per_strip_File"+std::to_string(file);
+    std::string th14="Mean_time_per_chamber_File"+std::to_string(file);
+    cham.CreateTH1(th13,"Spatial","Default");
+    cham.CreateTH1(th11,"Time","Default");
+    cham.CreateTH1(th12,"Time","Default");
+    std::string name1="Nbr_hits_per_second_File"+std::to_string(file);
+    std::string name3="Time_distribution_unaligned_File"+std::to_string(file);
+    std::string name4="Time_distribution_aligned_File"+std::to_string(file);
+    cham.CreateTH2(name1);
+    cham.CreateTH2(name3,1000,1000);
+    cham.CreateTH2(name4,1000,1000);
+    TH1F* Time_moy_per_chamber =new TH1F(th14.c_str(),th14.c_str(),read.getNbrChambers(),1,read.getNbrChambers()+1);
+    for(std::vector<int>::iterator it=cham.Usefull_Strip.begin();it!=cham.Usefull_Strip.end();++it)
+    {
+      std::string time_distr2=time_distr+std::to_string(*it);
+      std::string time_distr22=time_distrr+std::to_string(*it);
+      double min=cham.Min_Max_Time_Windows["Default_Chamber"+cham.FindChamber(*it)].first;
+      double max=cham.Min_Max_Time_Windows["Default_Chamber"+cham.FindChamber(*it)].second;
+      int bin=ceil(max-min)+1;
+      time_dist_strip[*it]=new TH1F(time_distr2.c_str(),time_distr2.c_str(),bin,min,max);
+      time_dist_strip2[*it]=new TH1F(time_distr22.c_str(),time_distr22.c_str(),bin,min,max);
+    }
+    TFile   dataFile(read.getDAQFiles()[file].c_str());
+    if(dataFile.IsOpen()!=true)
+    {
+      std::cout<<red<<"Impossible to read "<<read.getDAQFiles()[file]<<normal<<std::endl;
+      std::exit(1);
+    }
+    TTree*  dataTree = (TTree*)dataFile.Get("RAWData");
+    if(!dataTree)
+    {
+      std::cout<<red<<"Impossible to read TTree RAWData"<<normal<<std::endl;
+      std::exit(1);
+    }
+    RAWData data;
+    data.TDCCh = new std::vector<int>; //List of hits and their channels
+    data.TDCTS = new std::vector<float>; //List of the corresponding time stamps
+    data.TDCCh->clear();
+    data.TDCTS->clear();
+    dataTree->SetBranchAddress("EventNumber",    &data.iEvent);
+    dataTree->SetBranchAddress("number_of_hits", &data.TDCNHits);
+    dataTree->SetBranchAddress("TDC_channel",    &data.TDCCh);
+    dataTree->SetBranchAddress("TDC_TimeStamp",  &data.TDCTS);
+    unsigned int nEntries = dataTree->GetEntries();
+    std::map<int,double>InHertzPerCm;
+    for(unsigned int i=0;i!=read.getNbrChambers();++i)
+    {
+      InHertzPerCm[i+1]=1.0e9/(nEntries*1.0*(cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].second-cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].first));
+      std::cout<<green<<nEntries<<" "<<InHertzPerCm[i+1]<<normal<<std::endl;
+    }
+    for(unsigned int i = 0; i < nEntries; i++) 
+    {        
+      dataTree->GetEntry(i);
+      for(int h = 0; h < data.TDCNHits; h++) 
+      {
+        if(!cham.InsideZone(data.TDCCh->at(h),data.TDCTS->at(h)))continue;
+        sum_time_strip[data.TDCCh->at(h)].first+=data.TDCTS->at(h);
+        sum_time_strip[data.TDCCh->at(h)].second+=1;
+        sum_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h)))-1].first+=data.TDCTS->at(h);
+        sum_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h)))-1].second+=1;
+      }
+    }
+    for(std::map<int,std::pair<int,int>>::iterator it=sum_time_strip.begin();it!=sum_time_strip.end();++it)
+    {  
+      moy_time_strip[it->first]=(it->second).first*1.0/(it->second).second;
+      cham.FillTH1(th13,it->first,it->first,moy_time_strip[it->first]);
+    }  
+    for(std::map<int,std::pair<int,int>>::iterator it=sum_time_chamber.begin();it!=sum_time_chamber.end();++it)
+    {  
+      moy_time_chamber[it->first]=(it->second).first*1.0/(it->second).second;
+      Time_moy_per_chamber->Fill(it->first+1,moy_time_chamber[it->first]);
+    }
+    std::size_t found = read.getDAQFiles()[file].find_last_of("/");
+    std::string name=read.getDAQFiles()[file].substr(found+1);
+    out.writeObject(name,Time_moy_per_chamber);
+    delete Time_moy_per_chamber;
+    for(unsigned int i = 0; i < nEntries; i++) 
+    {        
+      dataTree->GetEntry(i);
+      for(int h = 0; h < data.TDCNHits; h++) 
+      {
+        if(!cham.InsideZone(data.TDCCh->at(h),data.TDCTS->at(h)))continue; 
+        cham.FillTH1(th12,data.TDCCh->at(h),data.TDCTS->at(h)-moy_time_strip[data.TDCCh->at(h)]+moy_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h)))-1]); 
+        cham.FillTH1(th11,data.TDCCh->at(h),data.TDCTS->at(h));
+        time_dist_strip[data.TDCCh->at(h)]->Fill(data.TDCTS->at(h));
+        time_dist_strip2[data.TDCCh->at(h)]->Fill(data.TDCTS->at(h)-moy_time_strip[data.TDCCh->at(h)]+moy_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h)))-1]);
+        cham.FillTH2(name4,data.TDCCh->at(h),data.TDCTS->at(h)-moy_time_strip[data.TDCCh->at(h)]+moy_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h)))-1]);
+        cham.FillTH2(name1,data.TDCCh->at(h));
+        cham.FillTH2(name3,data.TDCCh->at(h),data.TDCTS->at(h));
+      } 
+    }
+    cham.ScaleTime(name1,InHertzPerCm);
+    for(unsigned int i=0;i!=read.getNbrChambers();++i)
+    {
+      double min=cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].first;
+      double max=cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].second;
+      std::cout<<moy_time_chamber[i]<<std::endl;
+      std::size_t found = read.getDAQFiles()[file].find_last_of("/");
+      std::string name1=read.getDAQFiles()[file].substr(found+1)+"/Chamber"+std::to_string(i+1)+"/Fits";
+      //aligned times
+      std::string can2="profile_time_aligned_File"+std::to_string(file)+std::to_string(i+1);
+      TCanvas* Dist_With_Alignment=new TCanvas(can2.c_str(),can2.c_str());
+      std::string name_align=th12+"_Chamber"+std::to_string(i+1);
+      Dist_With_Alignment->cd();
+      cham.ReturnTH1(name_align)->Draw();
+      TF1* gfit=new TF1("gfit","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]",min,max);
+      gfit->SetParameters(1.1,moy_time_chamber[i],20.0,1.0);
+      gfit->SetParNames("N","mean","alpha","constant");
+      gfit->SetLineColor(kRed);
+      cham.ReturnTH1(name_align)->Fit("gfit","EM0W");
+      TF1 *crystal = new TF1("crystal",CrystalBall,min,max,6);
+      crystal->SetParameters(1.1,1.1,moy_time_chamber[i],9.4,1345,1.0);
+      crystal->SetParNames("alpha","n","Mean","sigma","N","constant");
+      crystal->SetLineColor(kBlue);
+      cham.ReturnTH1(name_align)->Fit("crystal","WEM0");
+      Dist_With_Alignment->Update();
+      gfit->Draw("same");
+      crystal->Draw("same");
+      Dist_With_Alignment->Update();
+      TLegend* leg = new TLegend(0.1,0.7,0.48,0.9);
+      std::string title="Fits for the time distribution ["+std::to_string(min)+";"+std::to_string(max)+"]";
+      leg->SetHeader(title.c_str()); // option "C" allows to center the header
+      leg->AddEntry(cham.ReturnTH1(name_align),"Time distribution","f");
+      leg->AddEntry("gfit","Gaussian + constant fit","l");
+      leg->AddEntry("crystal","Crystal ball + constant fit","l");
+      leg->Draw("same");
+      out.writeObject(name1,Dist_With_Alignment);
+      delete gfit;
+      delete crystal;
+      delete Dist_With_Alignment;
+      //unaligned times
+      std::string can1="profile_time_unaligned_File"+std::to_string(file)+std::to_string(i+1);
+      TCanvas* Dist_Without_Alignment=new TCanvas(can1.c_str(),can1.c_str());
+      std::string name_unalign=th11+"_Chamber"+std::to_string(i+1);
+      Dist_Without_Alignment->cd();
+      cham.ReturnTH1(name_unalign)->Draw();
+      TF1* gfit2=new TF1("gfit2","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]",min,max);
+      gfit2->SetParameters(1.1,moy_time_chamber[i],20.0,1.0);
+      gfit2->SetParNames("N","mean","alpha","constant");
+      gfit2->SetLineColor(kRed);
+      cham.ReturnTH1(name_unalign)->Fit("gfit2","EM0W");
+      TF1 *crystal2 = new TF1("crystal2",CrystalBall,min,max,6);
+      crystal2->SetParameters(1.1,1.1,moy_time_chamber[i],9.4,1345,1.0);
+      crystal2->SetParNames("alpha","n","Mean","sigma","N","constant");
+      crystal2->SetLineColor(kBlue);
+      cham.ReturnTH1(name_unalign)->Fit("crystal2","WEM0");
+      Dist_Without_Alignment->Update();
+      gfit2->Draw("same");
+      crystal2->Draw("same");
+      TF1 *total = new TF1("total","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]*exp(-0.5*((x-[4])/[5])^2)+[6]",min,max);
+      total->SetParameters(1.0,moy_time_chamber[i],5.0,1.0,moy_time_chamber[i],20.0);
+      total->SetParNames("n1","mean1","sigma1","n2","mean2","sigma2");
+      total->SetLineColor(kGreen);
+      cham.ReturnTH1(name_unalign)->Fit("total","EM0W");
+      //TF1 *crystal2 = new TF1("crystal2",CrystalBallGauss,min,max,8);
+      //crystal2->SetParameters(1.1,1.1,20,9.4,1345,1.0,-2.0,2.0);
+      //crystal2->SetParNames("alpha","n","Mean","sigma","N","constant","a","b");
+      //crystal2->SetLineColor(kBlue);
+      //cham.ReturnTH1(name_unalign)->Fit("crystal2","WEM0");
+      //Dist_Without_Alignment->Update();
+      total->Draw("same");
+      //crystal2->Draw("same");
+      Dist_Without_Alignment->Update();
+      out.writeObject(name1,Dist_Without_Alignment);
+      //delete total;
+      //delete crystal2;
+      delete gfit2;
+      delete crystal2;
+      delete Dist_Without_Alignment;
+    }
+   
+   //Double_t peakGCs = gfit->GetParameter(1);
+   //Double_t sigmaGCs =gfit->GetParameter(2);
+   //Selection[inputFileNames[file]].first=peakGCs;
+   //Selection[inputFileNames[file]].second=sigmaGCs;
+   //means->SetPoint(file,voltage[file],peakGCs);
+   //means->SetPointError(file,0.0,gfit->GetParError(1));
+   //sigmas->SetPoint(file,voltage[file],sigmaGCs);
+   //sigmas->SetPointError(file,0.0,gfit->GetParError(2));
+   //Double_t peakGCs2 = crystal->GetParameter(2);
+   //Double_t sigmaGCs2 =crystal->GetParameter(3);
+   //Double_t alpha =crystal->GetParameter(0);
+   //Double_t n =crystal->GetParameter(1);
+   //Double_t N =crystal->GetParameter(4);
+   //Double_t constante =crystal->GetParameter(5);
+   //meanscry->SetPoint(file,voltage[file],peakGCs2);
+   //meanscry->SetPointError(file,0.0,crystal->GetParError(2));
+   //sigmascry->SetPoint(file,voltage[file],sigmaGCs2);
+   //sigmascry->SetPointError(file,0.0,crystal->GetParError(3));
+   //alphacry->SetPoint(file,voltage[file],alpha);
+   //alphacry->SetPointError(file,0.0,crystal->GetParError(0));
+   //ncry->SetPoint(file,voltage[file],n);
+   //ncry->SetPointError(file,0.0,crystal->GetParError(1));
+   //Ncry->SetPoint(file,voltage[file],N);
+   //Ncry->SetPointError(file,0.0,crystal->GetParError(4));
+   //constantecry->SetPoint(file,voltage[file],constante);
+   //constantecry->SetPointError(file,0.0,crystal->GetParError(5));
+   //SelectionCrystal[inputFileNames[file]].first=peakGCs2;
+   //SelectionCrystal[inputFileNames[file]].second=sigmaGCs2;
+
+   
+   /*
+   
+   Canvas2[inputFileNames[file]]->cd();
+   timeee[inputFileNames[file]]->Draw();
+   TF1 *total = new TF1("total","(x<0)*[0]*exp(-0.5*((x-[1])/[2])^2)+(x>=0)*[3]*exp(-0.5*((x-[4])/[5])^2)",-100,100);
+   total->SetParameters(1.0,-2.0,25,1.0,2.5,20.0);
+   total->SetParNames("n1","mean1","sigma1","n2","mean2","sigma2");
+   total->SetLineColor(kRed);
+   timeee[inputFileNames[file]]->Fit("total","EM0W");
+   Double_t peakGCs3 = total->GetParameter(1);
+   Double_t sigmaGCs3 =total->GetParameter(2);
+   //Selection[inputFileNames[uu]].first=peakGCs;
+   //Selection[inputFileNames[uu]].second=sigmaGCs;
+   //means2->SetPoint(uu,voltage[uu],peakGCs);
+   //sigmas2->SetPoint(uu,voltage[uu],sigmaGCs);
+   TF1 *crystal2 = new TF1("crystal2",CrystalBallGauss,-100,100,8);
+   crystal2->SetParameters(1.1,1.1,20,9.4,1345,1.0,-2.0,2.0);
+   crystal2->SetParNames("alpha","n","Mean","sigma","N","constant","a","b");
+   crystal2->SetLineColor(kBlue);
+   timeee[inputFileNames[file]]->Fit("crystal2","WEM0");
+   Double_t peakGCs4 = crystal->GetParameter(2);
+   Double_t sigmaGCs4 =crystal->GetParameter(3);
+   //meanscry2->SetPoint(uu,voltage[uu],peakGCs2);
+   //sigmascry2->SetPoint(uu,voltage[uu],sigmaGCs2);
+   Canvas2[inputFileNames[file]]->Update();
+   //SelectionCrystal[inputFileNames[uu]].first=peakGCs2;
+   //SelectionCrystal[inputFileNames[uu]].second=sigmaGCs2;
+   total->Draw("same");
+   crystal2->Draw("same");
+   std::cout<<"File :"<<nn<<" for gaussian Mean :"<< peakGCs<<" sigma "<<sigmaGCs<<" Selection min "<<Selection[inputFileNames[file]].first-5*Selection[inputFileNames[file]].second<<" selection max "<<Selection[inputFileNames[file]].first+5*Selection[inputFileNames[file]].second<<std::endl;
+   std::cout<<"File :"<<nn<<" for crystalball Mean :"<< peakGCs2<<" sigma "<<sigmaGCs2<<" Selection min "<<SelectionCrystal[inputFileNames[file]].first-5*SelectionCrystal[inputFileNames[file]].second<<" selection max "<<SelectionCrystal[inputFileNames[file]].first+5*SelectionCrystal[inputFileNames[file]].second<<std::endl;
+      ++nn; 
+      
+*/
+    for(std::map<int,TH1F*>::iterator it=time_dist_strip.begin();it!=time_dist_strip.end();++it)
+    {
+      std::size_t found = read.getDAQFiles()[file].find_last_of("/");
+      std::string name=read.getDAQFiles()[file].substr(found+1)+"/Chamber"+cham.FindChamber(it->first)+"/Time_Distribution_Channel_timeunaligned";
+      out.writeObject(name,it->second);
+      delete it->second;
+    }
+    for(std::map<int,TH1F*>::iterator it=time_dist_strip2.begin();it!=time_dist_strip2.end();++it)
+    {
+      std::size_t found = read.getDAQFiles()[file].find_last_of("/");
+      std::string name=read.getDAQFiles()[file].substr(found+1)+"/Chamber"+cham.FindChamber(it->first)+"/Time_Distribution_Channel_aligned";
+      out.writeObject(name,it->second);
+      delete it->second;
+    }
+    sum_time_strip.clear();
+    sum_time_chamber.clear();
+    moy_time_strip.clear();
+    moy_time_chamber.clear();
+    InHertzPerCm.clear();
+  }
+  cham.Write();
+  //WriteMeShift();
+}
+
 //shift vector for the noise windows in sigmas 
 std::vector<double>shift={};
 //time vector for correlation maps
 std::vector<double>Val{1};
 
-//Crystal ball function for signal, parameters are 0:alpha,1:n,2:mean,3:sigma,4:normalization;
-Double_t CrystalBall(Double_t *x,Double_t *par) 
-{
-  Double_t t = (x[0]-par[2])/par[3];
-  if (par[0] < 0) t = -t;
-  Double_t absAlpha = fabs((Double_t)par[0]);
-  if (t >= -absAlpha) 
-  {
-    return par[4]*exp(-0.5*t*t)+par[5];
-  }
-  else 
-  {
-    Double_t a =  TMath::Power(par[1]/absAlpha,par[1])*exp(-0.5*absAlpha*absAlpha);
-    Double_t b= par[1]/absAlpha - absAlpha;
-    return par[4]*(a/TMath::Power(b - t, par[1]))+par[5]+ TMath::Gaus(x[0],par[6],par[7]);
-  }
-}
-Double_t CrystalBallGauss(Double_t *x,Double_t *par) 
-{
-  Double_t t = (x[0]-par[2])/par[3];
-  if (par[0] < 0) t = -t;
-  Double_t absAlpha = fabs((Double_t)par[0]);
-  if (t >= -absAlpha) 
-  {
-    return par[4]*exp(-0.5*t*t)+par[5];
-  }
-  else 
-  {
-    Double_t a =  TMath::Power(par[1]/absAlpha,par[1])*exp(-0.5*absAlpha*absAlpha);
-    Double_t b= par[1]/absAlpha - absAlpha;
-    return par[4]*(a/TMath::Power(b - t, par[1]))+par[5]+ TMath::Gaus(x[0],par[6],par[7]);
-  }
-}
 
   std::map<std::string,TH1F*>general_multilicity;
   std::map<std::string,TH1F*> nbr_cluster;
@@ -59,9 +313,9 @@ Double_t CrystalBallGauss(Double_t *x,Double_t *par)
   std::map<std::string,TH2F*> time_dist_aligned;
   std::map<std::string,std::map<std::string,TH2F*>> Correlation;
   std::map<std::string,std::map<std::string,TH1F*>> Correlation_time;
-  std::map<std::string,std::map<int,TH1F*>>time_dist_strip;
-  std::map<std::string,std::map<int,std::pair<int,int>>>time_dist_moy;
-  std::map<std::string,std::map<int,float>>time_dist_moy2;
+  //std::map<std::string,std::map<int,TH1F*>>time_dist_strip;
+  //std::map<std::string,std::map<int,std::pair<int,int>>>time_dist_moy;
+  //std::map<std::string,std::map<int,float>>time_dist_moy2;
   std::map<std::string,std::pair<double,double>>Selection;
   std::map<std::string,std::pair<double,double>>SelectionCrystal;
   std::pair<int,int>Mean_time_glob;
@@ -71,8 +325,8 @@ Double_t CrystalBallGauss(Double_t *x,Double_t *par)
   std::map<std::string,std::vector<double>>Standard_dev_cluster_size;
   std::map<std::string,std::vector<double>>Mean_cluster_nbr;
   std::map<std::string,std::vector<double>>Standard_dev_cluster_nbr;
-  std::map<std::string,TCanvas*> Canvas;
-  std::map<std::string,TCanvas*> Canvas2;
+  //std::map<std::string,TCanvas*> Canvas;
+  //std::map<std::string,TCanvas*> Canvas2;
   TGraphErrors* means =new TGraphErrors();
   TGraphErrors* sigmas =new TGraphErrors();
   TGraphErrors* meanscry =new TGraphErrors();
@@ -88,7 +342,7 @@ Double_t CrystalBallGauss(Double_t *x,Double_t *par)
   std::map<std::string,TH2F*>Channels;
   
 //-------------------------------------------------------
-void Analysis::WriteMeShift()
+/*void Analysis::WriteMeShift()
 {
   std::string name="Lagarde_";
   for(std::map<std::string,std::map<int,TH1F*>>::iterator it=time_dist_strip.begin();it!=time_dist_strip.end();++it)
@@ -115,9 +369,9 @@ void Analysis::WriteMeShift()
      delete time_dist_aligned[it->first];
      delete time_dist_unaligned[it->first];
   }
-}
+}*/
 
-void Analysis::WriteMe()
+/*void Analysis::WriteMe()
 {
   std::string name="Lagarde_";
   for(std::map<std::string,std::map<std::string,TH2F*>>::iterator it=Correlation.begin();it!=Correlation.end();++it)
@@ -206,29 +460,9 @@ void Analysis::WriteMe()
   delete sigmas2;
   delete meanscry2;
   delete sigmascry2;
-}
+}*/
 
-void Analysis::setThreshold(std::vector<double>& thr) 
-{
-  threshold = thr;
-}
-
-void Analysis::setVoltage(std::vector<double>& volt) 
-{
-  voltage = volt;
-}
-
-void  Analysis::setMask(int firstW, int lastW,std::vector<int>& Mask, int nChMask) 
-{
-  firstCh = firstW;
-  lastCh = lastW;
-  mask = Mask; 
-  numChMask = nChMask;
-}
-//-------------------------------------------------------
-
-
-TGraphErrors* Analysis::Construct_Plot(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,int numInFiles,double lowTimeStampThr, double highTimeStampThr,std::string na)
+/*TGraphErrors* Analysis::Construct_Plot(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,int numInFiles,double lowTimeStampThr, double highTimeStampThr,std::string na)
 {
 
   std::vector<double> eff;
@@ -255,197 +489,11 @@ TGraphErrors* Analysis::Construct_Plot(std::vector<std::string>& inputFileNames,
     return nullptr;
   }
   else return new TGraphErrors(eff.size(),&(vol[0]),&(eff[0]),&(eVol[0]),&(eEff[0]));
-}
-
-
-
-
-int Analysis::ShiftTime(std::vector<std::string>& inputFileNames,double lowTSThr, double highTSThr)
-{
- 
-  for(int uu = 0; uu < inputFileNames.size(); uu++) 
-  {
-     static int nn=0;
-     time_dist_unaligned[inputFileNames[uu]]=new TH2F(("profile_time_unaligned"+std::to_string(nn)).c_str(),("profile_time_unaligned"+std::to_string(nn)).c_str(),240,-120,120,lastCh+1-firstCh,firstCh,lastCh+1);
-     time_dist_aligned[inputFileNames[uu]]=new TH2F(("profile_time_aligned"+std::to_string(nn)).c_str(),("profile_time_aligned"+std::to_string(nn)).c_str(),240,-120,120,lastCh+1-firstCh,firstCh,lastCh+1);
-     for(unsigned int k=firstCh;k!=lastCh+1;++k)
-     {
-      std::string name="Time_distribution_ch_"+std::to_string(k);
-      time_dist_strip[inputFileNames[uu]][k]=new TH1F((name+std::to_string(nn)).c_str(),name.c_str(),1000,-500,500);
-      //std::cout<<k<<std::endl;
-     }
-    Canvas[inputFileNames[uu]]=new TCanvas((std::to_string(nn)).c_str(),(std::to_string(nn)).c_str());
-    Canvas2[inputFileNames[uu]]=new TCanvas((std::to_string(nn)+"yy").c_str(),(std::to_string(nn)+"yy").c_str());
-    timee[inputFileNames[uu]]=new TH1F(("time_shifted"+std::to_string(nn)).c_str(),"time_shifted",400,-200,200);
-    timeee[inputFileNames[uu]]=new TH1F(("time"+std::to_string(nn)).c_str(),"time",400,-200,200);
-    TFile   dataFile(inputFileNames[uu].c_str());
-    if(dataFile.IsOpen()!=true)return 1;
-    TTree*  dataTree = (TTree*)dataFile.Get("RAWData");
-    if(!dataTree) return 1; // can't read file
-    RAWData data;
-  
-    data.TDCCh = new vector<int>; //List of hits and their channels
-    data.TDCTS = new vector<float>; //List of the corresponding time stamps
-    data.TDCCh->clear();
-    data.TDCTS->clear();
-  
-    dataTree->SetBranchAddress("EventNumber",    &data.iEvent);
-    dataTree->SetBranchAddress("number_of_hits", &data.TDCNHits);
-    dataTree->SetBranchAddress("TDC_channel",    &data.TDCCh);
-    dataTree->SetBranchAddress("TDC_TimeStamp",  &data.TDCTS);
-  
-    //****************** MACRO ***************************************
-    unsigned int nEntries = dataTree->GetEntries();
-    for(unsigned int i = 0; i < nEntries; i++) 
-    {        
-      bool yes=true;
-      dataTree->GetEntry(i);
-      for(int h = 0; h < data.TDCNHits; h++) 
-      {
-        
-        if(data.TDCTS->at(h) > lowTSThr && data.TDCTS->at(h) < highTSThr && data.TDCCh->at(h) >= firstCh && data.TDCCh->at(h) <= lastCh)
-        {
-          
-          for(int j = 0; j < numChMask; j++) 
-          {
-            if(data.TDCCh->at(h) == mask[j])
-            {
-              yes=false;
-              break;
-            }
-          } 
-          if(yes==true)
-          {
-              if(time_dist_moy[inputFileNames[uu]].find(data.TDCCh->at(h))==time_dist_moy[inputFileNames[uu]].end()) 
-              {
-                //std::string name="Time_distribution_ch_"+std::to_string(data.TDCCh->at(h));
-                //time_dist_strip[inputFileNames[uu]][data.TDCCh->at(h)]=new TH1F(name.c_str(),name.c_str(),1000,-500,500);
-                time_dist_moy[inputFileNames[uu]][data.TDCCh->at(h)]=std::pair<int,int>(0,0);
-                Selection[inputFileNames[uu]]=std::pair<int,int>(0,0);
-              }
-              //std::cout<<data.TDCCh->at(h)<<std::endl;
-              time_dist_strip[inputFileNames[uu]][data.TDCCh->at(h)]->Fill(data.TDCTS->at(h));
-              time_dist_moy[inputFileNames[uu]][data.TDCCh->at(h)].first+=data.TDCTS->at(h);
-              time_dist_moy[inputFileNames[uu]][data.TDCCh->at(h)].second+=1;
-              Mean_time_glob.first+=data.TDCTS->at(h);
-              Mean_time_glob.second+=1;
-          }
-        }
-      }
-    }  
-    for(std::map<int,std::pair<int,int>>::iterator it=time_dist_moy[inputFileNames[uu]].begin();it!=time_dist_moy[inputFileNames[uu]].end();++it)
-    {  
-      time_dist_moy2[inputFileNames[uu]][it->first]=(it->second).first*1.0/(it->second).second;
-    }  
-    for(unsigned int i = 0; i < nEntries; i++) 
-    {        
-      bool yes=true;
-      dataTree->GetEntry(i);
-      for(int h = 0; h < data.TDCNHits; h++) 
-      {
-        if(data.TDCTS->at(h) > lowTSThr && data.TDCTS->at(h) < highTSThr && data.TDCCh->at(h) >= firstCh && data.TDCCh->at(h) <= lastCh)
-        {
-          for(int j = 0; j < numChMask; j++) 
-          {
-            if(data.TDCCh->at(h) == mask[j])
-            {
-              yes=false;
-              break;
-            }
-          } 
-          if(yes==true)
-          {
-              time_dist_unaligned[inputFileNames[uu]]->Fill(data.TDCTS->at(h)-(Mean_time_glob.first*1.0/Mean_time_glob.second), data.TDCCh->at(h));
-              time_dist_aligned[inputFileNames[uu]]->Fill(data.TDCTS->at(h)-time_dist_moy2[inputFileNames[uu]][data.TDCCh->at(h)],data.TDCCh->at(h));
-              timee[inputFileNames[uu]]->Fill(data.TDCTS->at(h)-time_dist_moy2[inputFileNames[uu]][data.TDCCh->at(h)]);
-              timeee[inputFileNames[uu]]->Fill(data.TDCTS->at(h)-(Mean_time_glob.first*1.0/Mean_time_glob.second));
-          }
-        } 
-      }
-    }
-   Canvas[inputFileNames[uu]]->cd();
-   timee[inputFileNames[uu]]->Draw();
-   TF1* gfit=new TF1("gfit","gaus",-100,100);
-   gfit->SetLineColor(kRed);
-   timee[inputFileNames[uu]]->Fit("gfit","EM0W");
-   Double_t peakGCs = gfit->GetParameter(1);
-   Double_t sigmaGCs =gfit->GetParameter(2);
-   Selection[inputFileNames[uu]].first=peakGCs;
-   Selection[inputFileNames[uu]].second=sigmaGCs;
-   means->SetPoint(uu,voltage[uu],peakGCs);
-   means->SetPointError(uu,0.0,gfit->GetParError(1));
-   sigmas->SetPoint(uu,voltage[uu],sigmaGCs);
-   sigmas->SetPointError(uu,0.0,gfit->GetParError(2));
-   TF1 *crystal = new TF1("crystal",CrystalBall,-100,100,6);
-   crystal->SetParameters(1.1,1.1,2.0,9.4,1345,1.0);
-   crystal->SetParNames("alpha","n","Mean","sigma","N","constant");
-   crystal->SetLineColor(kBlue);
-   timee[inputFileNames[uu]]->Fit("crystal","WEM0");
-   Double_t peakGCs2 = crystal->GetParameter(2);
-   Double_t sigmaGCs2 =crystal->GetParameter(3);
-   Double_t alpha =crystal->GetParameter(0);
-   Double_t n =crystal->GetParameter(1);
-   Double_t N =crystal->GetParameter(4);
-   Double_t constante =crystal->GetParameter(5);
-   meanscry->SetPoint(uu,voltage[uu],peakGCs2);
-   meanscry->SetPointError(uu,0.0,crystal->GetParError(2));
-   sigmascry->SetPoint(uu,voltage[uu],sigmaGCs2);
-   sigmascry->SetPointError(uu,0.0,crystal->GetParError(3));
-   alphacry->SetPoint(uu,voltage[uu],alpha);
-   alphacry->SetPointError(uu,0.0,crystal->GetParError(0));
-   ncry->SetPoint(uu,voltage[uu],n);
-   ncry->SetPointError(uu,0.0,crystal->GetParError(1));
-   Ncry->SetPoint(uu,voltage[uu],N);
-   Ncry->SetPointError(uu,0.0,crystal->GetParError(4));
-   constantecry->SetPoint(uu,voltage[uu],constante);
-   constantecry->SetPointError(uu,0.0,crystal->GetParError(5));
-   Canvas[inputFileNames[uu]]->Update();
-   SelectionCrystal[inputFileNames[uu]].first=peakGCs2;
-   SelectionCrystal[inputFileNames[uu]].second=sigmaGCs2;
-   gfit->Draw("same");
-   crystal->Draw("same");
-   
-   
-   
-   Canvas2[inputFileNames[uu]]->cd();
-   timeee[inputFileNames[uu]]->Draw();
-   TF1 *total = new TF1("total","(x<0)*[0]*exp(-0.5*((x-[1])/[2])^2)+(x>=0)*[3]*exp(-0.5*((x-[4])/[5])^2)",-100,100);
-   total->SetParameters(1.0,-2.0,25,1.0,2.5,20.0);
-   total->SetParNames("n1","mean1","sigma1","n2","mean2","sigma2");
-   total->SetLineColor(kRed);
-   timeee[inputFileNames[uu]]->Fit("total","EM0W");
-   Double_t peakGCs3 = total->GetParameter(1);
-   Double_t sigmaGCs3 =total->GetParameter(2);
-   //Selection[inputFileNames[uu]].first=peakGCs;
-   //Selection[inputFileNames[uu]].second=sigmaGCs;
-   //means2->SetPoint(uu,voltage[uu],peakGCs);
-   //sigmas2->SetPoint(uu,voltage[uu],sigmaGCs);
-   TF1 *crystal2 = new TF1("crystal2",CrystalBallGauss,-100,100,8);
-   crystal2->SetParameters(1.1,1.1,20,9.4,1345,1.0,-2.0,2.0);
-   crystal2->SetParNames("alpha","n","Mean","sigma","N","constant","a","b");
-   crystal2->SetLineColor(kBlue);
-   timeee[inputFileNames[uu]]->Fit("crystal2","WEM0");
-   Double_t peakGCs4 = crystal->GetParameter(2);
-   Double_t sigmaGCs4 =crystal->GetParameter(3);
-   //meanscry2->SetPoint(uu,voltage[uu],peakGCs2);
-   //sigmascry2->SetPoint(uu,voltage[uu],sigmaGCs2);
-   Canvas2[inputFileNames[uu]]->Update();
-   //SelectionCrystal[inputFileNames[uu]].first=peakGCs2;
-   //SelectionCrystal[inputFileNames[uu]].second=sigmaGCs2;
-   total->Draw("same");
-   crystal2->Draw("same");
-   std::cout<<"File :"<<nn<<" for gaussian Mean :"<< peakGCs<<" sigma "<<sigmaGCs<<" Selection min "<<Selection[inputFileNames[uu]].first-5*Selection[inputFileNames[uu]].second<<" selection max "<<Selection[inputFileNames[uu]].first+5*Selection[inputFileNames[uu]].second<<std::endl;
-   std::cout<<"File :"<<nn<<" for crystalball Mean :"<< peakGCs2<<" sigma "<<sigmaGCs2<<" Selection min "<<SelectionCrystal[inputFileNames[uu]].first-5*SelectionCrystal[inputFileNames[uu]].second<<" selection max "<<SelectionCrystal[inputFileNames[uu]].first+5*SelectionCrystal[inputFileNames[uu]].second<<std::endl;
-      ++nn; 
-  }
-  WriteMeShift();
-}
-
-
+}*/
 
 
 //-------------------------------------------------------
-std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, double lowTSThr, double highTSThr,std::string na)
+/*std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, double lowTSThr, double highTSThr,std::string na)
 {
   static int nn=0;
   for(unsigned int o=0;o!=Val.size();++o) 
@@ -497,8 +545,8 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
     
     for(int h = 0; h < data.TDCNHits; h++) 
     {
-      cham.Fill(fr,data.TDCCh->at(h));
-      cham.Fill(fr2,data.TDCCh->at(h),data.TDCTS->at(h));
+      cham.FillTH2(fr,data.TDCCh->at(h));
+      cham.FillTH2(fr2,data.TDCCh->at(h),data.TDCTS->at(h));
       //std::cout<<b.first<<"        "<<b.second<<std::endl;
       if((data.TDCTS->at(h)-time_dist_moy2[inputFileName][data.TDCCh->at(h)]) > lowTSThr && (data.TDCTS->at(h)-time_dist_moy2[inputFileName][data.TDCCh->at(h)]) < highTSThr && data.TDCCh->at(h) >= firstCh && data.TDCCh->at(h) <= lastCh) 
       {
@@ -626,10 +674,10 @@ std::pair<double,double> Analysis::Eff_ErrorEff(std::string& inputFileName, doub
   Standard_dev_cluster_size[na].push_back(cluster_multiplicity[inputFileName+na]->GetRMS());
   Standard_dev_cluster_nbr[na].push_back(nbr_cluster[inputFileName+na]->GetRMS());
   return std::pair<double,double>(numGoodEvents/nEntries,sqrt((numGoodEvents*(nEntries-numGoodEvents))/nEntries)/numGoodEvents);
-}
+}*/
 
 //-------------------------------------------------------
-int Analysis::thrEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,  int numInFiles,double lowTimeStampThr, double highTimeStampThr,std::string bv,double shift)
+/*int Analysis::thrEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName,  int numInFiles,double lowTimeStampThr, double highTimeStampThr,std::string bv,double shift)
 {
   static int oo=0;
   double min=0;
@@ -682,9 +730,9 @@ int Analysis::thrEffScan(std::vector<std::string>& inputFileNames, std::string& 
   thrEff->Delete();
   oo++;
   return 1;
-}
+}*/
 
-int Analysis::volEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName, int numInFiles,double lowTimeStampThr, double highTimeStampThr,std::string bv,double shift)
+/*int Analysis::volEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName, int numInFiles,double lowTimeStampThr, double highTimeStampThr,std::string bv,double shift)
 {
     static int oo=0;
     double min=0;
@@ -738,9 +786,9 @@ int Analysis::volEffScan(std::vector<std::string>& inputFileNames, std::string& 
     volEff->Delete();
     oo++;
   return 1;
-}
+}*/
 
-int Analysis::sourceEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName, int numInFiles,double lowTimeStampThr, double highTimeStampThr,std::string bv,double shift)
+/*int Analysis::sourceEffScan(std::vector<std::string>& inputFileNames, std::string& dirName, std::string& plotName, int numInFiles,double lowTimeStampThr, double highTimeStampThr,std::string bv,double shift)
 {
     static int oo=0;
     double min=0;
@@ -795,12 +843,12 @@ int Analysis::sourceEffScan(std::vector<std::string>& inputFileNames, std::strin
     volEff->Delete();
     oo++;
   return 1;
-}
+}*/
 
 
 
 //-------------------------------------------------------
-int Analysis::loop(std::vector<std::string>& inputFileNames, std::string& dirName,std::string& plotName, int numInFiles, std::string& nameType, std::vector<double>& param, int numParam)
+/*int Analysis::loop(std::vector<std::string>& inputFileNames, std::string& dirName,std::string& plotName, int numInFiles, std::string& nameType, std::vector<double>& param, int numParam)
 {
   double lowTimeStampThr = param[0];
   double highTimeStampThr = param[1]; 
@@ -872,5 +920,5 @@ int Analysis::loop(std::vector<std::string>& inputFileNames, std::string& dirNam
     else cout << "Can't find type" << endl;
   WriteMe();
   return 1;
-  }
+  }*/
 //-------------------------------------------------------

@@ -1,0 +1,51 @@
+#TYPE:
+-type=volEff
+-lThr=200
+-hThr=400
+#TYPE END.
+
+#THR-HV:
+220mV_6900V
+#THR-HV END.
+
+#FILES:
+./GIF/1259/Scan001259_Run20160603185035_HV1_DAQ.root
+#FILES END.
+
+#MASK:
+-firstW=3000
+-lastW=3063
+-ch=3016
+-ch=3017
+-ch=3018
+-ch=3019
+-ch=3020
+-ch=3021
+-ch=3022
+-ch=3023
+-ch=3024
+-ch=3025
+-ch=3026
+-ch=3027
+-ch=3028
+-ch=3029
+-ch=3030
+-ch=3031
+-ch=3048
+-ch=3049
+-ch=3050
+-ch=3051
+-ch=3052
+-ch=3053
+-ch=3054
+-ch=3055
+-ch=3056
+-ch=3057
+-ch=3058
+-ch=3059
+-ch=3060
+-ch=3061
+-ch=3062
+-ch=3063
+#MASK END.
+

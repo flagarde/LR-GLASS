@@ -1,10 +1,8 @@
 #include "OutFileRoot.hh"
-bool OutFileRoot::setOutputFile(std::string& outputFileName,std::string& outputTreeName)
+bool OutFileRoot::setOutputFile(std::string& outputFileName)
 {
-  outFile_ = new TFile(outputFileName.c_str(), "UPDATE");
+  outFile_ = new TFile(outputFileName.c_str(),"UPDATE");
   if(!outFile_) return false;
-  outTree_ = new TTree(outputTreeName.c_str(), outputTreeName.c_str());
-  if(!outTree_) return false;
   isOutFile_ = true;
   return true;
 }
@@ -13,8 +11,7 @@ OutFileRoot::~OutFileRoot()
 {
   if(isOutFile_) 
   {
-    delete outTree_;
-    if(isOutFile_)outFile_->Close();
+    outFile_->Close();
     delete outFile_;
   }
 }

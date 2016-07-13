@@ -5,26 +5,22 @@ low time stamp threshold [mV]: -lThr
 higth time stamp threshold [mV]: -hThr
 
 -firstCh=1000 - first channel for read
--lastCh=1127 -  last channel for read
--ch=1036
--ch=1056
-...
--ch=10[N] - channels for mask.
+-lastCh=2000 -  last channel for read
+.
 
 THR-HV - Number of line with value for thr and volt should be same with Number of files for read.
 #-------------------------------------------------------------------------#
 #INFORMATION END.
 
 #TYPE:
--type=volEff
--lThr=1700
--hThr=2200
+-type=thrEff
+-lThr=0
+-hThr=10000
 #TYPE END.
 
 #MASK:
 -firstW=1000
--lastW=1127
--ch=1036
+-lastW=2000
 #MASK END.
 
 #THR-HV:
@@ -37,18 +33,16 @@ THR-HV - Number of line with value for thr and volt should be same with Number o
 350mV_7000V
 375mV_7000V
 400mV_7000V
-450mV_7000V
 #THR-HV END.
 
 #FILES:
-../newData/H2-CMS-SCAN5_GRPC-GTRPC/H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_190mV_7000V_run20160513144428.root
-../newData/H2-CMS-SCAN5_GRPC-GTRPC/H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_220mV_7000V_run20160513143617.root
-../newData/H2-CMS-SCAN5_GRPC-GTRPC/H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_250mV_7000V_run20160513142908.root
-../newData/H2-CMS-SCAN5_GRPC-GTRPC/H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_275mV_7000V_run20160513141636.root
-../newData/H2-CMS-SCAN5_GRPC-GTRPC/H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_300mV_7000V_run20160513141014.root
-../newData/H2-CMS-SCAN5_GRPC-GTRPC/H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_325mV_7000V_run20160513150403.root
-../newData/H2-CMS-SCAN5_GRPC-GTRPC/H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_350mV_7000V_run20160513135852.root
-../newData/H2-CMS-SCAN5_GRPC-GTRPC/H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_375mV_7000V_run20160513145408.root
-../newData/H2-CMS-SCAN5_GRPC-GTRPC/H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_400mV_7000V_run20160513135250.root
-../newData/H2-CMS-SCAN5_GRPC-GTRPC/H2-CMS-SCAN5_GRPC-GTRPC_50000_False-Trigger_450mV_7000V_run20160513134428.root
+../H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_190mV_7000V_run20160513144428.root
+../H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_220mV_7000V_run20160513143617.root
+../H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_250mV_7000V_run20160513142908.root
+../H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_275mV_7000V_run20160513141636.root
+../H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_300mV_7000V_run20160513141014.root
+../H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_325mV_7000V_run20160513150403.root
+../H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_350mV_7000V_run20160513135852.root
+../H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_375mV_7000V_run20160513145408.root
+../H2-CMS-SCAN5_GRPC-GTRPC_20000_False-Trigger_400mV_7000V_run20160513135250.root
 #FILES END.
