@@ -157,7 +157,6 @@ void Analysis::ShiftTimes()
     {
       double min=cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].first;
       double max=cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].second;
-      //std::cout<<moy_time_chamber[i]<<std::endl;
       std::size_t found = read.getDAQFiles()[file].find_last_of("/");
       std::string name1=read.getDAQFiles()[file].substr(found+1)+"/Chamber"+std::to_string(i+1)+"/Fits";
       //aligned times
@@ -377,9 +376,10 @@ void Analysis::ShiftTimes()
     sum_time_strip.clear();
     sum_time_chamber.clear();
     cham.MoyTimeStrip[read.getDAQFiles()[file]]=moy_time_strip;
-    moy_time_strip.clear();
     cham.MoyTimeChamber[read.getDAQFiles()[file]]=moy_time_chamber;
+    for(std::map<int,float>::iterator it=moy_time_chamber.begin();it!=moy_time_chamber.end();++it)std::cout<<red<<it->first<<"  "<<it->second<<normal<<std::endl;
     moy_time_chamber.clear();
+    moy_time_strip.clear();
     InHertzPerCm.clear();
   }
   for(std::map<std::string,std::pair<std::vector<double>,std::vector<double>>>::iterator it=ParamValueError.begin();it!=ParamValueError.end();++it)
@@ -403,78 +403,6 @@ void Analysis::ShiftTimes()
   }
 }
   
-/*void Analysis::WriteMe()
-{
-  for(std::map<std::string,std::map<std::string,TH2F*>>::iterator it=Correlation.begin();it!=Correlation.end();++it)
-  {
-    std::vector<std::string>tmp;
-    tokenize(it->first,tmp,"*");
-    std::size_t found = tmp[1].find_last_of("/");
-    std::string name=tmp[1].substr(found+1);
-    std::vector<std::string>tmp2;
-    tokenize(tmp[0],tmp2,"_");
-    std::string namee=name+"/Chamber"+tmp2[0];
-    for(std::map<std::string,TH2F*>::iterator itt =Correlation[it->first].begin();itt!=Correlation[it->first].end();++itt)
-    {
-      writeObject(namee,Correlation[it->first][itt->first]); 
-      //Correlation[it->first][itt->first]->Scale(100.0/Correlation[it->first][itt->first]->Integral());
-      //writeObject(name,Correlation[it->first][itt->first]);
-      delete Correlation[it->first][itt->first];
-    }
-  }
-  for(std::map<std::string,std::map<std::string,TH1F*>>::iterator it=Correlation_time.begin();it!=Correlation_time.end();++it)
-  {
-    std::vector<std::string>tmp;
-    tokenize(it->first,tmp,"*");
-    std::size_t found = tmp[1].find_last_of("/");
-    std::string name=tmp[1].substr(found+1);
-    std::vector<std::string>tmp2;
-    tokenize(tmp[0],tmp2,"_");
-    std::string namee=name+"/Chamber"+tmp2[0];
-    for(std::map<std::string,TH1F*>::iterator itt =Correlation_time[it->first].begin();itt!=Correlation_time[it->first].end();++itt)
-    {
-      writeObject(namee,Correlation_time[it->first][itt->first]);
-      delete Correlation_time[it->first][itt->first];
-    }
-  }
-  for(std::map<std::string,TH1F*>::iterator it =clu.begin();it!=clu.end();++it)
-  {
-     std::vector<std::string>tmp;
-     tokenize(it->first,tmp,"*");
-     std::size_t found = tmp[1].find_last_of("/");
-     std::string name=tmp[1].substr(found+1);
-     std::vector<std::string>tmp2;
-     tokenize(tmp[0],tmp2,"_");
-     std::string namee=name+"/Chamber"+tmp2[0];
-     writeObject(namee,general_multilicity[it->first]);
-     writeObject(namee,when[it->first]);
-     writeObject(namee,cluster_multiplicity[it->first]);
-     writeObject(namee,nbr_cluster[it->first]);
-     writeObject(namee,when2[it->first]);
-     writeObject(namee,center[it->first]);
-     writeObject(namee,clu[it->first]);
-     delete general_multilicity[it->first];
-     delete when[it->first];
-     delete cluster_multiplicity[it->first];
-     delete nbr_cluster[it->first];
-     delete when2[it->first];
-     delete center[it->first];
-     delete clu[it->first];
-  }*/
-  /*for(std::map<std::string,std::vector<double>>::iterator it=HV.begin();it!=HV.end();++it)
-  {
-    std::string namee=name+"File"+it->first;
-    TGraphErrors* fd= new TGraphErrors(HV[it->first].size(),&(HV[it->first][0]),&(Mean_cluster_size[it->first][0]),&(HVe[it->first][0]),&(Standard_dev_cluster_size[it->first][0]));
-    fd->SetTitle((it->first+"_cluster_sizee_vs_HV").c_str());
-    writeObject(namee,fd);
-    delete fd;
-    TGraphErrors* fd2= new TGraphErrors(HV[it->first].size(),&(HV[it->first][0]),&(Mean_cluster_nbr[it->first][0]),&(HVe[it->first][0]),&(Standard_dev_cluster_nbr[it->first][0]));
-    fd2->SetTitle((it->first+"_cluster_nbr_vs_HV").c_str());
-    writeObject(namee,fd2);
-    delete fd2;
-  }*/
-//}
-
 void Analysis::Construct_Plot()
 {
   std::map<std::string,std::vector<double>> eff;
@@ -591,19 +519,31 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
   std::map<std::string,TH1F*>center;
   std::map<std::string,TH1F*> clu;
   std::map<std::string,std::map<std::string,TH2F*>> Correlation;
+  std::map<std::string,std::map<std::string,TH2F*>> Correlation2;
   std::map<std::string,std::map<std::string,TProfile2D*>>CorrelationProfile;
+  std::map<std::string,std::map<std::string,TProfile2D*>>CorrelationProfile2;
   std::map<std::string,std::map<std::string,TH1F*>> Correlation_time;
+  std::map<std::string,std::map<std::string,TH1F*>> Correlation_time2;
   std::map<std::string,std::pair<double,double>>eff;
   std::cout<<"Analysis for File : "<<file<<std::endl;
   static int nn=0;
   std::map<std::string,double>numGoodEvents;
   //recuperer le parametre
   std::vector<double>Cor;
+  std::vector<double>Cor2;
+  Cor2.push_back(0);
   std::vector<std::string>tmp;
+  std::vector<std::string>tmp2;
+  tmp2.push_back("0");
   if(read.getParameters().find("CorrelationTime")!=read.getParameters().end())
   {
     tokenize(read.getParameters()["CorrelationTime"],tmp,",");
-    for(unsigned int i=0;i!=tmp.size();++i) Cor.push_back(stof(tmp[i])); 
+    for(unsigned int i=0;i!=tmp.size();++i) 
+    {
+      Cor.push_back(stof(tmp[i])); 
+      Cor2.push_back(stof(tmp[i])); 
+      tmp2.push_back(tmp[i]);
+    }
   }
   for(std::map<std::string,std::pair<double,double>>::iterator it=cham.SelectionTimes[file].begin();it!=cham.SelectionTimes[file].end();++it)
   {
@@ -619,6 +559,9 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
       Correlation[p][tmp[co]]=new TH2F(("Cor"+n1+"_"+tmp[co]).c_str(),("Correlation "+ti+" "+tmp[co].c_str()+"ns"),130,0,130,130,0,130);
       Correlation_time[p][tmp[co]]=new TH1F(("Cortimr"+n1+"_"+tmp[co]).c_str(),("Correlation time distribution "+ti+" "+tmp[co].c_str()+"ns"),int(2*Cor[co])+2,-Cor[co]-1,Cor[co]+1);
       CorrelationProfile[p][tmp[co]]=new TProfile2D(("Cor2D"+n1+"_"+tmp[co]).c_str(),("Correlation2D "+ti+" "+tmp[co].c_str()+"ns"),130,0,130,130,0,130);
+      Correlation2[p][tmp[co]]=new TH2F(("Cor"+n1+"_"+tmp2[co]+"_"+tmp2[co+1]).c_str(),("Correlation "+ti+" bettwen "+tmp2[co].c_str()+"_"+tmp2[co+1].c_str()+"ns"),130,0,130,130,0,130);
+      Correlation_time2[p][tmp[co]]=new TH1F(("Cortimr"+n1+"_"+tmp2[co]+"_"+tmp2[co+1]).c_str(),("Correlation time distribution "+ti+" bettwen "+tmp2[co].c_str()+"_"+tmp2[co+1].c_str()+"ns"),int(2*Cor[co])+2,-Cor[co]-1,Cor[co]+1);
+      CorrelationProfile2[p][tmp[co]]=new TProfile2D(("Cor2D"+n1+"_"+tmp2[co]+"_"+tmp2[co+1]).c_str(),("Correlation2D "+ti+" bettwen "+tmp2[co].c_str()+"_"+tmp2[co+1].c_str()+"ns"),130,0,130,130,0,130);
     }
     general_multilicity[p]=new TH1F(("Genmulti"+n1).c_str(),("General Multiplicity "+ti),50,0,50);
     nbr_cluster[p]=new TH1F(("NbrCluster"+n1).c_str(),("Number of Cluster "+ti),50,0,50);
@@ -688,6 +631,16 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
               CorrelationProfile[p][tmp[val]]->Fill(newstrip,newstrip2,newtime-newtime2);
             }       
           }  
+          for(int val=0;val!=Cor2.size()-1;++val)
+          {
+            if( fabs(newtime2-newtime)<=Cor2[val+1]&&fabs(newtime2-newtime)>=Cor2[val])
+            {
+              //std::cout<<data.TDCCh->at(h)<<"  "<<data.TDCCh->at(l)<<" "<<data.TDCTS->at(h)-data.TDCTS->at(l)<<std::endl;
+              Correlation2[p][tmp2[val+1]]->Fill(newstrip,newstrip2);
+              Correlation_time2[p][tmp2[val+1]]->Fill(newtime-newtime2);
+              CorrelationProfile2[p][tmp2[val+1]]->Fill(newstrip,newstrip2,newtime-newtime2);
+            }       
+          }
         }
         //std::cout<<data.TDCTS->at(h)<<"  "<<data.TDCCh->at(h)<<std::endl;
         //if(Hits_classed_by_timestamp.find(data.TDCTS->at(h))==Hits_classed_by_timestamp.end()) Hits_classed_by_timestamp.insert(std::pair<float,std::vector<int>>(data.TDCTS->at(h),std::vector<int>()));
@@ -783,9 +736,11 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     for(std::map<std::string,TH2F*>::iterator itt =Correlation[it->first].begin();itt!=Correlation[it->first].end();++itt)
     {
       writeObject(namee,Correlation[it->first][itt->first]); 
+      writeObject(namee,Correlation2[it->first][itt->first]); 
       //Correlation[it->first][itt->first]->Scale(100.0/Correlation[it->first][itt->first]->Integral());
       //writeObject(name,Correlation[it->first][itt->first]);
       delete Correlation[it->first][itt->first];
+      delete Correlation2[it->first][itt->first];
     }
   }
   for(std::map<std::string,std::map<std::string,TProfile2D*>>::iterator it=CorrelationProfile.begin();it!=CorrelationProfile.end();++it)
@@ -800,10 +755,12 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     std::string namee=nameee.Data();
     for(std::map<std::string,TProfile2D*>::iterator itt =CorrelationProfile[it->first].begin();itt!=CorrelationProfile[it->first].end();++itt)
     {
-      writeObject(namee,CorrelationProfile[it->first][itt->first]); 
+      writeObject(namee,CorrelationProfile[it->first][itt->first]);
+      writeObject(namee,CorrelationProfile2[it->first][itt->first]);
       //Correlation[it->first][itt->first]->Scale(100.0/Correlation[it->first][itt->first]->Integral());
       //writeObject(name,Correlation[it->first][itt->first]);
       delete CorrelationProfile[it->first][itt->first];
+      delete CorrelationProfile2[it->first][itt->first];
     }
   }
   for(std::map<std::string,std::map<std::string,TH1F*>>::iterator it=Correlation_time.begin();it!=Correlation_time.end();++it)
@@ -819,7 +776,9 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     for(std::map<std::string,TH1F*>::iterator itt =Correlation_time[it->first].begin();itt!=Correlation_time[it->first].end();++itt)
     {
       writeObject(namee,Correlation_time[it->first][itt->first]);
+      writeObject(namee,Correlation_time2[it->first][itt->first]);
       delete Correlation_time[it->first][itt->first];
+      delete Correlation_time2[it->first][itt->first];
     }
   }
   for(std::map<std::string,TH1F*>::iterator it =clu.begin();it!=clu.end();++it)
@@ -868,6 +827,5 @@ int Analysis::Loop()
 {
   ShiftTimes();
   Construct_Plot();
-  //WriteMe();
   return 1;
 }

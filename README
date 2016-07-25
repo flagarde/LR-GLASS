@@ -14,6 +14,8 @@ Content:
   include	  : Include files
   cards		  : cards files
   RunMe.sh  : Just run ./RunMe.sh cards and take a cofee ;)
+  "One script to rule them all, One script to find them, 
+   One script to bring them all and in the darkness bind them"
 --------------------------------------------------------------------------------
 
 Syntax: ./lrGlass outputFile.root card.txt 

@@ -550,7 +550,7 @@ bool Chambers::InsideZone(int strip,double time,std::string file,std::string nam
   double winmin=SelectionTimes[file][name].first;
   double winmax=SelectionTimes[file][name].second;
   if(chamber!=tmp[0])return false;
-  if (tmp[4]=="al")timenew=timenew-MoyTimeStrip[file][strip]+MoyTimeChamber[file][stoi(chamber)]; 
+  if (tmp[4]=="al")timenew=timenew-MoyTimeStrip[file][strip]+MoyTimeChamber[file][stoi(chamber)-1];
   if(time>winmax&&time<winmin) return false;
   for(unsigned int i=0;i!=read.getSpatialWindows()[chamber].size();++i)
   {
