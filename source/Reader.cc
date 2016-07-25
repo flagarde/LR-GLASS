@@ -75,7 +75,7 @@ void Reader::PrintConfig()
   std::cout<<green<<" -> Number of chamber(s) = "<<NbrChambers<<std::endl;
   for(std::map<std::string,std::vector<std::string>>::iterator it=SpatialWindows.begin();it!=SpatialWindows.end();++it)
   {
-    std::cout<<green<<"   *Chamber_"<<it->first<<" TimeWindows : ";
+    std::cout<<red<<"   *Chamber_"<<it->first<<" TimeWindows : ";
     for(unsigned int i=0;i!=TimeWindows[it->first].size();++i) 
     {
       if(i%2==1&&i!=TimeWindows[it->first].size()-1)std::cout<<green<<TimeWindows[it->first][i]<<"; ";

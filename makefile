@@ -8,4 +8,4 @@ ROOTFLAGS = $(shell root-config --cflags)
 ROOTLIBS = $(shell root-config --glibs)
 
 all: 
-	g++ -std=c++11 $(source_name) source/*.cc -I include/ $(ROOTFLAGS) $(ROOTLIBS) -o lrGlass
+	g++ -O3 -std=c++11 $(source_name) source/*.cc -I include/ $(ROOTFLAGS) $(ROOTLIBS) -o lrGlass

@@ -26,6 +26,18 @@ std::pair<int,int> Chambers::FindPosition(int strip)
   }
 }
 
+int Chambers::FindStrip(int strip)
+{
+  for(std::map<std::string,int>::iterator it=read.getMapping().begin();it!=read.getMapping().end();++it)
+  {
+    int diff=strip-it->second;
+    if(diff>=0&&diff<16)
+    {
+      return StripShiftAligned[it->first.substr(1,2)]+diff;
+    }
+  }
+}
+
 std::string Chambers::FindChamber(int strip)
 {
   for(std::map<std::string,int>::iterator it=read.getMapping().begin();it!=read.getMapping().end();++it)
@@ -404,36 +416,60 @@ void Chambers::FillTH1(std::string& name,int strip,double value,double poids)
   else std::cout<<red<<name2<<" not found "<<std::endl;
 }
 
-void Chambers::Fill_Min_Max_Time_Windows()
+void Chambers::Fill_Min_Max_Time_Windows(std::string na,double min,double max)
 {
-  std::string name="Default";
-  for(std::map<std::string,std::vector<std::string>>::iterator it=read.getTimeWindows().begin();it!=read.getTimeWindows().end();++it)
+  if(na=="")
   {
-    double min=std::numeric_limits<double>::max();
-    double max=std::numeric_limits<double>::min();
-    for(unsigned int j=0;j!=(it->second).size();++j)
+    std::string name="Default";
+    TimeWindowName.insert(name);
+    for(std::map<std::string,std::vector<std::string>>::iterator it=read.getTimeWindows().begin();it!=read.getTimeWindows().end();++it)
     {
-      if(stof((it->second)[j])>max)max=stof((it->second)[j]);
-      if (stof((it->second)[j])<min)min=stof((it->second)[j]);
+      double min=std::numeric_limits<double>::max();
+      double max=std::numeric_limits<double>::min();
+      for(unsigned int j=0;j!=(it->second).size();++j)
+      {
+        if(stof((it->second)[j])>max)max=stof((it->second)[j]);
+        if (stof((it->second)[j])<min)min=stof((it->second)[j]);
+      }
+      Min_Max_Time_Windows[name+"_Chamber"+it->first]=std::make_pair(min,max);
     }
-    Min_Max_Time_Windows[name+"_Chamber"+it->first]=std::make_pair(min,max);
+  }
+  else
+  {
+    TimeWindowName.insert(na);
+    for(int i=0;i!=read.getNbrChambers();++i) 
+    {
+      Min_Max_Time_Windows[na+"_Chamber"+std::to_string(i+1)]=std::make_pair(min,max);
+    }
   }
 }
 
-void Chambers::Fill_Min_Max_Spatial_Windows()
+void Chambers::Fill_Min_Max_Spatial_Windows(std::string na,int min,int max)
 {
-  std::string name="Default";
-  for(std::map<std::string,std::vector<std::string>>::iterator it=read.getSpatialWindows().begin();it!=read.getSpatialWindows().end();++it)
+  if(na=="")
   {
-    double min=std::numeric_limits<double>::max();
-    double max=std::numeric_limits<double>::min();
-    for(unsigned int j=0;j!=(it->second).size();++j)
+    std::string name="Default";
+    SpatialWindowName.insert(name);
+    for(std::map<std::string,std::vector<std::string>>::iterator it=read.getSpatialWindows().begin();it!=read.getSpatialWindows().end();++it)
     {
-      if(read.getMapping().find((it->first)+(it->second)[j])!=read.getMapping().end()&&read.getMapping()[(it->first)+(it->second)[j]]+15>max)max=read.getMapping()[(it->first)+(it->second)[j]]+15;
-      if(read.getMapping().find((it->first)+(it->second)[j])!=read.getMapping().end()&&read.getMapping()[(it->first)+(it->second)[j]]<min)min=read.getMapping()[(it->first)+(it->second)[j]];
+      double min=std::numeric_limits<double>::max();
+      double max=std::numeric_limits<double>::min();
+      for(unsigned int j=0;j!=(it->second).size();++j)
+      {
+        if(read.getMapping().find((it->first)+(it->second)[j])!=read.getMapping().end()&&read.getMapping()[(it->first)+(it->second)[j]]+15>max)max=read.getMapping()[(it->first)+(it->second)[j]]+15;
+        if(read.getMapping().find((it->first)+(it->second)[j])!=read.getMapping().end()&&read.getMapping()[(it->first)+(it->second)[j]]<min)min=read.getMapping()[(it->first)+(it->second)[j]];
+      }
+      Min_Max_Spatial_Windows[name+"_Chamber"+it->first]=std::make_pair(min,max);
     }
-    Min_Max_Spatial_Windows[name+"_Chamber"+it->first]=std::make_pair(min,max);
-  } 
+  }
+  else
+  {
+    TimeWindowName.insert(na);
+    for(int i=0;i!=read.getNbrChambers();++i) 
+    {
+      Min_Max_Spatial_Windows[na+"_Chamber"+std::to_string(i+1)]=std::make_pair(min,max);
+    }
+  }
 }
 
 Chambers::Chambers(OutFileRoot& out_,Reader& read_):out(out_),read(read_)
@@ -498,3 +534,32 @@ bool Chambers::InsideZone(int strip,double time,double shift,double winmin, doub
   }
   return false;
 }
+
+bool Chambers::InsideZone(int strip,double time,std::string file,std::string name,int& stripnew, double& timenew)
+{
+  std::string chamber=FindChamber(strip);
+  std::string par=FinPartition(strip);
+  if(chamber=="") return false;
+  if(read.getMask().find(strip)!=read.getMask().end())
+  {
+    return false;
+  }
+  std::vector<std::string>tmp;
+  tokenize(name,tmp,"_");
+  timenew=time;
+  double winmin=SelectionTimes[file][name].first;
+  double winmax=SelectionTimes[file][name].second;
+  if(chamber!=tmp[0])return false;
+  if (tmp[4]=="al")timenew=timenew-MoyTimeStrip[file][strip]+MoyTimeChamber[file][stoi(chamber)]; 
+  if(time>winmax&&time<winmin) return false;
+  for(unsigned int i=0;i!=read.getSpatialWindows()[chamber].size();++i)
+  {
+    if(read.getSpatialWindows()[chamber][i]==par)
+    {
+      stripnew=FindStrip(strip); 
+      return true;
+    }
+  }
+  return false;
+}
+

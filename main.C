@@ -17,7 +17,6 @@
 #include "ReaderTXT.h"
 #include "ReaderCSV.h"
 #include "Reader.h"
-// Analysis class
 #include "Analysis.hh"
 #include <TInterpreter.h>
 
@@ -57,21 +56,19 @@ int main(int argc, char* argv[])
     std::cout<<red<<"Please provide a .txt or .csv "<<normal<<std::endl;
     std::exit(1);
   }
-  if(RootFile.find(".root")!=std::string::npos&&RootFile.find(".root")==ConfigFile.size()-5)RootFile+=".root";
+  if(RootFile.find(".root")==std::string::npos-5/*||RootFile.find(".root")!=ConfigFile.size()-5*/)RootFile+=".root";
   std::string type=reader->getType();
   OutFileRoot out(RootFile);
   Chambers cham(out,*reader);
   Analysis analysis(out,*reader,cham);
-  analysis.ShiftTimes();
+  int isLoop=analysis.Loop();
+  cham.Write();
   delete reader;
-  /*
-    int isLoop = analysis.loop(inputFileNames, dirName, plotName, numInFiles, nameType, param, numParam);
-    if(isLoop == 1) std::cout << "The End." << std::endl;
-    if(isLoop == -1) 
-    { 
-      std::cout << "ERROR: Can't read file." << std::endl;
-      std::cout << "The End." << std::endl;
-    }
-    //cham.Write();*/
+  if(isLoop == 1) std::cout<<green<<"The End."<<normal<< std::endl;
+  if(isLoop == -1) 
+  { 
+    std::cout<<red<<"ERROR !!!"<<normal<<std::endl;
+    std::cout<<red<<"The End."<<normal<<std::endl;
+  }
   return 1;
 }

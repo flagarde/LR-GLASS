@@ -46,14 +46,19 @@ void ReaderTXT::setType()
             std::cout<<red<<"Please provide the type of analysis  ..."<<normal<<std::endl;
             std::exit(1);
           }
-          Type=token[1];
+          if(token[1]!="volEff"&&token[1]!="thrEff"&&token[1]!="srcEff"&&token[1]!="PulEff")
+          {
+            std::cout<<red<<"Please provide the type of analysis type={volEff|thrEff|srcEff|PulEff}"<<normal<<std::endl;
+            std::exit(1);
+          }
+          else Type=token[1];
         }
       }
       if(line=="#TYPE:")read = true;
     }
     if(found==false)
     {
-      std::cout<<red<<"Please provide the type of analysis type={volEff|theEff|srcEff}"<<normal<<std::endl;
+      std::cout<<red<<"Please provide the type of analysis type={volEff|thrEff|srcEff|PulEff}"<<normal<<std::endl;
       std::exit(1);
     }
     myfile.close();

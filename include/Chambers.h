@@ -13,6 +13,9 @@
 class Chambers
 {
   public:
+  std::map<std::string,std::map<int,float>>MoyTimeStrip;
+  std::map<std::string,std::map<int,float>>MoyTimeChamber;
+  std::map<std::string,std::map<std::string,std::pair<double,double>>>SelectionTimes;
   Chambers& operator=(Chambers& other);
   std::pair<int,int> FindPosition(int strip);
   std::string FindChamber(int strip);
@@ -43,15 +46,19 @@ class Chambers
   std::map<std::string,TH2F*>TChamberTH2;
   std::map<std::string,TH1F*>TChamberTH1;
   Chambers()=delete;
+  int FindStrip(int strip);
   void writeObject(std::string& dirName, TObject *object);
   bool InsideZone(int strip,double time,double shifttime=0.0,double winmin=-1.0,double winmax=-1.0);
+  bool InsideZone(int strip,double time,std::string file,std::string name,int& stripnew, double& timenew);
   private:
   OutFileRoot& out;
   Reader& read;
-  void Fill_Min_Max_Time_Windows();
-  void Fill_Min_Max_Spatial_Windows();
+  void Fill_Min_Max_Time_Windows(std::string="",double=0.0,double=0.0);
+  void Fill_Min_Max_Spatial_Windows(std::string="",int=0,int=0);
   void Fill_Useful_Strip();
   std::vector<std::string>Partitions{"A1","A2","B1","B2","C1","C2","D1","D2"};
+  std::set<std::string>TimeWindowName;
+  std::set<std::string>SpatialWindowName;
   std::map<std::string,std::pair<double,int>>StripShift
   {
     {"A1",{0.5,0}},
@@ -62,6 +69,17 @@ class Chambers
     {"C2",{2.5,16}},
     {"D1",{3.5,0}},
     {"D2",{3.5,16}}
+  };
+   std::map<std::string,int>StripShiftAligned
+  {
+    {"A1",0},
+    {"A2",16},
+    {"B1",32},
+    {"B2",48},
+    {"C1",64},
+    {"C2",80},
+    {"D1",96},
+    {"D2",112}
   };
 };
 
