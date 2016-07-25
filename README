@@ -8,13 +8,12 @@ Description:
 
 Content:
   
-  makefile	  : MakeFile for build program
+  makefile	: MakeFile for build program
   main.C	  : main file
-
   source	  : Source files
   include	  : Include files
   cards		  : cards files
-  example_data	  : data files for example cards
+  RunMe.sh  : Just run ./RunMe.sh cards and take a cofee ;)
 --------------------------------------------------------------------------------
 
 Syntax: ./lrGlass outputFile.root card.txt 
