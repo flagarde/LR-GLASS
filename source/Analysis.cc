@@ -59,18 +59,18 @@ void Analysis::ShiftTimes()
     std::map<int,float>moy_time_chamber;
     std::map<int,TH1F*>time_dist_strip;
     std::map<int,TH1F*>time_dist_strip2;
-    std::string time_distr="Time_Distribution_Channel_timeunaligned_Nbr";
-    std::string time_distrr="Time_Distribution_Channel_timealigned_Nbr";
-    std::string th11="profile_time_unaligned_File"+std::to_string(file);
-    std::string th12="profile_time_aligned_File"+std::to_string(file);
-    std::string th13="Mean_time_per_strip_File"+std::to_string(file);
-    std::string th14="Mean_time_per_chamber_File"+std::to_string(file);
+    std::string time_distr="Time Distribution Channel timeunaligned_Nbr";
+    std::string time_distrr="Time Distribution Channel timealigned_Nbr";
+    std::string th11="profile time unaligned_File"+std::to_string(file);
+    std::string th12="profile time aligned_File"+std::to_string(file);
+    std::string th13="Mean time per strip_File"+std::to_string(file);
+    std::string th14="Mean time per chamber_File"+std::to_string(file);
     cham.CreateTH1(th13,"Spatial","Default");
     cham.CreateTH1(th11,"Time","Default");
     cham.CreateTH1(th12,"Time","Default");
-    std::string name1="Nbr_hits_per_second_File"+std::to_string(file);
-    std::string name3="Time_distribution_unaligned_File"+std::to_string(file);
-    std::string name4="Time_distribution_aligned_File"+std::to_string(file);
+    std::string name1="Nbr hits per second_File"+std::to_string(file);
+    std::string name3="Time distribution unaligned_File"+std::to_string(file);
+    std::string name4="Time distribution aligned_File"+std::to_string(file);
     cham.CreateTH2(name1);
     cham.CreateTH2(name3,10000,1000);
     cham.CreateTH2(name4,10000,1000);
@@ -110,7 +110,7 @@ void Analysis::ShiftTimes()
     std::map<int,double>InHertzPerCm;
     for(unsigned int i=0;i!=read.getNbrChambers();++i)
     {
-      InHertzPerCm[i+1]*=1.0e9/(nEntries*1.0*longueur*largeur*(cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].second-cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].first));
+      InHertzPerCm[i+1]=1.0e9/(nEntries*1.0*longueur*largeur*(cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].second-cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].first));
       //std::cout<<green<<nEntries<<" "<<InHertzPerCm[i+1]<<normal<<std::endl;
     }
     for(unsigned int i = 0; i < nEntries; i++) 
@@ -323,6 +323,11 @@ void Analysis::ShiftTimes()
           else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
           double xmincrystalun=crystal2->GetParameter(2)-crystal2->GetParameter(3)*Window[kk];
           double xmaxcrystalun=crystal2->GetParameter(2)+crystal2->GetParameter(3)*Window[kk];
+          if(xmincrystalun>xmaxcrystalun)
+          {
+            xmaxcrystalun=crystal2->GetParameter(2)-crystal2->GetParameter(3)*Window[kk];
+            xmincrystalun=crystal2->GetParameter(2)+crystal2->GetParameter(3)*Window[kk];
+          }
           std::cout<<green<<crystalun<<" : ["<<xmincrystalun<<";"<<xmaxcrystalun<<"] sigma="<<crystal2->GetParameter(2)<<" mean="<<crystal2->GetParameter(3)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
           if(xmincrystalun>=0&&xmaxcrystalun<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][crystalun]={xmincrystalun,xmaxcrystalun};
           else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
@@ -352,6 +357,11 @@ void Analysis::ShiftTimes()
           if(xmingaussal>=0&&xmaxgaussal<=TimeMax) cham.SelectionTimes[read.getDAQFiles()[file]][gaussal]={xmingaussal,xmaxgaussal};
           double xmincrystalal=crystal->GetParameter(2)-crystal->GetParameter(3)*Window[kk];
           double xmaxcrystalal=crystal->GetParameter(2)+crystal->GetParameter(3)*Window[kk];
+          if(xmincrystalal>xmaxcrystalal)
+          {
+            xmaxcrystalal=crystal2->GetParameter(2)-crystal2->GetParameter(3)*Window[kk];
+            xmincrystalal=crystal2->GetParameter(2)+crystal2->GetParameter(3)*Window[kk];
+          }
           std::cout<<green<<crystalal<<" : ["<<xmincrystalal<<";"<<xmaxcrystalal<<"] sigma="<<crystal->GetParameter(2)<<" mean="<<crystal->GetParameter(3)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
           if(xmincrystalal>=0&&xmaxcrystalal<=TimeMax) cham.SelectionTimes[read.getDAQFiles()[file]][crystalal]={xmincrystalal,xmaxcrystalal};
           else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
@@ -589,6 +599,7 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
   std::map<std::string,std::map<std::string,TH2F*>> Correlation2;
   std::map<std::string,std::map<std::string,TProfile2D*>>CorrelationProfile;
   std::map<std::string,std::map<std::string,TProfile2D*>>CorrelationProfile2;
+  std::map<std::string,TProfile2D*>Resolution;
   std::map<std::string,std::map<std::string,TH1F*>> Correlation_time;
   std::map<std::string,std::map<std::string,TH1F*>> Correlation_time2;
   std::map<std::string,std::pair<double,double>>eff;
@@ -630,6 +641,7 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
       Correlation_time2[p][tmp[co]]=new TH1F(("Cortimr"+n1+"_"+tmp2[co]+"_"+tmp2[co+1]).c_str(),("Correlation time distribution "+ti+" bettwen "+tmp2[co].c_str()+"_"+tmp2[co+1].c_str()+"ns"),int(2*Cor[co])+2,-Cor[co]-1,Cor[co]+1);
       CorrelationProfile2[p][tmp[co]]=new TProfile2D(("Cor2D"+n1+"_"+tmp2[co]+"_"+tmp2[co+1]).c_str(),("Correlation2D "+ti+" bettwen "+tmp2[co].c_str()+"_"+tmp2[co+1].c_str()+"ns"),130,0,130,130,0,130);
     }
+    Resolution[p]=new TProfile2D(("Resol"+n1).c_str(),"Spatial Resolution",4,0,800,32,0,32);
     general_multilicity[p]=new TH1F(("Genmulti"+n1).c_str(),("General Multiplicity "+ti),50,0,50);
     nbr_cluster[p]=new TH1F(("NbrCluster"+n1).c_str(),("Number of Cluster "+ti),50,0,50);
     cluster_multiplicity[p]= new TH1F(("ClusterSize"+n1).c_str(),("Cluster size "+ti),50,0,50);
@@ -637,9 +649,9 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     when2[p]=new TH1F(("TimeDistrInsideCluster"+n1).c_str(),("Time distribution inside cluster "+ti),200,0,2000);
     center[p]=new TH1F(("CenterOfCluster"+n1).c_str(),("Center of the cluster "+ti),130,0,130);
     clu[p]=new TH1F(("MultiClusterized"+n1).c_str(),("Multipicity clusterised "+ti),130,0,130);
-    std::string fr="Real Spatial Distribution+"+it->first+"_File"+std::to_string(filenumber);
-    std::string fr2="Real Spatial Distribution2+"+it->first+"_File"+std::to_string(filenumber);
-    std::string fr3="Real Spatial Distribution Center+"+it->first+"_File"+std::to_string(filenumber);
+    std::string fr="Real Spatial Distribution"+it->first+"_File"+std::to_string(filenumber);
+    std::string fr2="Real Spatial Distribution2"+it->first+"_File"+std::to_string(filenumber);
+    std::string fr3="Real Spatial Distribution Center"+it->first+"_File"+std::to_string(filenumber);
     cham.CreateTH2(fr);
     cham.CreateTH2(fr3);
     cham.CreateTH2(fr2,10000,100);
@@ -670,7 +682,9 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     std::map<int,double>InHertzPerCm;
     for(unsigned int i=0;i!=read.getNbrChambers();++i)
     {
-      InHertzPerCm[i+1]*=1.0e9/(nEntries*1.0*(it->second.second-it->second.first)*longueur*largeur);
+      
+      InHertzPerCm[i+1]=1.0e9/(nEntries*1.0*(it->second.second-it->second.first)*longueur*largeur);
+      std::cout<<InHertzPerCm[i+1]<<"  "<<1.0e9/(nEntries*1.0*(it->second.second-it->second.first))<<std::endl;
       //std::cout<<green<<nEntries<<" "<<InHertzPerCm[i+1]<<normal<<std::endl;
     }
     for(unsigned int i = 0; i < nEntries; i++) 
@@ -782,7 +796,9 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
               if((Clusters[i].second)[j][k]>max)max=(Clusters[i].second)[j][k];
             }
             center[p]->Fill((max+min)/2);
-            cham.FillTH2(fr3,stripnewold[std::round(((max+min)/2))]);
+            std::pair<int,int>str=cham.FindPosition(stripnewold[std::round((max+min)/2)]);
+            Resolution[p]->Fill((str.first*2+1)*100,str.second,(Clusters[i].second)[j].size()*largeur*1.0/sqrt(12));
+            cham.FillTH2(fr3,stripnewold[std::round((max+min)/2)]);
           }
           if(clus_hit_sum!=0);clu[p]->Fill(clus_hit_sum);
         }
@@ -790,8 +806,8 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
       }
     }
     dataFile.Close();
-    Mean_cluster_size[p].push_back(cluster_multiplicity[p]->GetMean());
-    Mean_cluster_nbr[p].push_back(nbr_cluster[p]->GetMean());
+    Mean_cluster_size[it->first].push_back(cluster_multiplicity[p]->GetMean());
+    Mean_cluster_nbr[it->first].push_back(nbr_cluster[p]->GetMean());
     Standard_dev_cluster_size[p].push_back(cluster_multiplicity[p]->GetRMS());
     Standard_dev_cluster_nbr[p].push_back(nbr_cluster[p]->GetRMS());
     eff[it->first]={numGoodEvents[it->first]/nEntries,sqrt((numGoodEvents[it->first]*(nEntries-numGoodEvents[it->first]))/nEntries)/numGoodEvents[it->first]};
@@ -829,6 +845,8 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     tokenize(tmp[0],tmp2,"_");
     TString nameee= Form("%s/Chamber%s/%0.2f sigma/Shifted %0.2fns/%s/%s",name.c_str(),tmp2[0].c_str(),stof(tmp2[1]),stof(tmp2[2]),tmp2[3].c_str(),tmp2[4].c_str());
     std::string namee=nameee.Data();
+    writeObject(namee,Resolution[it->first]);
+    delete Resolution[it->first];
     for(std::map<std::string,TProfile2D*>::iterator itt =CorrelationProfile[it->first].begin();itt!=CorrelationProfile[it->first].end();++itt)
     {
       writeObject(namee,CorrelationProfile[it->first][itt->first]);
@@ -882,6 +900,15 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
      delete center[it->first];
      delete clu[it->first];
   }
+  filenumber++;
+  return eff;
+}
+
+//-------------------------------------------------------
+int Analysis::Loop()
+{
+  ShiftTimes();
+  Construct_Plot();
   for(std::map<std::string,std::vector<double>>::iterator it=Mean_cluster_size.begin();it!=Mean_cluster_size.end();++it)
   {
     std::vector<double>tmp3;
@@ -890,12 +917,8 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     else if (read.getType()=="srcEff") tmp3=read.getAttenuators();
     else if (read.getType()=="PulEff") tmp3=read.getPulses();
     std::vector<double>tmp4(tmp3.size(),0);
-    std::vector<std::string>tmp;
-    tokenize(it->first,tmp,"*");
-    std::size_t found = tmp[1].find_last_of("/");
-    std::string name=tmp[1].substr(found+1);
     std::vector<std::string>tmp2;
-    tokenize(tmp[0],tmp2,"_");
+    tokenize(it->first,tmp2,"_");
     TString nameee= Form("Cluster/Chamber%s/%0.2f sigma/Shifted %0.2fns/%s/%s",tmp2[0].c_str(),stof(tmp2[1]),stof(tmp2[2]),tmp2[3].c_str(),tmp2[4].c_str());
     std::string namee=nameee.Data();
     TGraphErrors* fd= new TGraphErrors(tmp3.size(),&(tmp3[0]),&(Mean_cluster_size[it->first][0]),&(tmp4[0]),&(Standard_dev_cluster_size[it->first][0]));
@@ -907,14 +930,5 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     writeObject(namee,fd2);
     delete fd2;
   }
-  filenumber++;
-  return eff;
-}
-
-//-------------------------------------------------------
-int Analysis::Loop()
-{
-  ShiftTimes();
-  Construct_Plot();
   return 1;
 }

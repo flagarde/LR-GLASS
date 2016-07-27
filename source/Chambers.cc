@@ -94,9 +94,16 @@ void Chambers::Scale(std::string& name,double value)
       tokenize(name+"_Chamber"+std::to_string(i+1),tmp,"_File");
       std::string realname=tmp[0];
       tokenize(tmp[1],tmp2,"_Chamber");
+      std::vector<std::string>tmp3;
+      std::string namp=hnew->GetName();
+      tokenize(namp,tmp3,"_");
       std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
-      std::string name1=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1]+"/"+realname+"/Scaled";
-      out.writeObject(name1,hnew);
+      std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
+      TString nameee=name;
+      if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
+      else nameee=name+"/"+realname+"/Scaled";
+      std::string namee=nameee.Data();  
+      writeObject(namee,hnew);
       delete hnew;
     }
     if(TChamberTH1.find(name+"_Chamber"+std::to_string(i+1))!=TChamberTH1.end())
@@ -108,9 +115,16 @@ void Chambers::Scale(std::string& name,double value)
       tokenize(name+"_Chamber"+std::to_string(i+1),tmp,"_File");
       std::string realname=tmp[0];
       tokenize(tmp[1],tmp2,"_Chamber");
+      std::vector<std::string>tmp3;
+      std::string namp=hnew->GetName();
+      tokenize(namp,tmp3,"_");
       std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
-      std::string name1=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1]+"/"+realname+"/Scaled";
-      out.writeObject(name1,hnew);
+      std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
+      TString nameee=name;
+      if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
+      else nameee=name+"/"+realname+"/Scaled";
+      std::string namee=nameee.Data(); 
+      writeObject(namee,hnew);
       delete hnew;
     }
   }
@@ -139,10 +153,17 @@ void Chambers::ScaleTime(std::string& name,std::map<int,double>& values)
       tokenize(name+"_Chamber"+std::to_string(i+1),tmp,"_File");
       std::string realname=tmp[0];
       tokenize(tmp[1],tmp2,"_Chamber");
+      hnew->Scale(values[stoi(tmp2[1])]);
+      std::vector<std::string>tmp3;
+      std::string namp=hnew->GetName();
+      tokenize(namp,tmp3,"_");
       std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
-      std::string name1=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1]+"/"+realname+"/Scaled";
-      hnew->Scale(values[i+1]);
-      out.writeObject(name1,hnew);
+      std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
+      TString nameee=name;
+      if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
+      else nameee=name+"/"+realname+"/Scaled";
+      std::string namee=nameee.Data();  
+      writeObject(namee,hnew);
       delete hnew;
     }
     if(TChamberTH1.find(name+"_Chamber"+std::to_string(i+1))!=TChamberTH1.end())
@@ -153,10 +174,17 @@ void Chambers::ScaleTime(std::string& name,std::map<int,double>& values)
       tokenize(name+"_Chamber"+std::to_string(i+1),tmp,"_File");
       std::string realname=tmp[0];
       tokenize(tmp[1],tmp2,"_Chamber");
+      hnew->Scale(values[stoi(tmp2[1])]);
+      std::vector<std::string>tmp3;
+      std::string namp=hnew->GetName();
+      tokenize(namp,tmp3,"_");
       std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
-      std::string name1=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1]+"/"+realname+"/Scaled";
-      hnew->Scale(values[i+1]);
-      out.writeObject(name1,hnew);
+      std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
+      TString nameee=name;
+      if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
+      else nameee=name+"/"+realname+"/Scaled";
+      std::string namee=nameee.Data();  
+      writeObject(namee,hnew);
       delete hnew;
     }
   }
@@ -489,20 +517,34 @@ void Chambers::Write()
     tokenize(it->first,tmp,"_File");
     std::string realname=tmp[0];
     tokenize(tmp[1],tmp2,"_Chamber");
+    std::vector<std::string>tmp3;
+    std::string namp=it->second->GetName();
+    tokenize(namp,tmp3,"_");
     std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
-    std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1]+"/"+realname;
-    writeObject(name,it->second);
-  }
+    std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
+    TString nameee=name;
+    if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
+    else nameee=name+"/"+realname;
+    std::string namee=nameee.Data(); 
+    writeObject(namee,it->second);
+  }  //  std::string fr3="Real Spatial Distribution Center"+chan+"_"+std::to_string(Window[kk])+"_0_Gaussian + constante_al_File"+std::to_string(filenumber);
   for(std::map<std::string,TH1F*>::iterator it=TChamberTH1.begin();it!=TChamberTH1.end();++it)
   {
     std::vector<std::string>tmp;
     std::vector<std::string>tmp2;
     tokenize(it->first,tmp,"_File");
     std::string realname=tmp[0];
-    tokenize(tmp[1],tmp2,"_Chamber");    
+    tokenize(tmp[1],tmp2,"_Chamber");
+    std::vector<std::string>tmp3;
+    std::string namp=it->second->GetName();
+    tokenize(namp,tmp3,"_");
     std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
-    std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1]+"/"+realname;
-    writeObject(name,it->second);
+    std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
+    TString nameee=name;
+    if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
+    else nameee=name+"/"+realname;
+    std::string namee=nameee.Data();   
+    writeObject(namee,it->second);
   }
 }
 
