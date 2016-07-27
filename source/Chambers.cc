@@ -527,7 +527,7 @@ bool Chambers::InsideZone(int strip,double time,double shift,double winmin, doub
     return false;
   }
   if(winmin!=-1&&winmax!=-1)if((time-shift)>winmax&&(time-shift)<winmin) return false;
-  else if((time-shift)>stof(read.getTimeWindows()[chamber][1])&&(time-shift)<stof(read.getTimeWindows()[chamber][0])) return false;
+  else if((time-shift)>stof(read.getTimeWindows()[chamber][1])||(time-shift)<stof(read.getTimeWindows()[chamber][0])) return false;
   for(unsigned int i=0;i!=read.getSpatialWindows()[chamber].size();++i)
   {
     if(read.getSpatialWindows()[chamber][i]==par) return true;
@@ -551,7 +551,7 @@ bool Chambers::InsideZone(int strip,double time,std::string file,std::string nam
   double winmax=SelectionTimes[file][name].second;
   if(chamber!=tmp[0])return false;
   if (tmp[4]=="al")timenew=timenew-MoyTimeStrip[file][strip]+MoyTimeChamber[file][stoi(chamber)-1];
-  if(time>winmax&&time<winmin) return false;
+  if(timenew>winmax||timenew<winmin) return false;
   for(unsigned int i=0;i!=read.getSpatialWindows()[chamber].size();++i)
   {
     if(read.getSpatialWindows()[chamber][i]==par)

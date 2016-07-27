@@ -29,14 +29,19 @@ void Analysis::writeObject(std::string& dirName, TObject *object)
 void Analysis::ShiftTimes()
 {
   std::vector<double>Noise_shift;
+  std::vector<double>Noise_Window;
   std::vector<double>Window;
-  //put Noise_Shift=0 correspond to the real windows for signal
-  Noise_shift.push_back(0);
   if(read.getParameters().find("NoiseShift")!=read.getParameters().end())
   {
     std::vector<std::string>tmp;
     tokenize(read.getParameters()["NoiseShift"],tmp,",");
     for(unsigned int i=0;i!=tmp.size();++i) Noise_shift.push_back(stof(tmp[i])); 
+  }
+  if(read.getParameters().find("NoiseWindows")!=read.getParameters().end())
+  {
+    std::vector<std::string>tmp;
+    tokenize(read.getParameters()["NoiseWindows"],tmp,",");
+    for(unsigned int i=0;i!=tmp.size();++i) Noise_Window.push_back(stof(tmp[i])); 
   }
   if(read.getParameters().find("NumberOfSigmas")!=read.getParameters().end())
   {
@@ -67,8 +72,8 @@ void Analysis::ShiftTimes()
     std::string name3="Time_distribution_unaligned_File"+std::to_string(file);
     std::string name4="Time_distribution_aligned_File"+std::to_string(file);
     cham.CreateTH2(name1);
-    cham.CreateTH2(name3,1000,1000);
-    cham.CreateTH2(name4,1000,1000);
+    cham.CreateTH2(name3,10000,1000);
+    cham.CreateTH2(name4,10000,1000);
     TH1F* Time_moy_per_chamber =new TH1F(th14.c_str(),th14.c_str(),read.getNbrChambers(),1,read.getNbrChambers()+1);
     for(std::vector<int>::iterator it=cham.Usefull_Strip.begin();it!=cham.Usefull_Strip.end();++it)
     {
@@ -105,7 +110,7 @@ void Analysis::ShiftTimes()
     std::map<int,double>InHertzPerCm;
     for(unsigned int i=0;i!=read.getNbrChambers();++i)
     {
-      InHertzPerCm[i+1]=1.0e9/(nEntries*1.0*(cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].second-cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].first));
+      InHertzPerCm[i+1]*=1.0e9/(nEntries*1.0*longueur*largeur*(cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].second-cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].first));
       //std::cout<<green<<nEntries<<" "<<InHertzPerCm[i+1]<<normal<<std::endl;
     }
     for(unsigned int i = 0; i < nEntries; i++) 
@@ -301,50 +306,112 @@ void Analysis::ShiftTimes()
       ParamValueError["mean2_2gauss_un_"+std::to_string(i+1)].second.push_back(total->GetParError(4));
       ParamValueError["sigma2_2gauss_un_"+std::to_string(i+1)].second.push_back(total->GetParError(5));
       ParamValueError["constant_2gauss_un_"+std::to_string(i+1)].second.push_back(total->GetParError(6));
+      //Real Window of interest
+      std::cout<<green<<"Windows used for the Windows :"<<normal<<std::endl;
       std::string chan=std::to_string(i+1);
       for(unsigned int kk=0;kk!=Window.size();++kk)
       {
-        for(unsigned int ll=0;ll!=Noise_shift.size();++ll)
-        {
           //unaligned
-          std::string gaussun=chan+"_"+std::to_string(Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_Gaussian + constante_un";
-          std::string crystalun=chan+"_"+std::to_string(Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_CrystalBall + constante_un";
-          std::string gauss2un=chan+"_"+std::to_string(Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_2 Gaussian + constante_un";
-          double xmingaussun=(gfit2->GetParameter(1)+Noise_shift[ll])-gfit2->GetParameter(2)*Window[kk];
-          double xmaxgaussun=(gfit2->GetParameter(1)+Noise_shift[ll])+gfit2->GetParameter(2)*Window[kk];
-          if(xmingaussun>=0&&xmaxgaussun<=TimeMax&&(fabs(Noise_shift[ll])>2*gfit2->GetParameter(2)*Window[kk]||Noise_shift[ll]==0))
-          cham.SelectionTimes[read.getDAQFiles()[file]][gaussun]={xmingaussun,xmaxgaussun};
+          std::string gaussun=chan+"_"+std::to_string(Window[kk])+"_0_Gaussian + constante_un";
+          std::string crystalun=chan+"_"+std::to_string(Window[kk])+"_0_CrystalBall + constante_un";
+          std::string gauss2un1=chan+"_"+std::to_string(Window[kk])+"_0_2 Gaussian1 + constante_un";
+          std::string gauss2un2=chan+"_"+std::to_string(Window[kk])+"_0_2 Gaussian2 + constante_un";
+          double xmingaussun=gfit2->GetParameter(1)-gfit2->GetParameter(2)*Window[kk];
+          double xmaxgaussun=gfit2->GetParameter(1)+gfit2->GetParameter(2)*Window[kk];
+          std::cout<<green<<gaussun<<" : ["<<xmingaussun<<";"<<xmaxgaussun<<"] sigma="<<gfit2->GetParameter(2)<<" mean="<<gfit2->GetParameter(1)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
+          if(xmingaussun>=0&&xmaxgaussun<=TimeMax) cham.SelectionTimes[read.getDAQFiles()[file]][gaussun]={xmingaussun,xmaxgaussun};
           else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
-          double xmincrystalun=(crystal2->GetParameter(2)+Noise_shift[ll])-crystal2->GetParameter(3)*Window[kk];
-          double xmaxcrystalun=(crystal2->GetParameter(2)+Noise_shift[ll])+crystal2->GetParameter(3)*Window[kk];
-          if(xmincrystalun>=0&&xmaxcrystalun<=TimeMax&&(fabs(Noise_shift[ll])>2*crystal2->GetParameter(3)*Window[kk]||Noise_shift[ll]==0))cham.SelectionTimes[read.getDAQFiles()[file]][crystalun]={xmincrystalun,xmaxcrystalun};
+          double xmincrystalun=crystal2->GetParameter(2)-crystal2->GetParameter(3)*Window[kk];
+          double xmaxcrystalun=crystal2->GetParameter(2)+crystal2->GetParameter(3)*Window[kk];
+          std::cout<<green<<crystalun<<" : ["<<xmincrystalun<<";"<<xmaxcrystalun<<"] sigma="<<crystal2->GetParameter(2)<<" mean="<<crystal2->GetParameter(3)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
+          if(xmincrystalun>=0&&xmaxcrystalun<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][crystalun]={xmincrystalun,xmaxcrystalun};
           else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
           //to select the right Gaussian
           int l=0;
           if(total->GetParameter(1)>total->GetParameter(4))l=3;
-          //
-          double xmingauss2un = (total->GetParameter(1+l)+Noise_shift[ll])-total->GetParameter(2+l)*Window[kk];
-          double xmaxgauss2un = (total->GetParameter(1+l)+Noise_shift[ll])+total->GetParameter(2+l)*Window[kk];
-          if(xmingauss2un>=0&&xmaxgauss2un<=TimeMax&&(fabs(Noise_shift[ll])>2*total->GetParameter(2+l)*Window[kk]||Noise_shift[ll]==0))cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un]={xmingauss2un,xmaxgauss2un};
+          double xmingauss2un1 = total->GetParameter(1+l)-total->GetParameter(2+l)*Window[kk];
+          double xmaxgauss2un1 = total->GetParameter(1+l)+total->GetParameter(2+l)*Window[kk];
+          std::cout<<green<<gauss2un1<<" : ["<<xmingauss2un1<<";"<<xmaxgauss2un1<<"] sigma="<<total->GetParameter(1+l)<<" mean="<<total->GetParameter(1+l)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
+          if(xmingauss2un1>=0&&xmaxgauss2un1<=TimeMax) cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un1]={xmingauss2un1,xmaxgauss2un1};
+          else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
+          if(l==3) l=0;
+          else l==3;
+          double xmingauss2un2 = total->GetParameter(1+l)-total->GetParameter(2+l)*Window[kk];
+          double xmaxgauss2un2 = total->GetParameter(1+l)+total->GetParameter(2+l)*Window[kk];
+          std::cout<<green<<gauss2un2<<" : ["<<xmingauss2un2<<";"<<xmaxgauss2un2<<"] sigma="<<total->GetParameter(1+l)<<" mean="<<total->GetParameter(1+l)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
+          if(xmingauss2un2>=0&&xmaxgauss2un2<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un2]={xmingauss2un2,xmaxgauss2un2};
           else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
           //aligned
-          std::string gaussal=chan+"_"+std::to_string(Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_Gaussian + constante_al";
-          std::string crystalal=chan+"_"+std::to_string(Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_Crystal Ball + constante_al";
-          std::string gauss2al=chan+"_"+std::to_string(Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_2 Gaussian + constante_al";
-          double xmingaussal=(gfit->GetParameter(1)+Noise_shift[ll])-gfit->GetParameter(2)*Window[kk];
-          double xmaxgaussal=(gfit->GetParameter(1)+Noise_shift[ll])+gfit->GetParameter(2)*Window[kk];
-          if(xmingaussal>=0&&xmaxgaussal<=TimeMax&&(fabs(Noise_shift[ll])>2*gfit->GetParameter(2)*Window[kk]||Noise_shift[ll]==0))cham.SelectionTimes[read.getDAQFiles()[file]][gaussal]={xmingaussal,xmaxgaussal};
-          double xmincrystalal=(crystal->GetParameter(2)+Noise_shift[ll])-crystal->GetParameter(3)*Window[kk];
-          double xmaxcrystalal=(crystal->GetParameter(2)+Noise_shift[ll])+crystal->GetParameter(3)*Window[kk];
-          if(xmincrystalal>=0&&xmaxcrystalal<=TimeMax&&(fabs(Noise_shift[ll])>2*crystal->GetParameter(3)*Window[kk]||Noise_shift[ll]==0))cham.SelectionTimes[read.getDAQFiles()[file]][crystalal]={xmincrystalal,xmaxcrystalal};
+          std::string gaussal=chan+"_"+std::to_string(Window[kk])+"_0_Gaussian + constante_al";
+          std::string crystalal=chan+"_"+std::to_string(Window[kk])+"_0_Crystal Ball + constante_al";
+          std::string gauss2al1=chan+"_"+std::to_string(Window[kk])+"_0_2 Gaussian1 + constante_al";
+          std::string gauss2al2=chan+"_"+std::to_string(Window[kk])+"_0_2 Gaussian2 + constante_al";
+          double xmingaussal=gfit->GetParameter(1)-gfit->GetParameter(2)*Window[kk];
+          double xmaxgaussal=gfit->GetParameter(1)+gfit->GetParameter(2)*Window[kk];
+          std::cout<<green<<gaussal<<" : ["<<xmingaussal<<";"<<xmaxgaussal<<"] sigma="<<gfit->GetParameter(2)<<" mean="<<gfit->GetParameter(1)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
+          if(xmingaussal>=0&&xmaxgaussal<=TimeMax) cham.SelectionTimes[read.getDAQFiles()[file]][gaussal]={xmingaussal,xmaxgaussal};
+          double xmincrystalal=crystal->GetParameter(2)-crystal->GetParameter(3)*Window[kk];
+          double xmaxcrystalal=crystal->GetParameter(2)+crystal->GetParameter(3)*Window[kk];
+          std::cout<<green<<crystalal<<" : ["<<xmincrystalal<<";"<<xmaxcrystalal<<"] sigma="<<crystal->GetParameter(2)<<" mean="<<crystal->GetParameter(3)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
+          if(xmincrystalal>=0&&xmaxcrystalal<=TimeMax) cham.SelectionTimes[read.getDAQFiles()[file]][crystalal]={xmincrystalal,xmaxcrystalal};
           else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
           //to select the right Gaussian
           l=0;
           if(total2->GetParameter(1)>total2->GetParameter(4))l=3;
           //
-          double xmingauss2al = (total2->GetParameter(1+l)+Noise_shift[ll])-total2->GetParameter(2+l)*Window[kk];
-          double xmaxgauss2al = (total2->GetParameter(1+l)+Noise_shift[ll])+total2->GetParameter(2+l)*Window[kk];
-          if(xmingauss2al>=0&&xmaxgauss2al<=TimeMax&&(fabs(Noise_shift[ll])>2*total2->GetParameter(2+l)*Window[kk]||Noise_shift[ll]==0))cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al]={xmingauss2al,xmaxgauss2al};
+          double xmingauss2al1 = total2->GetParameter(1+l)-total2->GetParameter(2+l)*Window[kk];
+          double xmaxgauss2al1 = total2->GetParameter(1+l)+total2->GetParameter(2+l)*Window[kk];
+          std::cout<<green<<gauss2al1<<" : ["<<xmingauss2al1<<";"<<xmaxgauss2al1<<"] sigma="<<total->GetParameter(2+l)<<" mean="<<total->GetParameter(1+l)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
+          if(xmingauss2al1>=0&&xmaxgauss2al1<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al1]={xmingauss2al1,xmaxgauss2al1};
+          else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
+          if(l==3) l=0;
+          else l=3;
+          double xmingauss2al2 = total2->GetParameter(1+l)-total2->GetParameter(2+l)*Window[kk];
+          double xmaxgauss2al2 = total2->GetParameter(1+l)+total2->GetParameter(2+l)*Window[kk];
+          std::cout<<green<<gauss2al2<<" : ["<<xmingauss2al2<<";"<<xmaxgauss2al2<<"] sigma="<<total->GetParameter(2+l)<<" mean="<<total->GetParameter(1+l)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
+          if(xmingauss2al2>=0&&xmaxgauss2al2<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al2]={xmingauss2al2,xmaxgauss2al2};
+          else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
+      }  
+      //for noise 
+      std::cout<<yellow<<"Windows for noise :"<<normal<<std::endl;
+      for(unsigned int kk=0;kk!=Noise_Window.size();++kk)
+      {
+        for(unsigned int ll=0;ll!=Noise_shift.size();++ll)
+        {
+          //unaligned
+          std::string gaussun=chan+"_"+std::to_string(Noise_Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_Gaussian + constante_un";
+          std::string crystalun=chan+"_"+std::to_string(Noise_Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_CrystalBall + constante_un";
+          std::string gauss2un1=chan+"_"+std::to_string(Noise_Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_2 Gaussian1 + constante_un";
+          std::string gauss2un2=chan+"_"+std::to_string(Noise_Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_2 Gaussian2 + constante_un";
+          //aligned
+          std::string gaussal=chan+"_"+std::to_string(Noise_Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_Gaussian + constante_al";
+          std::string crystalal=chan+"_"+std::to_string(Noise_Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_Crystal Ball + constante_al";
+          std::string gauss2al1=chan+"_"+std::to_string(Noise_Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_2 Gaussian1 + constante_al";
+          std::string gauss2al2=chan+"_"+std::to_string(Noise_Window[kk])+"_"+std::to_string(Noise_shift[ll])+"_2 Gaussian2 + constante_al";
+          double xmin=0.;
+          double xmax=0.;
+          if(Noise_shift[ll]<0)
+          {
+            xmin=fabs(Noise_shift[ll])-Noise_Window[kk];
+            xmax=fabs(Noise_shift[ll])+Noise_Window[kk];
+          }
+          if(Noise_shift[ll]>0)
+          {
+            xmin=TimeMax-Noise_shift[ll]-Noise_Window[kk];
+            xmax=TimeMax-Noise_shift[ll]+Noise_Window[kk];
+          }
+          if(xmin>=0&&xmax<=TimeMax)
+          {
+              std::cout<<yellow<<"Noise window : ["<<xmin<<";"<<xmax<<"]"<<normal<<std::endl;
+              cham.SelectionTimes[read.getDAQFiles()[file]][gaussun]={xmin,xmax};
+              cham.SelectionTimes[read.getDAQFiles()[file]][crystalun]={xmin,xmax};
+              cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un1]={xmin,xmax};
+              cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un2]={xmin,xmax};
+              cham.SelectionTimes[read.getDAQFiles()[file]][gaussal]={xmin,xmax};
+              cham.SelectionTimes[read.getDAQFiles()[file]][crystalal]={xmin,xmax};
+              cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al1]={xmin,xmax};
+              cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al2]={xmin,xmax};
+          }
           else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
         }
       }  
@@ -575,7 +642,7 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     std::string fr3="Real Spatial Distribution Center+"+it->first+"_File"+std::to_string(filenumber);
     cham.CreateTH2(fr);
     cham.CreateTH2(fr3);
-    cham.CreateTH2(fr2,1000,100);
+    cham.CreateTH2(fr2,10000,100);
     TFile   dataFile(file.c_str());
     if(dataFile.IsOpen()!=true)
     {
@@ -600,6 +667,12 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     //****************** MACRO ***************************************
     numGoodEvents[it->first]=0.0; 
     unsigned int nEntries = dataTree->GetEntries();
+    std::map<int,double>InHertzPerCm;
+    for(unsigned int i=0;i!=read.getNbrChambers();++i)
+    {
+      InHertzPerCm[i+1]*=1.0e9/(nEntries*1.0*(it->second.second-it->second.first)*longueur*largeur);
+      //std::cout<<green<<nEntries<<" "<<InHertzPerCm[i+1]<<normal<<std::endl;
+    }
     for(unsigned int i = 0; i < nEntries; i++) 
     { 
       std::map<int,int>stripnewold;       
@@ -722,6 +795,9 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     Standard_dev_cluster_size[p].push_back(cluster_multiplicity[p]->GetRMS());
     Standard_dev_cluster_nbr[p].push_back(nbr_cluster[p]->GetRMS());
     eff[it->first]={numGoodEvents[it->first]/nEntries,sqrt((numGoodEvents[it->first]*(nEntries-numGoodEvents[it->first]))/nEntries)/numGoodEvents[it->first]};
+    cham.ScaleTime(fr,InHertzPerCm);
+    cham.ScaleTime(fr3,InHertzPerCm);
+    InHertzPerCm.clear();
   }
   for(std::map<std::string,std::map<std::string,TH2F*>>::iterator it=Correlation.begin();it!=Correlation.end();++it)
   {
@@ -806,18 +882,31 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
      delete center[it->first];
      delete clu[it->first];
   }
-  /*for(std::map<std::string,std::vector<double>>::iterator it=HV.begin();it!=HV.end();++it)
+  for(std::map<std::string,std::vector<double>>::iterator it=Mean_cluster_size.begin();it!=Mean_cluster_size.end();++it)
   {
-    std::string namee=name+"File"+it->first;
-    TGraphErrors* fd= new TGraphErrors(HV[it->first].size(),&(HV[it->first][0]),&(Mean_cluster_size[it->first][0]),&(HVe[it->first][0]),&(Standard_dev_cluster_size[it->first][0]));
-    fd->SetTitle((it->first+"_cluster_sizee_vs_HV").c_str());
+    std::vector<double>tmp3;
+    if(read.getType()=="volEff") tmp3=read.getVoltages();
+    else if (read.getType()=="thrEff") tmp3=read.getThresholds();
+    else if (read.getType()=="srcEff") tmp3=read.getAttenuators();
+    else if (read.getType()=="PulEff") tmp3=read.getPulses();
+    std::vector<double>tmp4(tmp3.size(),0);
+    std::vector<std::string>tmp;
+    tokenize(it->first,tmp,"*");
+    std::size_t found = tmp[1].find_last_of("/");
+    std::string name=tmp[1].substr(found+1);
+    std::vector<std::string>tmp2;
+    tokenize(tmp[0],tmp2,"_");
+    TString nameee= Form("Cluster/Chamber%s/%0.2f sigma/Shifted %0.2fns/%s/%s",tmp2[0].c_str(),stof(tmp2[1]),stof(tmp2[2]),tmp2[3].c_str(),tmp2[4].c_str());
+    std::string namee=nameee.Data();
+    TGraphErrors* fd= new TGraphErrors(tmp3.size(),&(tmp3[0]),&(Mean_cluster_size[it->first][0]),&(tmp4[0]),&(Standard_dev_cluster_size[it->first][0]));
+    fd->SetTitle((it->first+"_cluster_sizee_vs_").c_str());
     writeObject(namee,fd);
     delete fd;
-    TGraphErrors* fd2= new TGraphErrors(HV[it->first].size(),&(HV[it->first][0]),&(Mean_cluster_nbr[it->first][0]),&(HVe[it->first][0]),&(Standard_dev_cluster_nbr[it->first][0]));
-    fd2->SetTitle((it->first+"_cluster_nbr_vs_HV").c_str());
+    TGraphErrors* fd2= new TGraphErrors(tmp3.size(),&(tmp3[0]),&(Mean_cluster_nbr[it->first][0]),&(tmp4[0]),&(Standard_dev_cluster_nbr[it->first][0]));
+    fd2->SetTitle((it->first+"_cluster_nbr_vs_").c_str());
     writeObject(namee,fd2);
     delete fd2;
-  }*/
+  }
   filenumber++;
   return eff;
 }
