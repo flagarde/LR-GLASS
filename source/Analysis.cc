@@ -110,7 +110,7 @@ void Analysis::ShiftTimes()
     std::map<int,double>InHertzPerCm;
     for(unsigned int i=0;i!=read.getNbrChambers();++i)
     {
-      InHertzPerCm[i+1]=1.0e9/(nEntries*1.0*longueur*largeur*(cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].second-cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].first));
+      InHertzPerCm[i+1]=1.0e6/(nEntries*1.0*longueur*largeur*(cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].second-cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].first));
       //std::cout<<green<<nEntries<<" "<<InHertzPerCm[i+1]<<normal<<std::endl;
     }
     for(unsigned int i = 0; i < nEntries; i++) 
@@ -683,7 +683,7 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     for(unsigned int i=0;i!=read.getNbrChambers();++i)
     {
       
-      InHertzPerCm[i+1]=1.0e9/(nEntries*1.0*(it->second.second-it->second.first)*longueur*largeur);
+      InHertzPerCm[i+1]=1.0e6/(nEntries*1.0*(it->second.second-it->second.first)*longueur*largeur);
       std::cout<<InHertzPerCm[i+1]<<"  "<<1.0e9/(nEntries*1.0*(it->second.second-it->second.first))<<std::endl;
       //std::cout<<green<<nEntries<<" "<<InHertzPerCm[i+1]<<normal<<std::endl;
     }
