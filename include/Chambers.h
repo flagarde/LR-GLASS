@@ -33,6 +33,7 @@ class Chambers
   void CreateTH1(std::string& name,std::string xtype,std::string xmin_max);
   void Scale(std::string& name,double value);
   void ScaleTime(std::string& name,std::map<int,double>& times);
+  void ScaleTime(std::string& name);
   TH1F* ReturnTH1(std::string& name);
   TH2F* ReturnTH2(std::string& name);
   std::vector<int>Usefull_Strip;

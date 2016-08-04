@@ -33,6 +33,10 @@ std::map<std::string,std::string>& Reader::getParameters()
 {
   return Parameters;
 }
+std::string& Reader::getDatacardName()
+{
+  return DatacardName;
+}
 int& Reader::getNbrChambers()
 {
   return NbrChambers;

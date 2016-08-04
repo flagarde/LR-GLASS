@@ -7,8 +7,15 @@
 #include<fstream>
 #include"Tokenize.h"
 #include "Colors.h"
+#include <cstdlib>
 ReaderTXT::ReaderTXT(std::string& aname):name(aname)
 {
+  std::size_t found = name.find_last_of("/");
+  std::string namet=name.substr(found+1);
+  std::size_t found2 = namet.find_last_of(".");
+  std::string names=namet.substr(0,found2);
+  std::system(("mkdir ./"+names).c_str());
+  DatacardName=names;
   setType();
   setMask();
   setDAQFiles();

@@ -32,11 +32,13 @@ class Reader
   std::vector<std::string>& getDAQFiles();
   std::vector<std::string>& getCAENFiles();
   std::map<std::string,std::string>& getParameters();
+  std::string& getDatacardName();
   std::map<std::string,std::vector<std::string>>& getTimeWindows();
   std::map<std::string,std::vector<std::string>>& getSpatialWindows();
   int& getNbrChambers();
   protected:
   int NbrChambers;
+  std::string DatacardName;
   std::string Type;
   std::set<int>Mask;
   std::map<std::string,int>Mapping;

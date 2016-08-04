@@ -13,13 +13,20 @@
 #include "TLegend.h"
 #include "Tokenize.h"
 #include "TProfile2D.h"
+#include "TGraphAsymmErrors.h"
 #define longueur 20
 #define largeur 1
 #define time_range 35
+# define timespilltotal 45
+# define timespill 7
+std::map<std::string,std::pair<double,double>>real_comp_eff;
+std::map<std::string,std::pair<double,double>>comp_eff;
 std::map<std::string,std::vector<double>>Mean_cluster_size;
 std::map<std::string,std::vector<double>>Standard_dev_cluster_size;
 std::map<std::string,std::vector<double>>Mean_cluster_nbr;
 std::map<std::string,std::vector<double>>Standard_dev_cluster_nbr;
+std::map<std::string,std::vector<double>>Mean_Spatial_Resolution;
+std::map<std::string,std::vector<double>>Standard_dev_Spatial_Resolution;
 
 void Analysis::writeObject(std::string& dirName, TObject *object)
 {
@@ -54,18 +61,23 @@ void Analysis::ShiftTimes()
   {
     std::cout<<normal<<"Running ShiftTime for file : "<<read.getDAQFiles()[file]<<normal<<std::endl;
     std::map<int,std::pair<int,int>>sum_time_strip;
+    std::map<int,std::pair<int,int>>sum2_time_strip;
     std::map<int,std::pair<int,int>>sum_time_chamber;
     std::map<int,float>moy_time_strip;
+    std::map<int,float>ecart_type_strip;
     std::map<int,float>moy_time_chamber;
     std::map<int,TH1F*>time_dist_strip;
     std::map<int,TH1F*>time_dist_strip2;
+    std::map<int,TH1F*>mean_time_strip;
     std::string time_distr="Time Distribution Channel timeunaligned_Nbr";
     std::string time_distrr="Time Distribution Channel timealigned_Nbr";
     std::string th11="profile time unaligned_File"+std::to_string(file);
     std::string th12="profile time aligned_File"+std::to_string(file);
     std::string th13="Mean time per strip_File"+std::to_string(file);
+    std::string th15="Ecart type per strip_File"+std::to_string(file);
     std::string th14="Mean time per chamber_File"+std::to_string(file);
     cham.CreateTH1(th13,"Spatial","Default");
+    cham.CreateTH1(th15,"Spatial","Default");
     cham.CreateTH1(th11,"Time","Default");
     cham.CreateTH1(th12,"Time","Default");
     std::string name1="Nbr hits per second_File"+std::to_string(file);
@@ -110,8 +122,7 @@ void Analysis::ShiftTimes()
     std::map<int,double>InHertzPerCm;
     for(unsigned int i=0;i!=read.getNbrChambers();++i)
     {
-      InHertzPerCm[i+1]=1.0e6/(nEntries*1.0*longueur*largeur*(cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].second-cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].first));
-      //std::cout<<green<<nEntries<<" "<<InHertzPerCm[i+1]<<normal<<std::endl;
+      InHertzPerCm[i+1]=1.0/(nEntries*1.0e-9*longueur*largeur*(cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].second-cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].first));
     }
     for(unsigned int i = 0; i < nEntries; i++) 
     {        
@@ -123,7 +134,9 @@ void Analysis::ShiftTimes()
         //
         if(!cham.InsideZone(data.TDCCh->at(h),data.TDCTS->at(h)))continue;
         sum_time_strip[data.TDCCh->at(h)].first+=data.TDCTS->at(h);
+        sum2_time_strip[data.TDCCh->at(h)].first+=data.TDCTS->at(h)*data.TDCTS->at(h);
         sum_time_strip[data.TDCCh->at(h)].second+=1;
+        sum2_time_strip[data.TDCCh->at(h)].second+=1;
         sum_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h)))-1].first+=data.TDCTS->at(h);
         sum_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h)))-1].second+=1;
       }
@@ -131,7 +144,9 @@ void Analysis::ShiftTimes()
     for(std::map<int,std::pair<int,int>>::iterator it=sum_time_strip.begin();it!=sum_time_strip.end();++it)
     {  
       moy_time_strip[it->first]=(it->second).first*1.0/(it->second).second;
+      ecart_type_strip[it->first]=sqrt((sum2_time_strip[it->first].first*1.0/sum2_time_strip[it->first].second)-moy_time_strip[it->first]*moy_time_strip[it->first]);
       cham.FillTH1(th13,it->first,it->first,moy_time_strip[it->first]);
+      cham.FillTH1(th15,it->first,it->first,ecart_type_strip[it->first]);
     }  
     for(std::map<int,std::pair<int,int>>::iterator it=sum_time_chamber.begin();it!=sum_time_chamber.end();++it)
     {  
@@ -172,7 +187,7 @@ void Analysis::ShiftTimes()
       cham.ReturnTH1(name_align)->Draw();
       TF1* gfit=new TF1("gfit","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]",min,max);
       gfit->SetParameters(1.1,moy_time_chamber[i],20.0,1.0);
-      gfit->SetParNames("N","mean","alpha","constant");
+      gfit->SetParNames("N","mean","sigma","constant");
       gfit->SetLineColor(kRed);
       cham.ReturnTH1(name_align)->Fit("gfit","EM0WQ");
       TF1 *crystal = new TF1("crystal",CrystalBall,min,max,6);
@@ -307,7 +322,7 @@ void Analysis::ShiftTimes()
       ParamValueError["sigma2_2gauss_un_"+std::to_string(i+1)].second.push_back(total->GetParError(5));
       ParamValueError["constant_2gauss_un_"+std::to_string(i+1)].second.push_back(total->GetParError(6));
       //Real Window of interest
-      std::cout<<green<<"Windows used for the Windows :"<<normal<<std::endl;
+      std::cout<<green<<"Windows for signal :"<<normal<<std::endl;
       std::string chan=std::to_string(i+1);
       for(unsigned int kk=0;kk!=Window.size();++kk)
       {
@@ -412,7 +427,7 @@ void Analysis::ShiftTimes()
           }
           if(xmin>=0&&xmax<=TimeMax)
           {
-              std::cout<<yellow<<"Noise window : ["<<xmin<<";"<<xmax<<"]"<<normal<<std::endl;
+              std::cout<<yellow<<"["<<xmin<<";"<<xmax<<"]"<<normal<<std::endl;
               cham.SelectionTimes[read.getDAQFiles()[file]][gaussun]={xmin,xmax};
               cham.SelectionTimes[read.getDAQFiles()[file]][crystalun]={xmin,xmax};
               cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un1]={xmin,xmax};
@@ -454,7 +469,6 @@ void Analysis::ShiftTimes()
     sum_time_chamber.clear();
     cham.MoyTimeStrip[read.getDAQFiles()[file]]=moy_time_strip;
     cham.MoyTimeChamber[read.getDAQFiles()[file]]=moy_time_chamber;
-    for(std::map<int,float>::iterator it=moy_time_chamber.begin();it!=moy_time_chamber.end();++it)std::cout<<red<<it->first<<"  "<<it->second<<normal<<std::endl;
     moy_time_chamber.clear();
     moy_time_strip.clear();
     InHertzPerCm.clear();
@@ -529,7 +543,7 @@ void Analysis::Construct_Plot()
     else if (read.getType()=="PulEff")Xaxis="Pulse lenght (ns)";
     gr->GetXaxis()->SetTitle(Xaxis.c_str());
     gr->GetYaxis()->SetTitle(Yaxis.c_str());
-    gr->GetYaxis()->SetRange(0.0,1.0);
+    gr->GetYaxis()->SetRangeUser(0.0,1.0);
     if(int(shift)==0)
     {
       if(read.getType()=="volEff")
@@ -585,23 +599,25 @@ void Analysis::Construct_Plot()
 }
 
 //-------------------------------------------------------
-std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::string& file/*, double lowTSThr, double highTSThr*/)
+std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::string& file)
 {
   static int filenumber=0;
   std::map<std::string,TH1F*>general_multilicity;
   std::map<std::string,TH1F*>nbr_cluster;
   std::map<std::string,TH1F*>cluster_multiplicity;
-  std::map<std::string,TH1F*>when;;
+  std::map<std::string,TH1F*>when;
   std::map<std::string,TH1F*>when2;
+  std::map<std::string,TH1F*>when3;
+  std::map<std::string,TH1F*>when4;
   std::map<std::string,TH1F*>center;
   std::map<std::string,TH1F*> clu;
   std::map<std::string,std::map<std::string,TH2F*>> Correlation;
   std::map<std::string,std::map<std::string,TH2F*>> Correlation2;
+  std::map<std::string,std::map<std::string,TH2F*>> Correlation21;
   std::map<std::string,std::map<std::string,TProfile2D*>>CorrelationProfile;
   std::map<std::string,std::map<std::string,TProfile2D*>>CorrelationProfile2;
   std::map<std::string,TProfile2D*>Resolution;
   std::map<std::string,std::map<std::string,TH1F*>> Correlation_time;
-  std::map<std::string,std::map<std::string,TH1F*>> Correlation_time2;
   std::map<std::string,std::pair<double,double>>eff;
   std::cout<<"Analysis for File : "<<file<<std::endl;
   static int nn=0;
@@ -634,19 +650,22 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     for(unsigned int co=0;co!=Cor.size();++co) 
     {
       ++nn;
-      Correlation[p][tmp[co]]=new TH2F(("Cor"+n1+"_"+tmp[co]).c_str(),("Correlation "+ti+" "+tmp[co].c_str()+"ns"),130,0,130,130,0,130);
-      Correlation_time[p][tmp[co]]=new TH1F(("Cortimr"+n1+"_"+tmp[co]).c_str(),("Correlation time distribution "+ti+" "+tmp[co].c_str()+"ns"),int(2*Cor[co])+2,-Cor[co]-1,Cor[co]+1);
-      CorrelationProfile[p][tmp[co]]=new TProfile2D(("Cor2D"+n1+"_"+tmp[co]).c_str(),("Correlation2D "+ti+" "+tmp[co].c_str()+"ns"),130,0,130,130,0,130);
-      Correlation2[p][tmp[co]]=new TH2F(("Cor"+n1+"_"+tmp2[co]+"_"+tmp2[co+1]).c_str(),("Correlation "+ti+" bettwen "+tmp2[co].c_str()+"_"+tmp2[co+1].c_str()+"ns"),130,0,130,130,0,130);
-      Correlation_time2[p][tmp[co]]=new TH1F(("Cortimr"+n1+"_"+tmp2[co]+"_"+tmp2[co+1]).c_str(),("Correlation time distribution "+ti+" bettwen "+tmp2[co].c_str()+"_"+tmp2[co+1].c_str()+"ns"),int(2*Cor[co])+2,-Cor[co]-1,Cor[co]+1);
+      Correlation[p][tmp[co]]=new TH2F(("Cor_"+n1+"_"+tmp[co]).c_str(),("Correlation "+ti+" "+tmp[co].c_str()+"ns"),130,0,130,130,0,130);
+      Correlation_time[p][tmp[co]]=new TH1F(("Cortimr_"+n1+"_"+tmp[co]).c_str(),("Correlation time distribution "+ti+" "+tmp[co].c_str()+"ns"),int(2*Cor[co])+2,-Cor[co]-1,Cor[co]+1);
+      CorrelationProfile[p][tmp[co]]=new TProfile2D(("Cor2D_"+n1+"_"+tmp[co]).c_str(),("Correlation2D "+ti+" "+tmp[co].c_str()+"ns"),130,0,130,130,0,130);
+      Correlation2[p][tmp[co]]=new TH2F(("Cor_"+n1+"_"+tmp2[co]+"_"+tmp2[co+1]).c_str(),("Correlation "+ti+" bettwen "+tmp2[co].c_str()+"_"+tmp2[co+1].c_str()+"ns"),130,0,130,130,0,130);
+      Correlation21[p][tmp[co]]=new TH2F(("Cor21_"+n1+"_"+tmp[co]).c_str(),("Correlation "+ti+" "+tmp[co].c_str()+"ns"),int(Cor[co])+1,0,Cor[co]+1,130,0,130);
       CorrelationProfile2[p][tmp[co]]=new TProfile2D(("Cor2D"+n1+"_"+tmp2[co]+"_"+tmp2[co+1]).c_str(),("Correlation2D "+ti+" bettwen "+tmp2[co].c_str()+"_"+tmp2[co+1].c_str()+"ns"),130,0,130,130,0,130);
     }
     Resolution[p]=new TProfile2D(("Resol"+n1).c_str(),"Spatial Resolution",4,0,800,32,0,32);
-    general_multilicity[p]=new TH1F(("Genmulti"+n1).c_str(),("General Multiplicity "+ti),50,0,50);
-    nbr_cluster[p]=new TH1F(("NbrCluster"+n1).c_str(),("Number of Cluster "+ti),50,0,50);
-    cluster_multiplicity[p]= new TH1F(("ClusterSize"+n1).c_str(),("Cluster size "+ti),50,0,50);
-    when[p]=new TH1F(("FirstTSCluster"+n1).c_str(),("First timestamp of the cluster "+ti),2000,0,2000);
-    when2[p]=new TH1F(("TimeDistrInsideCluster"+n1).c_str(),("Time distribution inside cluster "+ti),200,0,2000);
+    general_multilicity[p]=new TH1F(("Genmulti"+n1).c_str(),("General Multiplicity "+ti),128,0,128);
+    nbr_cluster[p]=new TH1F(("NbrCluster"+n1).c_str(),("Number of Cluster "+ti),65,0,65);
+    cluster_multiplicity[p]= new TH1F(("ClusterSize"+n1).c_str(),("Cluster size "+ti),128,0,128);
+    when[p]=new TH1F(("FirstTSCluster"+n1).c_str(),("First timestamp of the cluster "+ti),1000,0,1000);
+    when2[p]=new TH1F(("TimeBetweenCluster"+n1).c_str(),("Time between cluster "+ti),1000,0,1000);
+    when3[p]=new TH1F(("TimegroupofCluser"+n1).c_str(),("Time between cluster not taking care of the spatial clustering"+ti),2000,0,2000);
+    when4[p]=new TH1F(("Timeinclusterwtspatialclustering"+n1).c_str(),("Time distribution in cluster not taking care of the spatial clustering "+ti),time_range+1,0,time_range+1);
+    //when5[p]=new TH1F(("Timeincluster"+n1).c_str(),("Time distribution in cluster"+ti),time_range+1,0,time_range+1);
     center[p]=new TH1F(("CenterOfCluster"+n1).c_str(),("Center of the cluster "+ti),130,0,130);
     clu[p]=new TH1F(("MultiClusterized"+n1).c_str(),("Multipicity clusterised "+ti),130,0,130);
     std::string fr="Real Spatial Distribution"+it->first+"_File"+std::to_string(filenumber);
@@ -678,15 +697,24 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     dataTree->SetBranchAddress("TDC_TimeStamp",  &data.TDCTS);
     //****************** MACRO ***************************************
     numGoodEvents[it->first]=0.0; 
+    TH1D* dataInfo=(TH1D*)dataFile.Get("ID");
+    float duration=1.;
+    if(dataInfo)
+    {
+      dataInfo->SetBinContent(4,dataInfo->GetBinContent(4)-dataInfo->GetBinContent(3));
+      float diff=dataInfo->GetBinContent(4);
+      delete dataInfo;
+      float duration=std::ceil(diff/timespilltotal)*timespill;
+      //for(unsigned int i=0;i!=1000;++i)std::cout<<diff<<"  "<<duration<<std::endl;
+    }
     unsigned int nEntries = dataTree->GetEntries();
     std::map<int,double>InHertzPerCm;
     for(unsigned int i=0;i!=read.getNbrChambers();++i)
     {
-      
-      InHertzPerCm[i+1]=1.0e6/(nEntries*1.0*(it->second.second-it->second.first)*longueur*largeur);
-      std::cout<<InHertzPerCm[i+1]<<"  "<<1.0e9/(nEntries*1.0*(it->second.second-it->second.first))<<std::endl;
-      //std::cout<<green<<nEntries<<" "<<InHertzPerCm[i+1]<<normal<<std::endl;
+      //InHertzPerCm[i+1]=1.0e9/(nEntries*1.0*(it->second.second-it->second.first)*longueur*largeur);
+      InHertzPerCm[i+1]=1.0/(duration*longueur*largeur);
     }
+    int totalisCh=0;
     for(unsigned int i = 0; i < nEntries; i++) 
     { 
       std::map<int,int>stripnewold;       
@@ -712,48 +740,44 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
           {
             if( fabs(newtime2-newtime)<=Cor[val])
             {
-              //std::cout<<data.TDCCh->at(h)<<"  "<<data.TDCCh->at(l)<<" "<<data.TDCTS->at(h)-data.TDCTS->at(l)<<std::endl;
               Correlation[p][tmp[val]]->Fill(newstrip,newstrip2);
-              Correlation_time[p][tmp[val]]->Fill(newtime-newtime2);
-              CorrelationProfile[p][tmp[val]]->Fill(newstrip,newstrip2,newtime-newtime2);
+              if(h>l)Correlation21[p][tmp[val]]->Fill(fabs(newtime-newtime2),fabs(newstrip-newstrip2));
+              if(h!=l)Correlation_time[p][tmp[val]]->Fill(newtime-newtime2);
+              CorrelationProfile[p][tmp[val]]->Fill(newstrip,newstrip2,fabs(newtime-newtime2));
             }       
           }  
           for(int val=0;val!=Cor2.size()-1;++val)
           {
             if( fabs(newtime2-newtime)<=Cor2[val+1]&&fabs(newtime2-newtime)>=Cor2[val])
             {
-              //std::cout<<data.TDCCh->at(h)<<"  "<<data.TDCCh->at(l)<<" "<<data.TDCTS->at(h)-data.TDCTS->at(l)<<std::endl;
               Correlation2[p][tmp2[val+1]]->Fill(newstrip,newstrip2);
-              Correlation_time2[p][tmp2[val+1]]->Fill(newtime-newtime2);
               CorrelationProfile2[p][tmp2[val+1]]->Fill(newstrip,newstrip2,newtime-newtime2);
             }       
           }
         }
-        //std::cout<<data.TDCTS->at(h)<<"  "<<data.TDCCh->at(h)<<std::endl;
-        //if(Hits_classed_by_timestamp.find(data.TDCTS->at(h))==Hits_classed_by_timestamp.end()) Hits_classed_by_timestamp.insert(std::pair<float,std::vector<int>>(data.TDCTS->at(h),std::vector<int>()));
         Hits_classed_by_timestamp[newtime].push_back(newstrip);
-        //std::cout<<newtime<<std::endl;
         stripnewold[newstrip]=data.TDCCh->at(h);
         ++isCh;
       }
       if(isCh>0) 
       {
+        
+        totalisCh+=isCh;
         numGoodEvents[it->first]++;
         general_multilicity[p]->Fill(isCh);
         float firs=(Hits_classed_by_timestamp.begin())->first;
         for(std::map<float,std::vector<int>>::iterator it=Hits_classed_by_timestamp.begin();it!=Hits_classed_by_timestamp.end();++it)
         {
           Hits_adjacents_in_time[firs].insert(Hits_adjacents_in_time[firs].end(),(it->second).begin(),(it->second).end());
+          when4[p]->Fill(firs-it->first,(it->second).size());
           map<float,std::vector<int>>::iterator itt=it;
           ++itt;
           if(itt!=Hits_classed_by_timestamp.end())
           {
             if(fabs(it->first-itt->first)>time_range) firs=itt->first;
-            else when2[p]->Fill(itt->first-it->first);
-            //std::cout<<it->first<<"  "<<itt->first<<std::endl;
+            else when3[p]->Fill(itt->first-it->first);
           }
         }
-        //std::cout<<"ttt "<<Hits_adjacents_in_time.size()<<std::endl;
         for(std::map<float,std::vector<int>>::iterator it=Hits_adjacents_in_time.begin();it!=Hits_adjacents_in_time.end();++it)
         {
           std::vector<vector<int>>vecc;
@@ -779,9 +803,14 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
           Clusters.push_back({it->first,vecc});
         }
         int nbclus=0;
+        float timeclusterbefore=0;
         for(unsigned int i=0;i!=Clusters.size();++i)
         {    
           when[p]->Fill(Clusters[i].first);
+          when2[p]->Fill(Clusters[i].first-timeclusterbefore,(Clusters[i].second).size());
+          if(timeclusterbefore!=0)std::cout<<Clusters[i].first<<"  "<<timeclusterbefore<<std::endl;
+          timeclusterbefore=Clusters[i].first;
+          
           nbclus+=(Clusters[i].second).size();
           int clus_hit_sum=0;
           for(unsigned int j=0;j!=(Clusters[i].second).size();++j)
@@ -808,11 +837,15 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     dataFile.Close();
     Mean_cluster_size[it->first].push_back(cluster_multiplicity[p]->GetMean());
     Mean_cluster_nbr[it->first].push_back(nbr_cluster[p]->GetMean());
-    Standard_dev_cluster_size[p].push_back(cluster_multiplicity[p]->GetRMS());
-    Standard_dev_cluster_nbr[p].push_back(nbr_cluster[p]->GetRMS());
+    Standard_dev_cluster_size[it->first].push_back(cluster_multiplicity[p]->GetRMS());
+    Standard_dev_cluster_nbr[it->first].push_back(nbr_cluster[p]->GetRMS());
+    Mean_Spatial_Resolution[it->first].push_back(Resolution[p]->GetMean(3));
+    Standard_dev_Spatial_Resolution[it->first].push_back(Resolution[p]->GetRMS(3));
     eff[it->first]={numGoodEvents[it->first]/nEntries,sqrt((numGoodEvents[it->first]*(nEntries-numGoodEvents[it->first]))/nEntries)/numGoodEvents[it->first]};
-    cham.ScaleTime(fr,InHertzPerCm);
-    cham.ScaleTime(fr3,InHertzPerCm);
+    if(stof(lol[2])==0)real_comp_eff[p]={eff[it->first].first,it->second.second-it->second.first};
+    else comp_eff[p]={eff[it->first].first,numGoodEvents[it->first]*1.0/(nEntries*(it->second.second-it->second.first))};
+    if(duration!=-1) cham.ScaleTime(fr,InHertzPerCm);
+    if(duration!=-1) cham.ScaleTime(fr3,InHertzPerCm);
     InHertzPerCm.clear();
   }
   for(std::map<std::string,std::map<std::string,TH2F*>>::iterator it=Correlation.begin();it!=Correlation.end();++it)
@@ -829,12 +862,17 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     {
       writeObject(namee,Correlation[it->first][itt->first]); 
       writeObject(namee,Correlation2[it->first][itt->first]); 
-      //Correlation[it->first][itt->first]->Scale(100.0/Correlation[it->first][itt->first]->Integral());
-      //writeObject(name,Correlation[it->first][itt->first]);
+      double integral=Correlation21[it->first][itt->first]->Integral();
+      Correlation21[it->first][itt->first]->Scale(1.0/integral);
+      writeObject(namee,Correlation21[it->first][itt->first]); 
       delete Correlation[it->first][itt->first];
       delete Correlation2[it->first][itt->first];
+      delete Correlation21[it->first][itt->first];
     }
   }
+  Correlation.clear();
+  Correlation2.clear();
+  Correlation21.clear();
   for(std::map<std::string,std::map<std::string,TProfile2D*>>::iterator it=CorrelationProfile.begin();it!=CorrelationProfile.end();++it)
   {
     std::vector<std::string>tmp;
@@ -851,12 +889,12 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     {
       writeObject(namee,CorrelationProfile[it->first][itt->first]);
       writeObject(namee,CorrelationProfile2[it->first][itt->first]);
-      //Correlation[it->first][itt->first]->Scale(100.0/Correlation[it->first][itt->first]->Integral());
-      //writeObject(name,Correlation[it->first][itt->first]);
       delete CorrelationProfile[it->first][itt->first];
       delete CorrelationProfile2[it->first][itt->first];
     }
   }
+  CorrelationProfile.clear();
+  CorrelationProfile2.clear();
   for(std::map<std::string,std::map<std::string,TH1F*>>::iterator it=Correlation_time.begin();it!=Correlation_time.end();++it)
   {
     std::vector<std::string>tmp;
@@ -870,11 +908,12 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
     for(std::map<std::string,TH1F*>::iterator itt =Correlation_time[it->first].begin();itt!=Correlation_time[it->first].end();++itt)
     {
       writeObject(namee,Correlation_time[it->first][itt->first]);
-      writeObject(namee,Correlation_time2[it->first][itt->first]);
+      //writeObject(namee,Correlation_time2[it->first][itt->first]);
       delete Correlation_time[it->first][itt->first];
-      delete Correlation_time2[it->first][itt->first];
+      //delete Correlation_time2[it->first][itt->first];
     }
   }
+  Correlation_time.clear();
   for(std::map<std::string,TH1F*>::iterator it =clu.begin();it!=clu.end();++it)
   {
      std::vector<std::string>tmp;
@@ -890,6 +929,8 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
      writeObject(namee,cluster_multiplicity[it->first]);
      writeObject(namee,nbr_cluster[it->first]);
      writeObject(namee,when2[it->first]);
+     writeObject(namee,when3[it->first]);
+     writeObject(namee,when4[it->first]);
      writeObject(namee,center[it->first]);
      writeObject(namee,clu[it->first]);
      delete general_multilicity[it->first];
@@ -897,9 +938,20 @@ std::map<std::string,std::pair<double,double>> Analysis::Eff_ErrorEff(std::strin
      delete cluster_multiplicity[it->first];
      delete nbr_cluster[it->first];
      delete when2[it->first];
+     delete when3[it->first];
+     delete when4[it->first];
      delete center[it->first];
      delete clu[it->first];
   }
+  general_multilicity.clear();
+  when.clear();
+  cluster_multiplicity.clear();
+  nbr_cluster.clear();
+  when2.clear();
+  center.clear();
+  clu.clear();
+  when3.clear();
+  when4.clear();
   filenumber++;
   return eff;
 }
@@ -909,26 +961,184 @@ int Analysis::Loop()
 {
   ShiftTimes();
   Construct_Plot();
+  std::vector<double>XS;
+  if(read.getType()=="volEff") XS=read.getVoltages();
+  else if (read.getType()=="thrEff") XS=read.getThresholds();
+  else if (read.getType()=="srcEff") XS=read.getAttenuators();
+  else if (read.getType()=="PulEff") XS=read.getPulses();
   for(std::map<std::string,std::vector<double>>::iterator it=Mean_cluster_size.begin();it!=Mean_cluster_size.end();++it)
   {
-    std::vector<double>tmp3;
-    if(read.getType()=="volEff") tmp3=read.getVoltages();
-    else if (read.getType()=="thrEff") tmp3=read.getThresholds();
-    else if (read.getType()=="srcEff") tmp3=read.getAttenuators();
-    else if (read.getType()=="PulEff") tmp3=read.getPulses();
-    std::vector<double>tmp4(tmp3.size(),0);
+    std::vector<double>tmp4(XS.size(),0);
     std::vector<std::string>tmp2;
     tokenize(it->first,tmp2,"_");
     TString nameee= Form("Cluster/Chamber%s/%0.2f sigma/Shifted %0.2fns/%s/%s",tmp2[0].c_str(),stof(tmp2[1]),stof(tmp2[2]),tmp2[3].c_str(),tmp2[4].c_str());
     std::string namee=nameee.Data();
-    TGraphErrors* fd= new TGraphErrors(tmp3.size(),&(tmp3[0]),&(Mean_cluster_size[it->first][0]),&(tmp4[0]),&(Standard_dev_cluster_size[it->first][0]));
+    TGraphErrors* fd= new TGraphErrors(XS.size(),&(XS[0]),&(Mean_cluster_size[it->first][0]),&(tmp4[0]),&(Standard_dev_cluster_size[it->first][0]));
     fd->SetTitle((it->first+"_cluster_sizee_vs_").c_str());
     writeObject(namee,fd);
     delete fd;
-    TGraphErrors* fd2= new TGraphErrors(tmp3.size(),&(tmp3[0]),&(Mean_cluster_nbr[it->first][0]),&(tmp4[0]),&(Standard_dev_cluster_nbr[it->first][0]));
+    TGraphErrors* fd2= new TGraphErrors(XS.size(),&(XS[0]),&(Mean_cluster_nbr[it->first][0]),&(tmp4[0]),&(Standard_dev_cluster_nbr[it->first][0]));
     fd2->SetTitle((it->first+"_cluster_nbr_vs_").c_str());
     writeObject(namee,fd2);
     delete fd2;
+    TGraphErrors* fd3= new TGraphErrors(XS.size(),&(XS[0]),&(Mean_Spatial_Resolution[it->first][0]),&(tmp4[0]),&(Standard_dev_Spatial_Resolution[it->first][0]));
+    fd3->SetTitle((it->first+"_Spatial_Resolution_").c_str());
+    writeObject(namee,fd3);
+    delete fd3;
+  }
+  std::map<std::string,std::map<std::string,TGraphErrors*>>graph;
+  std::map<std::string,double>equiv;
+  std::map<std::string,std::map<double,double>> Voileone;
+  std::map<std::string,std::map<double,double>> Realone;
+  std::map<std::string,int>point;
+  for(unsigned int i=0;i!=read.getDAQFiles().size();++i)
+  {
+        equiv[read.getDAQFiles()[i]]=XS[i];
+  }
+  for(std::map<std::string,std::pair<double,double>>::iterator it=real_comp_eff.begin();it!=real_comp_eff.end();++it)
+  { 
+    std::vector<std::string>tmp;
+    tokenize(it->first,tmp,"*");
+    std::size_t found = tmp[1].find_last_of("/");
+    std::string name=tmp[1].substr(found+1);
+    std::vector<std::string>tmp2;
+    tokenize(tmp[0],tmp2,"_");
+    if(graph.find(tmp[0])==graph.end())
+    {
+      for(unsigned int i=0;i!=read.getDAQFiles().size();++i)
+      {
+        Voileone[tmp[0]][XS[i]]=2.;
+      }
+      if(graph[tmp[0]].find(tmp[0])==graph[tmp[0]].end()) graph[tmp[0]][tmp[0]]=new TGraphErrors();
+      point[tmp[0]]=0;
+    }
+    graph[tmp[0]][tmp[0]]->SetPoint(point[tmp[0]],equiv[tmp[1]],it->second.first);
+    Realone[tmp[0]][equiv[tmp[1]]]=it->second.first;
+    point[tmp[0]]++;
+    for(std::map<std::string,std::pair<double,double>>::iterator itt=comp_eff.begin();itt!=comp_eff.end();++itt)
+    {
+      std::vector<std::string>tmp3;
+      tokenize(itt->first,tmp3,"*");
+      std::vector<std::string>tmp4;
+      tokenize(tmp3[0],tmp4,"_");
+      if(tmp2[0]==tmp4[0]&&tmp[1]==tmp3[1]&&tmp2[3]==tmp4[3]&&tmp2[4]==tmp4[4])
+      {
+        //std::cout<<tmp2[0]<<" "<<tmp4[0]<<"  "<<tmp[1]<<" "<<tmp2[3]<<" "<<tmp4[3]<<" "<<mp2[4]<<"  "<<tmp4[4]<<std::endl;
+        if(graph[tmp[0]].find(tmp3[0])==graph[tmp[0]].end())
+        {
+          graph[tmp[0]][tmp3[0]]=new TGraphErrors();
+          point[tmp3[0]]=0;
+        }
+        //std::cout<<tmp3[0]<<"  "<<tmp[0]<<point[tmp3[0]]<<" "<<equiv[tmp3[1]]<<" "<<(it->second.first-(1-TMath::PoissonI(0,it->second.second*itt->second.second))/TMath::PoissonI(0,it->second.second*itt->second.second))<<endl;
+        double effcorrected=(it->second.first-(1-TMath::PoissonI(0,it->second.second*itt->second.second))/TMath::PoissonI(0,it->second.second*itt->second.second));
+        graph[tmp[0]][tmp3[0]]->SetPoint(point[tmp3[0]],equiv[tmp3[1]],effcorrected);
+        if(effcorrected<Voileone[tmp[0]][equiv[tmp3[1]]])Voileone[tmp[0]][equiv[tmp3[1]]]=effcorrected;
+        std::cout<<equiv[tmp3[1]]<<" "<<tmp3[1]<<" "<<Voileone[tmp[0]][equiv[tmp3[1]]]<<std::endl;
+        point[tmp3[0]]++;
+      }
+    }
+  }
+  for(std::map<std::string,std::map<double,double>>::iterator itoo=Voileone.begin();itoo!=Voileone.end();++itoo)
+  {
+    int p1=0;
+    TCanvas* cc =new TCanvas((itoo->first).c_str(),(itoo->first).c_str());
+    TGraphAsymmErrors* gr1 =new TGraphAsymmErrors();
+    for(std::map<double,double>::iterator ito=Realone[itoo->first].begin();ito!=Realone[itoo->first].end();++ito)
+    {
+      
+      gr1->SetPoint(p1,ito->first,ito->second);
+      gr1->SetPointError(p1,0.,0.,ito->second-Voileone[itoo->first][ito->first],0.);
+      std::cout<<red<<p1<<" "<<ito->first<<"  "<<ito->second<<"  "<<Voileone[itoo->first][ito->first]<<normal<<std::endl;
+      ++p1;
+    }
+    gr1->SetFillColor(kCyan);
+    gr1->SetFillStyle(1001);
+    gr1->Draw("a3");
+    std::string name=read.getDatacardName();
+    cc->SaveAs(("./"+name+"/"+(itoo->first+".png")).c_str());
+    cc->SaveAs(("./"+name+"/"+(itoo->first+".pdf")).c_str());
+    cc->SaveAs(("./"+name+"/"+(itoo->first+".C")).c_str());
+    std::string comp="Comparaison";
+    writeObject(comp,cc);
+    //delete cc;
+    //delete gr;
+  }
+  for(std::map<std::string,std::map<std::string,TGraphErrors*>>::iterator ittt=graph.begin();ittt!=graph.end();++ittt)
+  {
+    TCanvas* cann= new TCanvas(ittt->first.c_str(),ittt->first.c_str());
+    static int iii=0;
+    TLegend* leg = new TLegend(0.1,0.7,0.35,0.9);
+    std::string title="Noise contamination estimation";
+    leg->SetHeader(title.c_str()); // option "C" allows to center the header
+    for(std::map<std::string,TGraphErrors*>::iterator ll=ittt->second.begin();ll!=ittt->second.end();++ll)
+    {
+      static int a=1;
+      static int b=1;
+      TString nameee="";
+      std::vector<std::string>tmp;
+      tokenize(ll->first,tmp,"*");
+      std::vector<std::string>tmp2;
+      tokenize(tmp[0],tmp2,"_");
+      if(stof(tmp2[2])<0)
+      {
+        ll->second->SetMarkerStyle(20);
+        ll->second->SetMarkerSize(1);
+        ll->second->SetMarkerColor(kGreen-a);
+        ll->second->SetLineStyle(1);
+        ll->second->SetFillColor(kGreen-a);
+        ll->second->SetLineWidth(1);
+        ll->second->SetLineColor(kGreen-a);
+        nameee= Form("Efficiency corrected (+-%0.2fns Shifted %0.2fns trigger's begining)",stof(tmp2[1]),fabs(stof(tmp2[2])));
+        ++a;
+      }
+      else if (stof(tmp2[2])>0)
+      {
+        ll->second->SetMarkerStyle(21);
+        ll->second->SetMarkerSize(1);
+        ll->second->SetMarkerColor(kRed-b);
+        ll->second->SetLineStyle(1);
+        ll->second->SetFillColor(kRed-b);
+        ll->second->SetLineWidth(1);
+        ll->second->SetLineColor(kRed-b);
+        nameee= Form("Efficiency corrected (+-%0.2fns Shifted %0.2fns trigger's end)",stof(tmp2[1]),fabs(stof(tmp2[2])));
+        ++b;
+      }
+      else
+      {
+        ll->second->SetMarkerStyle(31);
+        ll->second->SetMarkerSize(1);
+        ll->second->SetMarkerColor(kBlue);
+        ll->second->SetLineStyle(1);
+        ll->second->SetFillColor(kBlue);
+        ll->second->SetLineWidth(1);
+        ll->second->SetLineColor(kBlue);
+        Form("Efficiency without correction (+-%0.2fsigma)",stof(tmp2[1]));
+      }
+      std::string Xaxis="";
+      std::string Yaxis="Efficiency";
+      double vol=read.getVoltages()[0];
+      double thr=read.getThresholds()[0];
+      if(read.getType()=="volEff") Xaxis="Applied HV(V)";
+      else if (read.getType()=="thrEff")Xaxis="Threshold (mV)";
+      else if (read.getType()=="srcEff")Xaxis="Attenuator Factor";
+      else if (read.getType()=="PulEff")Xaxis="Pulse lenght (ns)";
+      ll->second->GetXaxis()->SetTitle(Xaxis.c_str());
+      ll->second->GetYaxis()->SetTitle(Yaxis.c_str());
+      ll->second->GetYaxis()->SetRangeUser(0.0,1.0);
+      leg->AddEntry(ll->second,nameee,"p");
+      if(iii==0) ll->second->Draw("AP");
+      else 
+      {
+        ll->second->Draw("SAME P");
+      }
+      cann->Update();
+      ++iii;
+    }
+    iii=0;
+    leg->Draw("same");
+    std::string comp="Comparaison";
+    writeObject(comp,cann);
+    delete cann;
   }
   return 1;
 }

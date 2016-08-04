@@ -191,8 +191,6 @@ void Chambers::ScaleTime(std::string& name,std::map<int,double>& values)
 }
 
 
-
-
 void Chambers::CreateTH2(std::string& name,double size,int bin)
 {
   for(int i=0;i!=read.getNbrChambers();++i) 
