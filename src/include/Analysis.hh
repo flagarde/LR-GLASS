@@ -9,7 +9,6 @@
 #include "TObject.h"
 #include "Chambers.h"
 #include "Reader.h"
-using namespace std;
 
 class Analysis
 {
@@ -25,8 +24,7 @@ private:
   Chambers& cham;
   void ShiftTimes();
   double TimeMax;
-  //void WriteMe();
   void Construct_Plot();
-  std::map<std::string,std::pair<double,double>>Eff_ErrorEff(std::string& inputFileName);  
+  std::map<std::string,std::vector<std::pair<double,double>>>Eff_ErrorEff(std::string& inputFileName);  
 };
 #endif

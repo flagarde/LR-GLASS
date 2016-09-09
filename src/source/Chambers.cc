@@ -1,3 +1,4 @@
+#include "TString.h"
 #include "Chambers.h"
 #include "Tokenize.h"
 #include "Colors.h"
@@ -11,6 +12,7 @@
 #include<iostream>
 #include<limits>
 #include<cmath>
+
 
 std::pair<int,int> Chambers::FindPosition(int strip)
 {
@@ -51,7 +53,7 @@ std::string Chambers::FindChamber(int strip)
   return "";
 }
 
-std::string Chambers::FinPartition(int strip)
+std::string Chambers::FindPartition(int strip)
 {
   for(std::map<std::string,int>::iterator it=read.getMapping().begin();it!=read.getMapping().end();++it)
   {
@@ -67,14 +69,14 @@ std::string Chambers::FinPartition(int strip)
 void Chambers::FillTH2(std::string &name,int& strip,double X)
 {
   if(FindChamber(strip)=="") return;
-  if(FinPartition(strip)=="")return;
+  if(FindPartition(strip)=="")return;
   std::string name2=name+"_Chamber"+FindChamber(strip);
   std::pair<int,int>Pos=FindPosition(strip);
   if(TChamberTH2.find(name2)!=TChamberTH2.end())
   {
     if(X>(TChamberTH2[name2]->GetXaxis()->GetXmax()/4.0)) 
     {
-      std::cout<<red<<"Error ! Value are below the Partition allowed values"<<normal<<std::endl;
+      std::cout<<red<<"Error ! Value are below the Partition allowed values "<<X<<"  "<<(TChamberTH2[name2]->GetXaxis()->GetXmax()/4.0)<<normal<<std::endl;
     }
     TChamberTH2[name2]->Fill((TChamberTH2[name2]->GetXaxis()->GetXmax()*Pos.first/4.0)+X,Pos.second);
   } 
@@ -99,9 +101,9 @@ void Chambers::Scale(std::string& name,double value)
       tokenize(namp,tmp3,"_");
       std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
       std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
-      TString nameee=name;
+      TString nameee;
       if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
-      else nameee=name+"/"+realname+"/Scaled";
+      else nameee=Form("%s/%s/Scaled",name.c_str(),realname.c_str());
       std::string namee=nameee.Data();  
       writeObject(namee,hnew);
       delete hnew;
@@ -120,9 +122,9 @@ void Chambers::Scale(std::string& name,double value)
       tokenize(namp,tmp3,"_");
       std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
       std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
-      TString nameee=name;
+      TString nameee;
       if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
-      else nameee=name+"/"+realname+"/Scaled";
+      else nameee=Form("%s/%s/Scaled",name.c_str(),realname.c_str());
       std::string namee=nameee.Data(); 
       writeObject(namee,hnew);
       delete hnew;
@@ -159,9 +161,9 @@ void Chambers::ScaleTime(std::string& name,std::map<int,double>& values)
       tokenize(namp,tmp3,"_");
       std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
       std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
-      TString nameee=name;
+      TString nameee;
       if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
-      else nameee=name+"/"+realname+"/Scaled";
+      else nameee=Form("%s/%s/Scaled",name.c_str(),realname.c_str());
       std::string namee=nameee.Data();  
       writeObject(namee,hnew);
       delete hnew;
@@ -180,9 +182,9 @@ void Chambers::ScaleTime(std::string& name,std::map<int,double>& values)
       tokenize(namp,tmp3,"_");
       std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
       std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
-      TString nameee=name;
+      TString nameee;
       if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
-      else nameee=name+"/"+realname+"/Scaled";
+      else nameee=Form("%s/%s/Scaled",name.c_str(),realname.c_str());
       std::string namee=nameee.Data();  
       writeObject(namee,hnew);
       delete hnew;
@@ -433,7 +435,7 @@ Chambers& Chambers::operator=(Chambers& other)
 void Chambers::FillTH1(std::string& name,int strip,double value,double poids)
 {
   if(FindChamber(strip)=="") return;
-  if(FinPartition(strip)=="")return;
+  if(FindPartition(strip)=="")return;
   std::string name2=name+"_Chamber"+FindChamber(strip);
   if(TChamberTH1.find(name2)!=TChamberTH1.end())
   {
@@ -516,16 +518,17 @@ void Chambers::Write()
     std::string realname=tmp[0];
     tokenize(tmp[1],tmp2,"_Chamber");
     std::vector<std::string>tmp3;
-    std::string namp=it->second->GetName();
+    std::string namp="";
+    //if(it->second->GetName()!=nullptr)namp=it->second->GetTitle();
     tokenize(namp,tmp3,"_");
     std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
     std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
-    TString nameee=name;
+    TString nameee;
     if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
-    else nameee=name+"/"+realname;
+    else nameee=Form("%s/%s",name.c_str(),realname.c_str());
     std::string namee=nameee.Data(); 
     writeObject(namee,it->second);
-  }  //  std::string fr3="Real Spatial Distribution Center"+chan+"_"+std::to_string(Window[kk])+"_0_Gaussian + constante_al_File"+std::to_string(filenumber);
+  }  
   for(std::map<std::string,TH1F*>::iterator it=TChamberTH1.begin();it!=TChamberTH1.end();++it)
   {
     std::vector<std::string>tmp;
@@ -534,13 +537,14 @@ void Chambers::Write()
     std::string realname=tmp[0];
     tokenize(tmp[1],tmp2,"_Chamber");
     std::vector<std::string>tmp3;
-    std::string namp=it->second->GetName();
+    std::string namp="";
+    //if(it->second->GetName()!=nullptr)namp=it->second->GetTitle();
     tokenize(namp,tmp3,"_");
     std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
     std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
-    TString nameee=name;
+    TString nameee;
     if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
-    else nameee=name+"/"+realname;
+    else nameee=Form("%s/%s",name.c_str(),realname.c_str());
     std::string namee=nameee.Data();   
     writeObject(namee,it->second);
   }
@@ -560,7 +564,7 @@ void Chambers::writeObject(std::string& dirName, TObject *object)
 bool Chambers::InsideZone(int strip,double time,double shift,double winmin, double winmax)
 {
   std::string chamber=FindChamber(strip);
-  std::string par=FinPartition(strip);
+  std::string par=FindPartition(strip);
   if(chamber=="") return false;
   if(read.getMask().find(strip)!=read.getMask().end())
   {
@@ -578,7 +582,7 @@ bool Chambers::InsideZone(int strip,double time,double shift,double winmin, doub
 bool Chambers::InsideZone(int strip,double time,std::string file,std::string name,int& stripnew, double& timenew)
 {
   std::string chamber=FindChamber(strip);
-  std::string par=FinPartition(strip);
+  std::string par=FindPartition(strip);
   if(chamber=="") return false;
   if(read.getMask().find(strip)!=read.getMask().end())
   {

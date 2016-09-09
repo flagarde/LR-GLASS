@@ -10,6 +10,7 @@
 #include "TObject.h"
 #include "Reader.h"
 #include <utility>
+#include "TString.h"
 class Chambers
 {
   public:
@@ -19,7 +20,7 @@ class Chambers
   Chambers& operator=(Chambers& other);
   std::pair<int,int> FindPosition(int strip);
   std::string FindChamber(int strip);
-  std::string FinPartition(int strip);
+  std::string FindPartition(int strip);
   void FillTH2(std::string &name,int& strip,double X=0.0);
   void FillTH1(std::string &name,int strip,double value,double poids=1);
   void CreateTH2(std::string& name,double size=-1,int bin=-1);

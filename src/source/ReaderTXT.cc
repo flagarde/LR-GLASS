@@ -53,9 +53,9 @@ void ReaderTXT::setType()
             std::cout<<red<<"Please provide the type of analysis  ..."<<normal<<std::endl;
             std::exit(1);
           }
-          if(token[1]!="volEff"&&token[1]!="thrEff"&&token[1]!="srcEff"&&token[1]!="PulEff")
+          if(token[1]!="volEff"&&token[1]!="thrEff"&&token[1]!="srcEff"&&token[1]!="PulEff"&&token[1]!="noisevolEff"&&token[1]!="noisethrEff"&&token[1]!="noisesrcEff"&&token[1]!="noisePulEff")
           {
-            std::cout<<red<<"Please provide the type of analysis type={volEff|thrEff|srcEff|PulEff}"<<normal<<std::endl;
+            std::cout<<red<<"Please provide the type of analysis type={{noise}volEff|{noise}thrEff|{noise}srcEff|{noise}PulEff}"<<normal<<std::endl;
             std::exit(1);
           }
           else Type=token[1];
@@ -158,7 +158,7 @@ void ReaderTXT::setMapping()
 
 void ReaderTXT::setDAQFiles()
 {
-  std::set<std::string>tmp;
+  std::vector<std::string>tmp;
   bool read = false;
   std::string line;
   std::ifstream myfile (name);
@@ -169,14 +169,14 @@ void ReaderTXT::setDAQFiles()
       if(line=="#DAQ FILES END.")read = false;
       if(read) 
       {
-        if(line!="")tmp.insert(line);
+        if(line!="")tmp.push_back(line);
       }
       if(line=="#DAQ FILES:")read = true;
     }
     myfile.close();
   }
   else std::cout << "#ERROR: Unable to open card file" << std::endl;
-  for(std::set<std::string>::iterator it=tmp.begin();it!=tmp.end();++it)DAQFiles.push_back(*it);
+  for(std::vector<std::string>::iterator it=tmp.begin();it!=tmp.end();++it)DAQFiles.push_back(*it);
   if(DAQFiles.size()==0)
   {
     std::cout<<red<<"Please provide at least one DAQ file "<<normal<<std::endl;
@@ -186,7 +186,7 @@ void ReaderTXT::setDAQFiles()
 
 void ReaderTXT::setCAENFiles()
 {
-  std::set<std::string>tmp;
+  std::vector<std::string>tmp;
   bool read = false;
   std::string line;
   std::ifstream myfile (name);
@@ -197,19 +197,18 @@ void ReaderTXT::setCAENFiles()
       if(line=="#CAEN FILES END.")read = false;
       if(read) 
       {
-        if(line!="")tmp.insert(line);
+        if(line!="")tmp.push_back(line);
       }
       if(line=="#CAEN FILES:")read = true;
     }
     myfile.close();
   }
   else std::cout << "#ERROR: Unable to open card file" << std::endl;
-  for(std::set<std::string>::iterator it=tmp.begin();it!=tmp.end();++it)CAENFiles.push_back(*it);
+  for(std::vector<std::string>::iterator it=tmp.begin();it!=tmp.end();++it)CAENFiles.push_back(*it);
 }
 
 void ReaderTXT::setParameters()
 {
-  std::set<std::string>tmp;
   bool read = false;
   std::string line;
   std::ifstream myfile (name);
