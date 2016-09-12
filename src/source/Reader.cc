@@ -21,6 +21,10 @@ std::map<std::string,int>& Reader::getMapping()
 {
   return Mapping;
 }
+std::map<std::string,bool>& Reader::getInvertedMapping()
+{
+  return InvertedMapping;
+}
 std::vector<std::string>& Reader::getDAQFiles()
 {
   return DAQFiles;

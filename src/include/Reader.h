@@ -29,6 +29,7 @@ class Reader
   std::vector<std::vector<double>> getConditions();
   std::set<int>& getMask();
   std::map<std::string,int>& getMapping();
+  std::map<std::string,bool>& getInvertedMapping();
   std::vector<std::string>& getDAQFiles();
   std::vector<std::string>& getCAENFiles();
   std::map<std::string,std::string>& getParameters();
@@ -42,6 +43,7 @@ class Reader
   std::string Type;
   std::set<int>Mask;
   std::map<std::string,int>Mapping;
+  std::map<std::string,bool>InvertedMapping;
   std::vector<std::string>DAQFiles;
   std::vector<std::string>CAENFiles;
   std::map<std::string,std::string>Parameters;

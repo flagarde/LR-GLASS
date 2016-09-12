@@ -65,11 +65,11 @@ void Analysis::ShiftTimes()
   {
     time_range = stod(read.getParameters()["TimeSluster_us"]);
   }
+  else time_range=0.15;
   if(read.getParameters().find("Clusterisation_method")!=read.getParameters().end())
   {
-    time_range = stod(read.getParameters()["Clusterisation_method"]);
+    clusterisationmethod = read.getParameters()["Clusterisation_method"];
   }
-  else time_range=0.15;
   std::vector<double>Noise_shift;
   std::vector<double>Noise_Window;
   std::vector<double>Window;
@@ -444,24 +444,28 @@ void Analysis::ShiftTimes()
             if(xmingauss2al2>=0&&xmaxgauss2al2<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al2]={xmingauss2al2,xmaxgauss2al2};
             else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
         }  
-        delete gfit2;
-        delete leg2;
-        delete crystal2;
-        delete total;
-        delete Dist_Without_Alignment;
-        delete gfit;
-        delete crystal;
-        delete total2;
-        delete leg;
-        delete Dist_With_Alignment;
+        //delete gfit2;
+        //delete leg2;
+        //delete crystal2;
+        //delete total;
+        //delete Dist_Without_Alignment;
+        //delete gfit;
+        //delete crystal;
+        //delete total2;
+        //delete leg;
+        //delete Dist_With_Alignment;
       }
       if (read.getType()=="noisevolEff"||read.getType()=="noisethrEff"||read.getType()=="noisesrcEff"||read.getType()=="noisePulEff")
       {
         std::cout<<red<<"Noise runs so use the auto windows :"<<normal<<std::endl;
-        std::string noise=chan+"_std::to_string(min)_std::to_string(max)_Noise_un";
-        std::string noise2=chan+"_0_std::to_string(trigger_max)_Noise_un";
+        std::string noise=chan+"_"+std::to_string(min)+"_"+std::to_string(max)+"_Noise_un";
+        std::string noise2=chan+"_0_"+std::to_string(trigger_max)+"_Noise_un";
+        std::string noise3=chan+"_"+std::to_string(min)+"_"+std::to_string(max)+"_Noise_un";
+        std::string noise4=chan+"_0_"+std::to_string(trigger_max)+"_Noise_un";
         cham.SelectionTimes[read.getDAQFiles()[file]][noise]={min,max};
         cham.SelectionTimes[read.getDAQFiles()[file]][noise2]={0,trigger_max};
+        cham.SelectionTimes[read.getDAQFiles()[file]][noise3]={min,max};
+        cham.SelectionTimes[read.getDAQFiles()[file]][noise4]={0,trigger_max};
         std::cout<<red<<"["<<min<<";"<<max<<"]"<<normal<<std::endl;
         std::cout<<red<<"[0;"<<trigger_max<<"]"<<normal<<std::endl;
       }
@@ -1055,7 +1059,7 @@ std::map<std::string,std::vector<std::pair<double,double>>> Analysis::Eff_ErrorE
     }
     ////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////
-        
+       
         
       
     dataFile.Close();
@@ -1570,10 +1574,10 @@ int Analysis::Loop()
   TMultiGraph *mg2 = new TMultiGraph;
   TCanvas* can1=new TCanvas("Combined1","Combined1");
   TCanvas* can2=new TCanvas("Combined2","Combined2");
+  int p=0;
+  int p2=0;
   for(std::map<std::string,std::vector<double>>::iterator it=Noise_Min.begin();it!=Noise_Min.end();++it)
   {
-    static int p=0;
-    static int p2=0;
     TCanvas* cannn=new TCanvas(it->first.c_str(),it->first.c_str());
     TGraphAsymmErrors* gr11 =nullptr;
     cannn->cd();
@@ -1584,7 +1588,7 @@ int Analysis::Loop()
     if(tmp[2]=="Noise") 
     {
       
-      Yaxis="Noise in Hertz/cm-2";
+      Yaxis="Noise in Hertz.cm-2";
       gr11=new TGraphAsymmErrors(XS.size(),&(XS[0]),&(Noise_Max[it->first][0]),&(Vide[0]),&(Vide[0]),&(Noise_Min[it->first][0]),&(Vide[0]));
       gr11->SetName(it->first.c_str());
       gr11->SetTitle(it->first.c_str());
@@ -1600,7 +1604,7 @@ int Analysis::Loop()
     }
     else 
     {
-      Yaxis="hits in Hertz/cm-2";
+      Yaxis="hits in Hertz.cm-2";
       gr11=new TGraphAsymmErrors(XS.size(),&(XS[0]),&(Noise_Max[it->first][0]),&(Vide[0]),&(Vide[0]),&(Vide[0]),&(Vide[0]));
       gr11->SetName(it->first.c_str());
       gr11->SetTitle(it->first.c_str());
@@ -1618,29 +1622,38 @@ int Analysis::Loop()
     else if (read.getType()=="thrEff"||read.getType()=="noisethrEff")Xaxis="Threshold (mV)";
     else if (read.getType()=="srcEff"||read.getType()=="noisesrcEff")Xaxis="Attenuator Factor";
     else if (read.getType()=="PulEff"||read.getType()=="noisePulEff")Xaxis="Pulse lenght (ns)";
+    gr11->GetXaxis()->SetTitle(Xaxis.c_str());
+    gr11->GetYaxis()->SetTitle(Yaxis.c_str());
     std::string comp2="";
     if(tmp[2]=="Noise")comp2="Noise";
     else comp2="Hits";
     cannn->cd();
     gr11->Draw("A3PL");
     writeObject(comp2,cannn);
-    delete cannn;
-    delete gr11;
+    //delete cannn;
+    //delete gr11;
     
   }
-  can1->cd();
-  mg1->Draw("A3PL");
-  can1->BuildLegend();
-  can2->cd();
-  mg2->Draw("A3PL");
-  can2->BuildLegend();
-  std::string compp="Noise_combined";
-  writeObject(compp,can1);
-  compp="Hits_combined";
-  writeObject(compp,can2);
-  delete can1;
-  delete can2;
-  delete mg1;
-  delete mg2;
+  std::string compp="";
+  if(p2>0)
+  {
+    can1->cd();
+    mg1->Draw("A3PL");
+    can1->BuildLegend();
+    compp="Noise_combined";
+    writeObject(compp,can1);
+  }
+  if(p>0)
+  {
+    can2->cd();
+    mg2->Draw("A3PL");
+    can2->BuildLegend();
+    compp="Hits_combined";
+    writeObject(compp,can2);
+  }
+  //delete can1;
+  //delete can2;
+  //delete mg1;
+  //delete mg2;
   return 1;
 }

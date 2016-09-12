@@ -22,6 +22,7 @@ std::pair<int,int> Chambers::FindPosition(int strip)
     int diff=strip-it->second;
     if(diff>=0&&diff<16)
     {
+      if(read.getInvertedMapping()[it->first]==true) diff=15-diff;
       std::pair<int,int>a{StripShift[it->first.substr(1,2)].first,StripShift[it->first.substr(1,2)].second+diff};
       return a;
     }

@@ -139,6 +139,15 @@ void ReaderTXT::setMapping()
           std::cout<<"Please provide {NbrChamber}{partition (A1|A2|B1|B2|C1|C2|D1|D2)}={first channel on TDC} .... "<<std::endl;
           std::exit(1);
         }
+        std::string star="*";
+        std::size_t found = token[1].find(star);
+        bool havestar=false;
+        if (found!=std::string::npos)
+        {
+          havestar=true;
+          token[1].erase(found,1);
+        }
+        int notfound=0;
         for(unsigned int o=0;o!=ToVerify.size();++o)
         {
           for(unsigned int p=0;p!=Partitions.size();++p)
@@ -146,8 +155,20 @@ void ReaderTXT::setMapping()
             if(token[0]==ToVerify[o]+Partitions[p])
             {
               Mapping[ToVerify[o]+Partitions[p]]=stoi(token[1]);
+              if(havestar==true) 
+              {
+                InvertedMapping[ToVerify[o]+Partitions[p]]=true;
+                std::cout<<token[1]<<" is inverted"<<std::endl;
+              }
+              else InvertedMapping[ToVerify[o]+Partitions[p]]=false;
             }
+            else notfound++;
           }
+        }
+        if(notfound==Partitions.size()*ToVerify.size()) 
+        {
+          std::cout<<red<<token[0]<<" unknown "<<normal<<std::endl;
+          std::exit(1);
         }
       }
       if(line=="#MAPPING:") read = true;
