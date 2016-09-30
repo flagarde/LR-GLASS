@@ -166,7 +166,7 @@ void Analysis::ShiftTimes()
     std::map<int,double>InHertzPerCm;
     for(unsigned int i=0;i!=read.getNbrChambers();++i)
     {
-      InHertzPerCm[i+1]=1.0/(nEntries*1.0e-6*longueur*largeur*(cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].second-cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].first));
+      InHertzPerCm[i+1]=1.0/(nEntries*1.0e-9*longueur*largeur*(cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(i+1)].second-cham.Min_Max_Time_Windows["Default_Chamber"+std::to_string(1+i)].first));
       //std::cout<<blue<<InHertzPerCm[i+1]<<"  "<<nEntries<<"  "<<normal<<std::endl;
     }
     for(unsigned int i = 0; i < nEntries; i++) 
@@ -805,7 +805,7 @@ std::map<std::string,std::vector<std::pair<double,double>>> Analysis::Eff_ErrorE
     std::map<int,double>InHertzPerCm;
     for(unsigned int i=0;i!=read.getNbrChambers();++i)
     {
-      InHertzPerCm[i+1]=1.0/(1.0e-6*nEntries*(it->second.second-it->second.first)*longueur*largeur);
+      InHertzPerCm[i+1]=1.0/(1.0e-9*nEntries*(it->second.second-it->second.first)*longueur*largeur);
       //std::cout<<blue<<InHertzPerCm[i+1]<<"  "<<1.0e-6*(it->second.second-it->second.first)<<"  "<<longueur*largeur<<"  "<<nEntries<<normal<<std::endl;
       //InHertzPerCm[i+1]=1.0/(duration*longueur*largeur);
     }
@@ -1086,7 +1086,7 @@ std::map<std::string,std::vector<std::pair<double,double>>> Analysis::Eff_ErrorE
     tokenize(it->first,lolll,"_");
     int nbrpar=read.getSpatialWindows()[lolll[0]].size();
     std::string name=fr+"_Chamber"+lolll[0];
-    double val=cham.ReturnTH2(name)->Integral()*InHertzPerCm[std::stoi(lolll[0])]/(16*nbrpar);
+    double val=cham.ReturnTH2(name)->Integral()/(16*nbrpar);
     //std::cout<<red<<nbrpar<<"  "<<InHertzPerCm[std::stoi(lolll[0])]<<normal<<std::endl;
     if(isnan(val)==true)val=0;
     Mean_Noise[it->first].push_back(val);
