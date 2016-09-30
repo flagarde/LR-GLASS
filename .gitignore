@@ -2,3 +2,5 @@
 *.pdf
 *.png
 lrGlass
+GIF/*
+H2/*
