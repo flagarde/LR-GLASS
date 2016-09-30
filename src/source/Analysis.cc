@@ -874,7 +874,7 @@ std::map<std::string,std::vector<std::pair<double,double>>> Analysis::Eff_ErrorE
           ++lo2;
           if(lo2!=timebetween_hits.end())when3[p]->Fill(*lo2-*lo);
         }
-        double ctimes=12.;
+        double ctimes=7.;
         double cspaces=2.;
         std::vector<std::vector<std::pair<int,float>>>ClusterG;
         for(std::multiset<std::pair<int,float>>::iterator itp=Hits_arranged.begin();itp!=Hits_arranged.end();++itp)
@@ -1088,7 +1088,7 @@ std::map<std::string,std::vector<std::pair<double,double>>> Analysis::Eff_ErrorE
     std::string name=fr+"_Chamber"+lolll[0];
     double val=cham.ReturnTH2(name)->Integral()*InHertzPerCm[std::stoi(lolll[0])]/(16*nbrpar);
     //std::cout<<red<<nbrpar<<"  "<<InHertzPerCm[std::stoi(lolll[0])]<<normal<<std::endl;
-    if(isnan(val)==true)val=0;
+   // if(isnan(double(val))==true)val=0;
     Mean_Noise[it->first].push_back(val);
     //for(unsigned int u=0;u!=1000;++u) std::cout<<red<<cham.ReturnTH2(name)->Integral()<<"  "<<nbrpar<<"  "<<val<<normal<<std::endl;
     if(duration!=-1) cham.ScaleTime(fr3,InHertzPerCm);
