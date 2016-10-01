@@ -748,7 +748,6 @@ std::map<std::string,std::vector<std::pair<double,double>>> Analysis::Eff_ErrorE
     for(unsigned int i=0;i!=read.getNbrChambers();++i)
     {
       InHertzPerCm[i+1]=1.0/(1.0e-9*nEntries*(it->second.second-it->second.first)*longueur*largeur);
-      //std::cout<<blue<<InHertzPerCm[i+1]<<"  "<<1.0e-6*(it->second.second-it->second.first)<<"  "<<longueur*largeur<<"  "<<nEntries<<normal<<std::endl;
       //InHertzPerCm[i+1]=1.0/(duration*longueur*largeur);
     }
     int totalisCh=0;
@@ -1022,13 +1021,20 @@ std::map<std::string,std::vector<std::pair<double,double>>> Analysis::Eff_ErrorE
       comp_eff[p]={eff[it->first][0].first,totalisCh*1.0/(nEntries*(it->second.second-it->second.first))};
       //comp_eff2[p]={eff[it->first][0].first,totalisCh*1.0/(nEntries*(it->second.second-it->second.first))};
     }
-    timer[p]=(it->second.second-it->second.first);
-    if(duration!=-1) cham.ScaleTime(fr,InHertzPerCm);
     std::vector<std::string>lolll;
     tokenize(it->first,lolll,"_");
+     std::string name=fr+"_Chamber"+lolll[0];
+    timer[p]=(it->second.second-it->second.first);
+    int hhh=cham.ReturnTH2(name)->Integral();
+    if(duration!=-1) cham.ScaleTime(fr,InHertzPerCm);
+    
+    
     int nbrpar=read.getSpatialWindows()[lolll[0]].size();
-    std::string name=fr+"_Chamber"+lolll[0];
+   
     double val=cham.ReturnTH2(name)->Integral()/(16*nbrpar);
+    double result=hhh/((16*nbrpar)*longueur*largeur*1.0e-9*(it->second.second-it->second.first)*nEntries);
+    std::cout<<blue<<" windows nanosecondes "<<1.0e-9*(it->second.second-it->second.first)<<" area "<<longueur*largeur<<" nbrtiggers "<<nEntries<<normal<<std::endl;
+    std::cout<<blue<<" nbr strips "<<(16*nbrpar)<<" nbr hits"<<hhh<<" result "<<hhh/(1.0e-9*(it->second.second-it->second.first)*longueur*largeur*nEntries*(16*nbrpar))<< " mon calcul"<<result<<normal<<std::endl;
     //std::cout<<red<<nbrpar<<"  "<<InHertzPerCm[std::stoi(lolll[0])]<<normal<<std::endl;
    // if(isnan(double(val))==true)val=0;
     Mean_Noise[it->first].push_back(val);
