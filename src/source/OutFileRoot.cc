@@ -36,6 +36,36 @@ bool OutFileRoot::writeObject(std::string& dirName, TObject *object)
     //TCanvas*can=new TCanvas();
     //object->Draw("colz");
     object->Write();
+    //dirName.erase(std::remove(dirName.begin(), dirName.end(), ' '),dirName.end());
+    /*std::vector<std::string>tmp;
+    tokenize(dirName,tmp,"_");
+    std::string repertory="mkdir -p png/"+tmp[0]+"/"+dirName;
+    std::string go="cd png/"+tmp[0]+"/"+dirName;
+    std::string back="cd "+std::string(cwd);
+    std::system(repertory.c_str());
+    std::system(go.c_str());
+    std::string name=object->GetName();
+    name+=".png";
+    can->SaveAs(("png/"+tmp[0]+"/"+dirName+"/"+name).c_str());
+    std::system(back.c_str());
+    delete can;*/
+  }
+  return true;
+}
+
+bool OutFileRoot::writeObject(const char * dirName, TObject *object)
+{
+  if(!outFile_->GetDirectory(dirName)) 
+  {
+    outFile_->mkdir(dirName);
+    outFile_->cd(dirName);
+  }
+  else outFile_->cd(dirName);
+  if(object!=nullptr)
+  {
+    //TCanvas*can=new TCanvas();
+    //object->Draw("colz");
+    object->Write();
     /*dirName.erase(std::remove(dirName.begin(), dirName.end(), ' '),dirName.end());
     std::vector<std::string>tmp;
     tokenize(dirName,tmp,"_");

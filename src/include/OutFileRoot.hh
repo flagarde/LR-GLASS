@@ -24,6 +24,7 @@ class OutFileRoot
     }
     bool setOutputFile(std::string& outputFileName);
     bool writeObject(std::string& dirName, TObject *object);
+    bool writeObject(const char * dirName, TObject *object);
   protected:
     std::string _outputFileName;
     bool isOutFile_;

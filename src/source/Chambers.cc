@@ -510,7 +510,7 @@ Chambers::Chambers(OutFileRoot& out_,Reader& read_):out(out_),read(read_)
   
 void Chambers::Write()
 {
-  std::string name="";
+ std::string name="";
   for(std::map<std::string,TH2F*>::iterator it=TChamberTH2.begin();it!=TChamberTH2.end();++it)
   {
     std::vector<std::string>tmp;
@@ -520,15 +520,16 @@ void Chambers::Write()
     tokenize(tmp[1],tmp2,"_Chamber");
     std::vector<std::string>tmp3;
     std::string namp="";
-    //if(it->second->GetName()!=nullptr)namp=it->second->GetTitle();
+    if(it->second->GetName()!=nullptr)namp=it->second->GetTitle();
     tokenize(namp,tmp3,"_");
     std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
-    std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
-    TString nameee;
-    if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
-    else nameee=Form("%s/%s",name.c_str(),realname.c_str());
-    std::string namee=nameee.Data(); 
-    writeObject(namee,it->second);
+    std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1);
+    name+="/Chamber";
+    name+=tmp2[1];
+    TString* nameee= new TString();
+    if(tmp3.size()>=4) *nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
+    else *nameee=Form("%s/%s",name.c_str(),realname.c_str()); 
+    writeObject(nameee->Data(),it->second);
   }  
   for(std::map<std::string,TH1F*>::iterator it=TChamberTH1.begin();it!=TChamberTH1.end();++it)
   {
@@ -539,15 +540,14 @@ void Chambers::Write()
     tokenize(tmp[1],tmp2,"_Chamber");
     std::vector<std::string>tmp3;
     std::string namp="";
-    //if(it->second->GetName()!=nullptr)namp=it->second->GetTitle();
+    if(it->second->GetName()!=nullptr)namp=it->second->GetTitle();
     tokenize(namp,tmp3,"_");
     std::size_t found = read.getDAQFiles()[stoi(tmp2[0])].find_last_of("/");
     std::string name=read.getDAQFiles()[stoi(tmp2[0])].substr(found+1)+"/Chamber"+tmp2[1];
-    TString nameee;
-    if(tmp3.size()>=4) nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
-    else nameee=Form("%s/%s",name.c_str(),realname.c_str());
-    std::string namee=nameee.Data();   
-    writeObject(namee,it->second);
+    TString* nameee= new TString();
+    if(tmp3.size()>=4) *nameee= Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s",name.c_str(),stof(tmp3[1]),stof(tmp3[2]),tmp3[3].c_str(),tmp3[4].c_str());
+    else *nameee=Form("%s/%s",name.c_str(),realname.c_str());  
+    writeObject(nameee->Data(),it->second);
   }
 }
 
@@ -561,7 +561,10 @@ void Chambers::writeObject(std::string& dirName, TObject *object)
 {
   out.writeObject(dirName,object);
 }
-
+void Chambers::writeObject(const char* dirName, TObject *object)
+{
+  out.writeObject(dirName,object);
+}
 bool Chambers::InsideZone(int strip,double time,double shift,double winmin, double winmax)
 {
   std::string chamber=FindChamber(strip);

@@ -50,6 +50,7 @@ class Chambers
   Chambers()=delete;
   int FindStrip(int strip);
   void writeObject(std::string& dirName, TObject *object);
+  void writeObject(const char* dirName, TObject *object);
   bool InsideZone(int strip,double time,double shifttime=0.0,double winmin=-1.0,double winmax=-1.0);
   bool InsideZone(int strip,double time,std::string file,std::string name,int& stripnew, double& timenew);
   private:

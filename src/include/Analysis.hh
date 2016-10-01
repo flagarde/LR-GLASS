@@ -18,6 +18,7 @@ public:
   ~Analysis(){};
   int Loop();
   void writeObject(std::string& dirName, TObject *object);
+  void writeObject(const char* dirName, TObject *object);
 private:
   OutFileRoot& out;
   Reader& read;

@@ -7,7 +7,6 @@
 #include "TH2F.h"
 #include "TMath.h"
 #include "TCanvas.h"
-#include "Func.h"
 #include "TTree.h"
 #include "RAWData.h"
 #include "Colors.h"
@@ -58,7 +57,10 @@ void Analysis::writeObject(std::string& dirName, TObject *object)
 {
   out.writeObject(dirName,object);
 }
-
+void Analysis::writeObject(const char* dirName, TObject *object)
+{
+  out.writeObject(dirName,object);
+}
 void Analysis::ShiftTimes()
 {
   if(read.getParameters().find("TimeSluster_us")!=read.getParameters().end())
@@ -238,11 +240,6 @@ void Analysis::ShiftTimes()
         gfit->SetParNames("N","mean","sigma","constant");
         gfit->SetLineColor(kRed);
         cham.ReturnTH1(name_align)->Fit("gfit","EM0WQ");
-        TF1 *crystal = new TF1("crystal",CrystalBall,min,max,6);
-        crystal->SetParameters(1.1,1.1,moy_time_chamber[i],gfit->GetParameter(2),1345,1.0);
-        crystal->SetParNames("alpha","n","Mean","sigma","N","constant");
-        crystal->SetLineColor(kBlue);
-        cham.ReturnTH1(name_align)->Fit("crystal","WEM0Q");
         TF1 *total2 = new TF1("total2","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]*exp(-0.5*((x-[4])/[5])^2)+[6]",min,max);
         total2->SetParameters(1.0,moy_time_chamber[i],5.0,1.0,moy_time_chamber[i],20.0);
         total2->SetParNames("N1","mean1","sigma1","N2","mean2","sigma2","constant");
@@ -250,7 +247,6 @@ void Analysis::ShiftTimes()
         cham.ReturnTH1(name_align)->Fit("total2","EM0QW");
         Dist_With_Alignment->Update();
         gfit->Draw("same");
-        crystal->Draw("same");
         total2->Draw("same");
         Dist_With_Alignment->Update();
         //Params
@@ -258,12 +254,6 @@ void Analysis::ShiftTimes()
         ParamValueError["mean_gauss_al_"+std::to_string(i+1)].first.push_back(gfit->GetParameter(1));
         ParamValueError["alpha_gauss_al_"+std::to_string(i+1)].first.push_back(gfit->GetParameter(2));
         ParamValueError["constant_gauss_al_"+std::to_string(i+1)].first.push_back(gfit->GetParameter(3));
-        ParamValueError["alpha_crystal_al_"+std::to_string(i+1)].first.push_back(crystal->GetParameter(0));
-        ParamValueError["n_crystal_al_"+std::to_string(i+1)].first.push_back(crystal->GetParameter(1));
-        ParamValueError["mean_crystal_al_"+std::to_string(i+1)].first.push_back(crystal->GetParameter(2));
-        ParamValueError["sigma_crystal_al_"+std::to_string(i+1)].first.push_back(crystal->GetParameter(3));
-        ParamValueError["N_crystal_al_"+std::to_string(i+1)].first.push_back(crystal->GetParameter(4));
-        ParamValueError["constant_crystal_al_"+std::to_string(i+1)].first.push_back(crystal->GetParameter(5));
         ParamValueError["N1_gauss_al_"+std::to_string(i+1)].first.push_back(total2->GetParameter(0));
         ParamValueError["mean1_2gauss_al_"+std::to_string(i+1)].first.push_back(total2->GetParameter(1));
         ParamValueError["sigma1_2gauss_al_"+std::to_string(i+1)].first.push_back(total2->GetParameter(2));
@@ -276,12 +266,6 @@ void Analysis::ShiftTimes()
         ParamValueError["mean_gauss_al_"+std::to_string(i+1)].second.push_back(gfit->GetParError(1));
         ParamValueError["alpha_gauss_al_"+std::to_string(i+1)].second.push_back(gfit->GetParError(2));
         ParamValueError["constant_gauss_al_"+std::to_string(i+1)].second.push_back(gfit->GetParError(3));
-        ParamValueError["alpha_crystal_al_"+std::to_string(i+1)].second.push_back(crystal->GetParError(0));
-        ParamValueError["n_crystal_al_"+std::to_string(i+1)].second.push_back(crystal->GetParError(1));
-        ParamValueError["mean_crystal_al_"+std::to_string(i+1)].second.push_back(crystal->GetParError(2));
-        ParamValueError["sigma_crystal_al_"+std::to_string(i+1)].second.push_back(crystal->GetParError(3));
-        ParamValueError["N_crystal_al_"+std::to_string(i+1)].second.push_back(crystal->GetParError(4));
-        ParamValueError["constant_crystal_al_"+std::to_string(i+1)].second.push_back(crystal->GetParError(5));
         ParamValueError["N1_gauss_al_"+std::to_string(i+1)].second.push_back(total2->GetParError(0));
         ParamValueError["mean1_2gauss_al_"+std::to_string(i+1)].second.push_back(total2->GetParError(1));
         ParamValueError["sigma1_2gauss_al_"+std::to_string(i+1)].second.push_back(total2->GetParError(2));
@@ -294,7 +278,6 @@ void Analysis::ShiftTimes()
         leg->SetHeader(title.c_str()); // option "C" allows to center the header
         leg->AddEntry(cham.ReturnTH1(name_align),"Time distribution","f");
         leg->AddEntry("gfit","Gaussian + constant fit","l");
-        leg->AddEntry("crystal","Crystal ball + constant fit","l");
         leg->AddEntry("total2","Sum of two Gaussian + constant","l");
         leg->Draw("same");
         out.writeObject(name1,Dist_With_Alignment);
@@ -309,11 +292,6 @@ void Analysis::ShiftTimes()
         gfit2->SetParNames("N","mean","alpha","constant");
         gfit2->SetLineColor(kRed);
         cham.ReturnTH1(name_unalign)->Fit("gfit2","EM0WQ");
-        TF1 *crystal2 = new TF1("crystal2",CrystalBall,min,max,6);
-        crystal2->SetParameters(1.1,1.1,moy_time_chamber[i],gfit2->GetParameter(2),1345,1.0);
-        crystal2->SetParNames("alpha","n","Mean","sigma","N","constant");
-        crystal2->SetLineColor(kBlue);
-        cham.ReturnTH1(name_unalign)->Fit("crystal2","QWEM0");
         TF1 *total = new TF1("total","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]*exp(-0.5*((x-[4])/[5])^2)+[6]",min,max);
         total->SetParameters(1.0,moy_time_chamber[i],5.0,1.0,moy_time_chamber[i],20.0);
         total->SetParNames("N1","mean1","sigma1","N2","mean2","sigma2","constant");
@@ -322,14 +300,12 @@ void Analysis::ShiftTimes()
         Dist_Without_Alignment->Update();
         gfit2->Draw("same");
         total->Draw("same");
-        crystal2->Draw("same");
         Dist_Without_Alignment->Update();
         TLegend* leg2 = new TLegend(0.1,0.7,0.35,0.9);
         std::string title2="Fits for the time distribution ["+std::to_string(min)+";"+std::to_string(max)+"]";
         leg2->SetHeader(title2.c_str()); // option "C" allows to center the header
         leg2->AddEntry(cham.ReturnTH1(name_unalign),"Time distribution","f");
         leg2->AddEntry("gfit2","Gaussian + constant fit","l");
-        leg2->AddEntry("crystal2","Crystal ball + constant fit","l");
         leg2->AddEntry("total","Sum of two Gaussian + constant","l");
         leg2->Draw("same");
         out.writeObject(name1,Dist_Without_Alignment);
@@ -338,12 +314,6 @@ void Analysis::ShiftTimes()
         ParamValueError["mean_gauss_un_"+std::to_string(i+1)].first.push_back(gfit2->GetParameter(1));
         ParamValueError["alpha_gauss_un_"+std::to_string(i+1)].first.push_back(gfit2->GetParameter(2));
         ParamValueError["constant_gauss_un_"+std::to_string(i+1)].first.push_back(gfit2->GetParameter(3));
-        ParamValueError["alpha_crystal_un_"+std::to_string(i+1)].first.push_back(crystal2->GetParameter(0));
-        ParamValueError["n_crystal_un_"+std::to_string(i+1)].first.push_back(crystal2->GetParameter(1));
-        ParamValueError["mean_crystal_un_"+std::to_string(i+1)].first.push_back(crystal2->GetParameter(2));
-        ParamValueError["sigma_crystal_un_"+std::to_string(i+1)].first.push_back(crystal2->GetParameter(3));
-        ParamValueError["N_crystal_un_"+std::to_string(i+1)].first.push_back(crystal2->GetParameter(4));
-        ParamValueError["constant_crystal_un_"+std::to_string(i+1)].first.push_back(crystal2->GetParameter(5));
         ParamValueError["N1_gauss_un_"+std::to_string(i+1)].first.push_back(total->GetParameter(0));
         ParamValueError["mean1_2gauss_un_"+std::to_string(i+1)].first.push_back(total->GetParameter(1));
         ParamValueError["sigma1_2gauss_un_"+std::to_string(i+1)].first.push_back(total->GetParameter(2));
@@ -356,12 +326,7 @@ void Analysis::ShiftTimes()
         ParamValueError["mean_gauss_un_"+std::to_string(i+1)].second.push_back(gfit2->GetParError(1));
         ParamValueError["alpha_gauss_un_"+std::to_string(i+1)].second.push_back(gfit2->GetParError(2));
         ParamValueError["constant_gauss_un_"+std::to_string(i+1)].second.push_back(gfit2->GetParError(3));
-        ParamValueError["alpha_crystal_un_"+std::to_string(i+1)].second.push_back(crystal2->GetParError(0));
-        ParamValueError["n_crystal_un_"+std::to_string(i+1)].second.push_back(crystal2->GetParError(1));
-        ParamValueError["mean_crystal_un_"+std::to_string(i+1)].second.push_back(crystal2->GetParError(2));
-        ParamValueError["sigma_crystal_un_"+std::to_string(i+1)].second.push_back(crystal2->GetParError(3));
-        ParamValueError["N_crystal_un_"+std::to_string(i+1)].second.push_back(crystal2->GetParError(4));
-        ParamValueError["constant_crystal_un_"+std::to_string(i+1)].second.push_back(crystal2->GetParError(5));
+       
         ParamValueError["N1_gauss_un_"+std::to_string(i+1)].second.push_back(total->GetParError(0));
         ParamValueError["mean1_2gauss_un_"+std::to_string(i+1)].second.push_back(total->GetParError(1));
         ParamValueError["sigma1_2gauss_un_"+std::to_string(i+1)].second.push_back(total->GetParError(2));
@@ -375,7 +340,6 @@ void Analysis::ShiftTimes()
         {
             //unaligned
             std::string gaussun=chan+"_"+std::to_string(Window[kk])+"_0_Gaussian + constante_un";
-            std::string crystalun=chan+"_"+std::to_string(Window[kk])+"_0_CrystalBall + constante_un";
             std::string gauss2un1=chan+"_"+std::to_string(Window[kk])+"_0_2 Gaussian1 + constante_un";
             std::string gauss2un2=chan+"_"+std::to_string(Window[kk])+"_0_2 Gaussian2 + constante_un";
             double xmingaussun=gfit2->GetParameter(1)-gfit2->GetParameter(2)*Window[kk];
@@ -383,51 +347,29 @@ void Analysis::ShiftTimes()
             std::cout<<green<<gaussun<<" : ["<<xmingaussun<<";"<<xmaxgaussun<<"] sigma="<<gfit2->GetParameter(2)<<" mean="<<gfit2->GetParameter(1)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
             if(xmingaussun>=0&&xmaxgaussun<=TimeMax) cham.SelectionTimes[read.getDAQFiles()[file]][gaussun]={xmingaussun,xmaxgaussun};
             else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
-            double xmincrystalun=crystal2->GetParameter(2)-crystal2->GetParameter(3)*Window[kk];
-            double xmaxcrystalun=crystal2->GetParameter(2)+crystal2->GetParameter(3)*Window[kk];
-            if(xmincrystalun>xmaxcrystalun)
-            {
-              xmaxcrystalun=crystal2->GetParameter(2)-crystal2->GetParameter(3)*Window[kk];
-              xmincrystalun=crystal2->GetParameter(2)+crystal2->GetParameter(3)*Window[kk];
-            }
-            std::cout<<green<<crystalun<<" : ["<<xmincrystalun<<";"<<xmaxcrystalun<<"] sigma="<<crystal2->GetParameter(2)<<" mean="<<crystal2->GetParameter(3)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
-            if(xmincrystalun>=0&&xmaxcrystalun<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][crystalun]={xmincrystalun,xmaxcrystalun};
-            else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
             //to select the right Gaussian
             int l=0;
             if(total->GetParameter(1)>total->GetParameter(4))l=3;
             double xmingauss2un1 = total->GetParameter(1+l)-total->GetParameter(2+l)*Window[kk];
             double xmaxgauss2un1 = total->GetParameter(1+l)+total->GetParameter(2+l)*Window[kk];
-            std::cout<<green<<gauss2un1<<" : ["<<xmingauss2un1<<";"<<xmaxgauss2un1<<"] sigma="<<total->GetParameter(1+l)<<" mean="<<total->GetParameter(1+l)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
+            std::cout<<green<<gauss2un1<<" : ["<<xmingauss2un1<<";"<<xmaxgauss2un1<<"] sigma="<<total->GetParameter(2+l)<<" mean="<<total->GetParameter(1+l)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
             if(xmingauss2un1>=0&&xmaxgauss2un1<=TimeMax) cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un1]={xmingauss2un1,xmaxgauss2un1};
             else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
             if(l==3) l=0;
             else l==3;
             double xmingauss2un2 = total->GetParameter(1+l)-total->GetParameter(2+l)*Window[kk];
             double xmaxgauss2un2 = total->GetParameter(1+l)+total->GetParameter(2+l)*Window[kk];
-            std::cout<<green<<gauss2un2<<" : ["<<xmingauss2un2<<";"<<xmaxgauss2un2<<"] sigma="<<total->GetParameter(1+l)<<" mean="<<total->GetParameter(1+l)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
+            std::cout<<green<<gauss2un2<<" : ["<<xmingauss2un2<<";"<<xmaxgauss2un2<<"] sigma="<<total->GetParameter(2+l)<<" mean="<<total->GetParameter(1+l)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
             if(xmingauss2un2>=0&&xmaxgauss2un2<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un2]={xmingauss2un2,xmaxgauss2un2};
             else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
             //aligned
             std::string gaussal=chan+"_"+std::to_string(Window[kk])+"_0_Gaussian + constante_al";
-            std::string crystalal=chan+"_"+std::to_string(Window[kk])+"_0_Crystal Ball + constante_al";
             std::string gauss2al1=chan+"_"+std::to_string(Window[kk])+"_0_2 Gaussian1 + constante_al";
             std::string gauss2al2=chan+"_"+std::to_string(Window[kk])+"_0_2 Gaussian2 + constante_al";
             double xmingaussal=gfit->GetParameter(1)-gfit->GetParameter(2)*Window[kk];
             double xmaxgaussal=gfit->GetParameter(1)+gfit->GetParameter(2)*Window[kk];
             std::cout<<green<<gaussal<<" : ["<<xmingaussal<<";"<<xmaxgaussal<<"] sigma="<<gfit->GetParameter(2)<<" mean="<<gfit->GetParameter(1)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
             if(xmingaussal>=0&&xmaxgaussal<=TimeMax) cham.SelectionTimes[read.getDAQFiles()[file]][gaussal]={xmingaussal,xmaxgaussal};
-            double xmincrystalal=crystal->GetParameter(2)-crystal->GetParameter(3)*Window[kk];
-            double xmaxcrystalal=crystal->GetParameter(2)+crystal->GetParameter(3)*Window[kk];
-            if(xmincrystalal>xmaxcrystalal)
-            {
-             xmaxcrystalal=crystal2->GetParameter(2)-crystal2->GetParameter(3)*Window[kk];
-              xmincrystalal=crystal2->GetParameter(2)+crystal2->GetParameter(3)*Window[kk];
-           }
-           std::cout<<green<<crystalal<<" : ["<<xmincrystalal<<";"<<xmaxcrystalal<<"] sigma="<<crystal->GetParameter(2)<<" mean="<<crystal->GetParameter(3)<<"  nbrofsigma="<<Window[kk]<<normal<<std::endl;
-            if(xmincrystalal>=0&&xmaxcrystalal<=TimeMax) cham.SelectionTimes[read.getDAQFiles()[file]][crystalal]={xmincrystalal,xmaxcrystalal};
-           else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
-            //to select the right Gaussian
             l=0;
             if(total2->GetParameter(1)>total2->GetParameter(4))l=3;
             //
@@ -444,16 +386,16 @@ void Analysis::ShiftTimes()
             if(xmingauss2al2>=0&&xmaxgauss2al2<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al2]={xmingauss2al2,xmaxgauss2al2};
             else std::cout<<red<<"xmin < 0 or xmax > TimeOfTheWindow"<<normal<<std::endl;
         }  
-        //delete gfit2;
-        //delete leg2;
+        delete gfit2;
+        delete leg2;
         //delete crystal2;
-        //delete total;
-        //delete Dist_Without_Alignment;
-        //delete gfit;
+        delete total;
+        delete Dist_Without_Alignment;
+        delete gfit;
         //delete crystal;
-        //delete total2;
-        //delete leg;
-        //delete Dist_With_Alignment;
+        delete total2;
+        delete leg;
+        delete Dist_With_Alignment;
       }
       if (read.getType()=="noisevolEff"||read.getType()=="noisethrEff"||read.getType()=="noisesrcEff"||read.getType()=="noisePulEff")
       {
@@ -753,7 +695,7 @@ std::map<std::string,std::vector<std::pair<double,double>>> Analysis::Eff_ErrorE
     Resolution[p]=new TProfile2D(("Resol"+n1).c_str(),"Spatial Resolution",4,0,800,32,0,32);
     general_multilicity[p]=new TH1F(("Genmulti"+n1).c_str(),("General Multiplicity "+ti),128,0,128);
     nbr_cluster[p]=new TH1F(("NbrCluster"+n1).c_str(),("Number of Cluster "+ti),65,0,65);
-    cluster_multiplicity[p]= new TH1F(("ClusterSize"+n1).c_str(),("Cluster size "+ti),128,0,128);
+    cluster_multiplicity[p]= new TH1F(("ClusterSize"+n1).c_str(),("Cluster size "+ti),20,0,20);
     when[p]=new TH1F(("FirstTSCluster"+n1).c_str(),("First timestamp of the cluster "+ti),10000,0,1000);
     when2[p]=new TH1F(("Time_between_clusters"+n1).c_str(),("Time between cluster "+ti),10000,0,1000);
     when3[p]=new TH1F(("Time_between_hits"+n1).c_str(),("Time between hits no clusterisation at all"+ti),5000,0,500);
@@ -1393,27 +1335,27 @@ int Analysis::Loop()
     std::string comp="Comparaison";
     std::string comp1=comp+"/Method1";
     std::string comp2=comp+"/Method2";
-    gr1->SetFillColor(kCyan);
+    gr1->SetFillColor(kBlue);
     gr1->SetFillStyle(1001);
     gr2->SetFillColor(kRed);
     gr2->SetFillStyle(1001);
-    gr1->Draw("a3");
-    std::system(("mkdir ./"+name+"/png").c_str());
-    std::system(("mkdir ./"+name+"/C").c_str());
-    cc->SaveAs(("./"+name+"/png/"+(itoo->first+"_M1.png")).c_str());
+    gr1->Draw("a3P");
+    //std::system(("mkdir ./"+name+"/png").c_str());
+    //std::system(("mkdir ./"+name+"/C").c_str());
+    //cc->SaveAs(("./"+name+"/png/"+(itoo->first+"_M1.png")).c_str());
     //cc->SaveAs(("./"+name+"/Method1/"+(itoo->first+".pdf")).c_str());
-    cc->SaveAs(("./"+name+"/C/"+(itoo->first+"_M1.C")).c_str());
+   // cc->SaveAs(("./"+name+"/C/"+(itoo->first+"_M1.C")).c_str());
     writeObject(comp1,cc);
-    gr2->Draw("a3");
-    cc->SaveAs(("./"+name+"/png/"+(itoo->first+"_M2.png")).c_str());
+    gr2->Draw("a3P");
+    //cc->SaveAs(("./"+name+"/png/"+(itoo->first+"_M2.png")).c_str());
     //cc->SaveAs(("./"+name+"/Method2/"+(itoo->first+".pdf")).c_str());
-    cc->SaveAs(("./"+name+"/C/"+(itoo->first+"_M2.C")).c_str());
+   //cc->SaveAs(("./"+name+"/C/"+(itoo->first+"_M2.C")).c_str());
     writeObject(comp2,cc);
-    gr1->Draw("a3");
-    gr2->Draw("SAME a3");
-    cc->SaveAs(("./"+name+"/png/"+(itoo->first+"_Both.png")).c_str());
+    gr1->Draw("a3P");
+    gr2->Draw("SAME a3P");
+    //cc->SaveAs(("./"+name+"/png/"+(itoo->first+"_Both.png")).c_str());
     //cc->SaveAs(("./"+name+"/Both/"+(itoo->first+".pdf")).c_str());
-    cc->SaveAs(("./"+name+"/C/"+(itoo->first+"_Both.C")).c_str());
+    //cc->SaveAs(("./"+name+"/C/"+(itoo->first+"_Both.C")).c_str());
     writeObject(comp,cc);
     delete cc;
     delete gr1;

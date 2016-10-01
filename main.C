@@ -63,12 +63,12 @@ int main(int argc, char* argv[])
   Analysis analysis(out,*reader,cham);
   int isLoop=analysis.Loop();
   cham.Write();
-  delete reader;
+  //delete reader;
   if(isLoop == 1) std::cout<<green<<"The End."<<normal<< std::endl;
   if(isLoop == -1) 
   { 
     std::cout<<red<<"ERROR !!!"<<normal<<std::endl;
     std::cout<<red<<"The End."<<normal<<std::endl;
   }
-  return 1;
+  return 0;
 }
