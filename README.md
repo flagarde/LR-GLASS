@@ -1,21 +1,20 @@
-Program: LR-GLASS
+"""LR-GLASS"""
 --------------------------------------------------------------------------------
 
-Description:
+Description: This program is supposed to give you the efficiency, cluster size, etc
 
-  Endless Analysis.
 --------------------------------------------------------------------------------
 
 Content:
   
-  makefile	: MakeFile for build program
-  main.C	  : main file
-  source	  : Source files
-  include	  : Include files
-  cards		  : cards files
-  RunMe.sh  : Just run ./RunMe.sh cards and take a cofee ;)
-  "One script to rule them all, One script to find them, 
-   One script to bring them all and in the darkness bind them"
+  source	: Source files
+  cards		: Cards files
+  BuildMe.sh    : Script to compile the program
+  RunMe.sh      : Just run ./RunMe.sh cards and take a cofee ;)
+  
+  >One script to rule them all, 
+  >One script to find them, 
+  >One script to bring them all and in the darkness bind them
 --------------------------------------------------------------------------------
 
 Syntax: ./lrGlass outputFile.root card.txt 

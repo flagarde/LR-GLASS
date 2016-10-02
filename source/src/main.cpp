@@ -18,6 +18,7 @@
 #include "Reader.h"
 #include "Analysis.h"
 #include <TInterpreter.h>
+#include "Version.h"
 
 using namespace std;
 
@@ -43,6 +44,7 @@ int main(int argc, char* argv[])
   std::cout<<yellow<<"#"<<green<<"      #      #mmmm\"        #   mm #mmmm\" #mmm#\" #           "<<yellow<<"#"<<normal<<std::endl;
   std::cout<<yellow<<"#"<<green<<"      #      #   \"m  \"\"\"   #    # #   \"m #      #           "<<yellow<<"#"<<normal<<std::endl;
   std::cout<<yellow<<"#"<<green<<"      mmmmm  #    m         \"mmm\" #    \" #       \"mmm\"      "<<yellow<<"#"<<normal<<std::endl;
+  std::cout<<yellow<<"#"<<green<<"                                           "<<red<<"Version:"<<LRGRPC_VERSION_MAJOR<<"."<<LRGRPC_VERSION_MINOR<<yellow<<"      #"<<normal<<std::endl;                
   std::cout<<yellow<<"#------------------------------------------------------------#"<<normal<<std::endl;
   std::cout<<yellow<<"# "<<green<<"            LR-GLASS, Life is Endless Analysis.            "<<yellow<<"#"<<normal<<std::endl;
   std::cout<<yellow<<"#------------------------------------------------------------#"<<normal<<std::endl;
