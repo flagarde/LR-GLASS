@@ -1,4 +1,4 @@
-###LR-GLASS
+#LR-GLASS
 
 Description: 
 --------------------------------------------------------------------------------
@@ -7,10 +7,10 @@ This program is supposed to give you the efficiency, cluster size, etc
 Content:
 --------------------------------------------------------------------------------
 
-*source	: Source files
-*cards		: Cards files
-*BuildMe.sh    : Script to compile the program
-*RunMe.sh      : Just run ./RunMe.sh cards and take a cofee ;)
+* source	: Source files
+* cards		: Cards files
+* BuildMe.sh    : Script to compile the program
+* RunMe.sh      : Just run ./RunMe.sh cards and take a cofee ;)
   
   >One script to rule them all, 
   >One script to find them, 
@@ -31,8 +31,8 @@ Support:
 
 System Requirements:
 --------------------------------------------------------------------------------
-*CMake (https://cmake.org/)
-*ROOT CERN Library (https://root.cern.ch)
+* CMake (https://cmake.org/)
+* ROOT CERN Library (https://root.cern.ch)
 
 
 
