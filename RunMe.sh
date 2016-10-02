@@ -15,13 +15,13 @@ do
   if [ "$#" -ne 1 ]; 
 	then
 		echo "Launch lrGlass for $f - Creating $name.root in $a$b "
-  		./lrGlass $name.root $f
-		mv $name.root $a$b$name.root
-		mv $filename $a$b$filename
+  		./LRGRPC $name.root $f
+		mv $name.root $b$a$name.root
+		mv $filename  $b$a$filename
 	else 
 		echo "Launch lrGlass for $f - Creating $filename.root in $a$b"
-		./lrGlass $filename.root $f
-                mv $filename.root $a$b$filename.root
-		mv $filename $a$b$filename
+		./LRGRPC $filename.root $f
+                mv $filename.root $b$a$filename.root
+		mv $filename $b$a$filename
   fi 
 done

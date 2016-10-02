@@ -6,8 +6,6 @@ lrGlass
 GIF/*
 H2/*
 build/
-*/*/*.txt
-card*/*
-*/*.txt
-cards*/*
-lrGRPC
+LRGRPC
+Results/
+!.CMakeLists.txt
