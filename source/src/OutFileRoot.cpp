@@ -7,7 +7,7 @@ bool OutFileRoot::setOutputFile(std::string& outputFileName)
 {
   //getcwd(cwd, sizeof(cwd));
   outFile_ = new TFile(outputFileName.c_str(),"UPDATE");
-  outFile_->SetBufferSize(500000);
+  outFile_->SetBufferSize(5000000);
   outFile_->SetCompressionLevel(9);
   if(!outFile_) return false;
   isOutFile_ = true;
