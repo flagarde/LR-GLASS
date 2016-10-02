@@ -7,10 +7,10 @@ This program is supposed to give you the efficiency, cluster size, etc
 Content:
 --------------------------------------------------------------------------------
 
-  *item source	: Source files
-  *item cards		: Cards files
-  *item BuildMe.sh    : Script to compile the program
-  *item RunMe.sh      : Just run ./RunMe.sh cards and take a cofee ;)
+  *Item source	: Source files
+  *Item cards		: Cards files
+  *Item BuildMe.sh    : Script to compile the program
+  *Item RunMe.sh      : Just run ./RunMe.sh cards and take a cofee ;)
   
   >One script to rule them all, 
   >One script to find them, 
@@ -18,7 +18,7 @@ Content:
 
 Syntax:
 --------------------------------------------------------------------------------
- ./lrGlass outputFile.root card.txt 
+./lrGlass outputFile.root card.txt 
 
 for help execute: ./lrGlass
 
@@ -31,8 +31,8 @@ Support:
 
 System Requirements:
 --------------------------------------------------------------------------------
-  *item CMake (https://cmake.org/)
-  *item ROOT CERN Library (https://root.cern.ch)
+  *Item CMake (https://cmake.org/)
+  *Item ROOT CERN Library (https://root.cern.ch)
 
 
 
