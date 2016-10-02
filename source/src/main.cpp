@@ -1,13 +1,12 @@
 //-------------------------------------------------------
 // Description: main file for analysis LR-GLASS test beam
 // Authors:  
-//Shchablo, Shchablo@gmail.com 
-//Lagarde, lagarde@ipnl.in2p3.fr
+// Lagarde, lagarde@ipnl.in2p3.fr
 //-------------------------------------------------------
 
 // C++ includes
 #include "Colors.h"
-#include "OutFileRoot.hh"
+#include "OutFileRoot.h"
 #include "Chambers.h"
 #include <iostream>
 #include <fstream>
@@ -17,7 +16,7 @@
 #include "ReaderTXT.h"
 #include "ReaderCSV.h"
 #include "Reader.h"
-#include "Analysis.hh"
+#include "Analysis.h"
 #include <TInterpreter.h>
 
 using namespace std;
@@ -63,7 +62,7 @@ int main(int argc, char* argv[])
   Analysis analysis(out,*reader,cham);
   int isLoop=analysis.Loop();
   cham.Write();
-  //delete reader;
+  delete reader;
   if(isLoop == 1) std::cout<<green<<"The End."<<normal<< std::endl;
   if(isLoop == -1) 
   { 

@@ -5,7 +5,7 @@
 #include <map>
 #include <vector>
 #include <set>
-#include "OutFileRoot.hh"
+#include "OutFileRoot.h"
 #include "TH2.h"
 #include "TObject.h"
 #include "Reader.h"

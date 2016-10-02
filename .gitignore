@@ -1,6 +1,12 @@
 *.root
 *.pdf
 *.png
+*.txt
 lrGlass
 GIF/*
 H2/*
+build/
+*/*/*.txt
+card*/*
+*/*.txt
+cards*/*

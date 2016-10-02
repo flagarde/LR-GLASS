@@ -1,7 +1,7 @@
 #ifndef ANALYSIS_h
 #define ANALYSIS_h
 
-#include "OutFileRoot.hh"
+#include "OutFileRoot.h"
 #include "TGraphErrors.h"
 #include <string>
 #include <vector>

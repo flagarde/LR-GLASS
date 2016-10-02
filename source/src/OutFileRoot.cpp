@@ -1,4 +1,4 @@
-#include "OutFileRoot.hh"
+#include "OutFileRoot.h"
 #include "TCanvas.h"
 #include <cstdlib>
 #include "Colors.h"
@@ -57,6 +57,7 @@ bool OutFileRoot::writeObject(const char * dirName, TObject *object)
 {
   if(!outFile_->GetDirectory(dirName)) 
   {
+    std::cout<<"Creating "<<dirName<<std::endl;
     outFile_->mkdir(dirName);
     outFile_->cd(dirName);
   }
