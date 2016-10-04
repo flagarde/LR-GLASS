@@ -1,0 +1,42 @@
+#TYPE:
+type=noisethrEff
+#TYPE END.
+
+#ANALYSIS:
+NbrChambers=1
+Partitions_Ch1=A1+A2+B1+B2+C1+C2+D1+D2
+TimeWindows_Ch1=100-500
+#ANALYSIS END.
+
+#VOL-THR-ATT-PUL:
+6800V_220mV
+6800V_300mV
+6800V_400mV
+#VOL-THR-ATT-PUL END.
+
+#DAQ FILES:
+./Data/GIF_sept_2016/ThresholdRandom/Scan001708_HV1_DAQ.root
+./Data/GIF_sept_2016/ThresholdRandom/Scan001709_HV1_DAQ.root
+./Data/GIF_sept_2016/ThresholdRandom/Scan001710_HV1_DAQ.root
+#DAQ FILES END.
+
+#MASK:
+#MASK END.
+
+#MAPPING:
+1A2=3016
+1A1=3048
+1B2=3000
+1B1=3032
+1C2=3080
+1C1=3112
+1D2=3064
+1D1=3096
+#MAPPING END.
+
+#PARAMETERS:
+CorrelationTime=0.2,0.4,0.6,0.8,1.0
+NoiseShift=-50,-25,-75,-100,25,50,75,100
+NoiseWindows=25
+NumberOfSigmas=3
+#PARAMETERS END.

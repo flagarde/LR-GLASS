@@ -13,31 +13,37 @@
 #include <limits>
 #include <cmath>
 
-std::pair<int, int> Chambers::FindPosition(int strip) {
+std::pair<int, int> Chambers::FindPosition(int strip) 
+{ 
+  std::pair<int, int> a;
   std::vector<std::string> vec;
-  for (std::map<std::string, int>::iterator it = read.getMapping().begin();
-       it != read.getMapping().end(); ++it) {
+  for (std::map<std::string, int>::iterator it = read.getMapping().begin();it != read.getMapping().end(); ++it) 
+  {
     int diff = strip - it->second;
-    if (diff >= 0 && diff < 16) {
-      if (read.getInvertedMapping()[it->first] == true)
-        diff = 15 - diff;
-      std::pair<int, int> a{StripShift[it->first.substr(1, 2)].first,
-                            StripShift[it->first.substr(1, 2)].second + diff};
-      return a;
+    if (diff >= 0 && diff < 16) 
+    {
+      if (read.getInvertedMapping()[it->first] == true)diff = 15 - diff;
+      a={StripShift[it->first.substr(1, 2)].first,StripShift[it->first.substr(1, 2)].second + diff};
+      break;
     }
   }
+  return a;
 }
 
-int Chambers::FindStrip(int strip) {
-  for (std::map<std::string, int>::iterator it = read.getMapping().begin();
-       it != read.getMapping().end(); ++it) {
+int Chambers::FindStrip(int strip) 
+{
+  int ret=-1;
+  for (std::map<std::string, int>::iterator it = read.getMapping().begin();it != read.getMapping().end(); ++it) 
+  {
     int diff = strip - it->second;
-    if (diff >= 0 && diff < 16) {
-    if (read.getInvertedMapping()[it->first] == true)
-        diff = 15 - diff;
-      return StripShiftAligned[it->first.substr(1, 2)] + diff;
+    if (diff >= 0 && diff < 16) 
+    {
+      if (read.getInvertedMapping()[it->first] == true)diff = 15 - diff;
+      ret=StripShiftAligned[it->first.substr(1, 2)] + diff;
+      break;
     }
   }
+  return ret;
 }
 
 std::string Chambers::FindChamber(int strip) {
@@ -146,14 +152,16 @@ void Chambers::Scale(std::string &name, double value) {
   }
 }
 
-TH1F *Chambers::ReturnTH1(std::string &name) {
-  if (TChamberTH1.find(name) != TChamberTH1.end())
-    return TChamberTH1[name];
+TH1F *Chambers::ReturnTH1(std::string &name) 
+{
+  if (TChamberTH1.find(name) != TChamberTH1.end()) return TChamberTH1[name];
+  else return nullptr;
 }
 
-TH2F *Chambers::ReturnTH2(std::string &name) {
-  if (TChamberTH2.find(name) != TChamberTH2.end())
-    return TChamberTH2[name];
+TH2F *Chambers::ReturnTH2(std::string &name) 
+{
+  if (TChamberTH2.find(name) != TChamberTH2.end())return TChamberTH2[name];
+  else return nullptr;
 }
 
 void Chambers::ScaleTime(std::string &name, std::map<int, double> &values) 
@@ -634,31 +642,26 @@ Chambers::~Chambers()
   for (std::map<std::string, TH1F *>::iterator it = TChamberTH1.begin();it != TChamberTH1.end(); ++it)if(it->second!=nullptr)delete it->second;
 };
 
-void Chambers::writeObject(std::string &dirName, TObject *object) {
+void Chambers::writeObject(std::string &dirName, TObject *object) 
+{
   out.writeObject(dirName, object);
 }
-void Chambers::writeObject(const char *dirName, TObject *object) {
+
+void Chambers::writeObject(const char *dirName, TObject *object) 
+{
   out.writeObject(dirName, object);
 }
-bool Chambers::InsideZone(int strip, double time, double shift, double winmin,
-                          double winmax) {
+
+bool Chambers::InsideZone(int strip, double time, double shift, double winmin,double winmax) 
+{
   std::string chamber = FindChamber(strip);
   std::string par = FindPartition(strip);
-  if (chamber == "")
-    return false;
-  if (read.getMask().find(strip) != read.getMask().end()) {
-    return false;
-  }
-  if (winmin != -1 && winmax != -1)
-    if ((time - shift) > winmax && (time - shift) < winmin)
-      return false;
-    else if ((time - shift) > stof(read.getTimeWindows()[chamber][1]) ||
-             (time - shift) < stof(read.getTimeWindows()[chamber][0]))
-      return false;
-  for (unsigned int i = 0; i != read.getSpatialWindows()[chamber].size(); ++i) {
-    if (read.getSpatialWindows()[chamber][i] == par)
-      return true;
-  }
+  if (chamber == "") return false;
+  if (read.getMask().find(strip) != read.getMask().end()) return false;
+  if (winmin != -1 &&winmax != -1) return false;
+  if ((time - shift) > winmax && (time - shift) < winmin)return false;
+  if ((time - shift) > stof(read.getTimeWindows()[chamber][1]) ||(time - shift) < stof(read.getTimeWindows()[chamber][0]))return false;
+  for (unsigned int i = 0; i != read.getSpatialWindows()[chamber].size(); ++i) if (read.getSpatialWindows()[chamber][i] == par) return true;
   return false;
 }
 

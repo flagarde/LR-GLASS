@@ -141,7 +141,6 @@ void Analysis::ShiftTimes()
     dataTree->SetBranchAddress("TDC_channel", &data.TDCCh);
     dataTree->SetBranchAddress("TDC_TimeStamp", &data.TDCTS);
     unsigned int nEntries = dataTree->GetEntries();
-    double trigger = 0;
     for (unsigned int i = 0; i < nEntries; i++) 
     {
       dataTree->GetEntry(i);
@@ -241,12 +240,20 @@ void Analysis::ShiftTimes()
         gfit->SetParameters(1.1, moy_time_chamber[i], 20.0, 1.0);
         gfit->SetParNames("N", "mean", "sigma", "constant");
         gfit->SetLineColor(kRed);
-        cham.ReturnTH1(name_align)->Fit("gfit", "EM0WQ");
+        for(unsigned int i=0;i!=10;++i)
+        {
+          cham.ReturnTH1(name_align)->Fit("gfit", "EM0QW");
+          gfit->SetParameters(gfit->GetParameter(0), gfit->GetParameter(1),gfit->GetParameter(2),gfit->GetParameter(3));
+        }
         TF1 *total2 = new TF1("total2","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]*exp(-0.5*((x-[4])/[5])^2)+[6]",min, max);
-        total2->SetParameters(1.0, moy_time_chamber[i], 5.0, 1.0,moy_time_chamber[i], 20.0);
+        total2->SetParameters(1.0, moy_time_chamber[i], 5.0, 1.0,moy_time_chamber[i]+10.0, 12.0,1.0);
         total2->SetParNames("N1", "mean1", "sigma1", "N2", "mean2", "sigma2","constant");
         total2->SetLineColor(kGreen);
-        cham.ReturnTH1(name_align)->Fit("total2", "EM0QW");
+        for(unsigned int i=0;i!=10;++i)
+        {
+          cham.ReturnTH1(name_align)->Fit("total2", "EM0QW");
+          total2->SetParameters(total2->GetParameter(0), total2->GetParameter(1),total2->GetParameter(2),total2->GetParameter(3),total2->GetParameter(4),total2->GetParameter(5),total2->GetParameter(6));
+        }
         Dist_With_Alignment->Update();
         gfit->Draw("same");
         total2->Draw("same");
@@ -294,12 +301,20 @@ void Analysis::ShiftTimes()
         gfit2->SetParameters(1.1, moy_time_chamber[i], 20.0, 1.0);
         gfit2->SetParNames("N", "mean", "alpha", "constant");
         gfit2->SetLineColor(kRed);
-        cham.ReturnTH1(name_unalign)->Fit("gfit2", "EM0WQ");
+        for(unsigned int i=0;i!=10;++i)
+        {
+          cham.ReturnTH1(name_unalign)->Fit("gfit2", "EM0QW");
+          gfit2->SetParameters(gfit2->GetParameter(0),gfit2->GetParameter(1),gfit2->GetParameter(2),gfit2->GetParameter(3));
+        }
         TF1 *total = new TF1("total","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]*exp(-0.5*((x-[4])/[5])^2)+[6]",min, max);
-        total->SetParameters(1.0, moy_time_chamber[i], 5.0, 1.0,moy_time_chamber[i], 20.0);
+        total->SetParameters(1.0, moy_time_chamber[i], 5.0, 1.0,moy_time_chamber[i]+10.0, 12.0,1.0);
         total->SetParNames("N1", "mean1", "sigma1", "N2", "mean2", "sigma2","constant");
         total->SetLineColor(kGreen);
-        cham.ReturnTH1(name_unalign)->Fit("total", "EM0WQ");
+        for(unsigned int i=0;i!=10;++i)
+        {
+          cham.ReturnTH1(name_unalign)->Fit("total", "EM0QW");
+          total->SetParameters(total->GetParameter(0), total->GetParameter(1),total->GetParameter(2),total->GetParameter(3),total->GetParameter(4),total->GetParameter(5),total->GetParameter(6));
+        }
         Dist_Without_Alignment->Update();
         gfit2->Draw("same");
         total->Draw("same");
@@ -392,7 +407,7 @@ void Analysis::ShiftTimes()
           if (xmingauss2un1 >= 0 && xmaxgauss2un1 <= TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un1] = {xmingauss2un1, xmaxgauss2un1};
           else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
           if (l == 3)l = 0;
-          else l == 3;
+          else l = 3;
           double xmingauss2un2 = total->GetParameter(1 + l) -
                                  total->GetParameter(2 + l) * Window[kk];
           double xmaxgauss2un2 = total->GetParameter(1 + l) +
@@ -473,27 +488,20 @@ void Analysis::ShiftTimes()
         delete leg;
         delete Dist_With_Alignment;
       }
-      if (read.getType() == "noisevolEff" || read.getType() == "noisethrEff" ||
-          read.getType() == "noisesrcEff" || read.getType() == "noisePulEff") {
-        std::cout << red << "Noise runs so use the auto windows :" << normal
-                  << std::endl;
-        std::string noise = chan + "_" + std::to_string(min) + "_" +
-                            std::to_string(max) + "_Noise_un";
-        std::string noise2 =
-            chan + "_0_" + std::to_string(trigger_max) + "_Noise_un";
-        std::string noise3 = chan + "_" + std::to_string(min) + "_" +
-                             std::to_string(max) + "_Noise_un";
-        std::string noise4 =
-            chan + "_0_" + std::to_string(trigger_max) + "_Noise_un";
-        cham.SelectionTimes[read.getDAQFiles()[file]][noise] = {min, max};
-        cham.SelectionTimes[read.getDAQFiles()[file]][noise2] = {0,
-                                                                 trigger_max};
-        cham.SelectionTimes[read.getDAQFiles()[file]][noise3] = {min, max};
-        cham.SelectionTimes[read.getDAQFiles()[file]][noise4] = {0,
-                                                                 trigger_max};
-        std::cout << red << "[" << min << ";" << max << "]" << normal
-                  << std::endl;
-        std::cout << red << "[0;" << trigger_max << "]" << normal << std::endl;
+      if(read.getType()=="noisevolEff"||read.getType()=="noisethrEff"||read.getType()=="noisesrcEff"||read.getType()=="noisePulEff") 
+      {
+        std::cout<<red<<"Noise runs so use the auto windows :"<<normal<< std::endl;
+        std::cout<<red<<"Supressing the first and last 50ns (they are not good)"<<normal<<std::endl;
+        std::string noise=chan +"_"+std::to_string(min)+"_"+std::to_string(max)+"_Noise_un";
+        std::string noise2=chan+"_50_"+std::to_string(trigger_max-50)+"_Noise_un";
+        std::string noise3=chan+"_"+std::to_string(min)+"_"+std::to_string(max)+"_Noise_un";
+        std::string noise4=chan+"_50_"+std::to_string(trigger_max-50)+"_Noise_un";
+        cham.SelectionTimes[read.getDAQFiles()[file]][noise]={min, max};
+        cham.SelectionTimes[read.getDAQFiles()[file]][noise2]={50,trigger_max-50};
+        cham.SelectionTimes[read.getDAQFiles()[file]][noise3]={min, max};
+        cham.SelectionTimes[read.getDAQFiles()[file]][noise4]={50,trigger_max-50};
+        std::cout<<red<<"["<<min<<";"<<max<<"]"<<normal<<std::endl;
+        std::cout<<red<<"[50;"<<trigger_max-50<<"]"<<normal <<std::endl;
       }
       // for noise
       std::cout << yellow << "Windows for noise :" << normal << std::endl;
@@ -660,6 +668,9 @@ void Analysis::Construct_Plot() {
     gr->GetXaxis()->SetTitle(Xaxis.c_str());
     gr->GetYaxis()->SetTitle(Yaxis.c_str());
     gr->GetYaxis()->SetRangeUser(0.0, 1.0);
+    gr1->GetXaxis()->SetTitle(Xaxis.c_str());
+    gr1->GetYaxis()->SetTitle(Yaxis.c_str());
+    gr1->GetYaxis()->SetRangeUser(0.0, 1.0);
     if (int(shift) == 0) {
       if (read.getType() == "volEff" || read.getType() == "noisevolEff") {
         gr->SetName(Form("%s Efficiency, threshold = %.2fmV, +-%.2f",
@@ -932,7 +943,7 @@ Analysis::Eff_ErrorEff(std::string &file) {
                                      dataInfo->GetBinContent(3));
       float diff = dataInfo->GetBinContent(4);
       delete dataInfo;
-      float duration = std::ceil(diff / timespilltotal) * timespill;
+      duration = std::ceil(diff / timespilltotal) * timespill;
       // for(unsigned int i=0;i!=1000;++i)std::cout<<diff<<"
       // "<<duration<<std::endl;
     }
@@ -1261,7 +1272,7 @@ Analysis::Eff_ErrorEff(std::string &file) {
     // std::cout<<red<<nbrpar<<"
     // "<<InHertzPerCm[std::stoi(lolll[0])]<<normal<<std::endl;
     // if(isnan(double(val))==true)val=0;
-    Mean_Noise[it->first].push_back(val);
+    Mean_Noise[it->first].push_back(result);
     // for(unsigned int u=0;u!=1000;++u)
     // std::cout<<red<<cham.ReturnTH2(name)->Integral()<<"  "<<nbrpar<<"
     // "<<val<<normal<<std::endl;
@@ -1309,7 +1320,7 @@ Analysis::Eff_ErrorEff(std::string &file) {
                                      dataInfo->GetBinContent(3));
       float diff = dataInfo->GetBinContent(4);
       delete dataInfo;
-      float duration = std::ceil(diff / timespilltotal) * timespill;
+      duration = std::ceil(diff / timespilltotal) * timespill;
     }
     unsigned int nEntries = dataTree->GetEntries();
     for (unsigned int i = 0; i < nEntries; i++) {

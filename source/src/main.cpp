@@ -3,8 +3,6 @@
 // Authors:  
 // Lagarde, lagarde@ipnl.in2p3.fr
 //-------------------------------------------------------
-
-// C++ includes
 #include "Colors.h"
 #include "OutFileRoot.h"
 #include "Chambers.h"
@@ -27,8 +25,8 @@ int main(int argc, char* argv[])
   if (argc < 3) 
   {
     std::cout<<red<<"#--------------------------------------------------#"<<normal<<std::endl;
-    std::cout<<red<<"# To run LR-GLASS:                                 #"<<normal<<std::endl;
-    std::cout<<red<<"# Syntax: ./lrGlass outputFile.root card.{txt|csv} #"<<normal<<std::endl;
+    std::cout<<red<<"# To run LRGRPC:                                   #"<<normal<<std::endl;
+    std::cout<<red<<"# Syntax: ./LRGRPC outputFile.root card.{txt|csv}  #"<<normal<<std::endl;
     std::cout<<red<<"#--------------------------------------------------#"<<normal<<std::endl;
     return 0;
   }

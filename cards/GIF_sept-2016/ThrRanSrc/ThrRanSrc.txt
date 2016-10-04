@@ -1,25 +1,22 @@
 #TYPE:
-type=noisevolEff
+type=noisethrEff
 #TYPE END.
 
 #ANALYSIS:
 NbrChambers=1
-Partitions_Ch1=B1+B2+C1+C2
+Partitions_Ch1=A1+A2+B1+B2+C1+C2+D1+D2
 TimeWindows_Ch1=100-500
 #ANALYSIS END.
 
 #VOL-THR-ATT-PUL:
-6900V_220mV_0_15ns
-7500V_220mV_0_15ns
+6800V_350mV_10
 #VOL-THR-ATT-PUL END.
 
 #DAQ FILES:
-./Data/test/Scan001708_HV1_DAQ.root
-./Data/test/Scan001708_HV2_DAQ.root
+./Data/GIF_sept_2016/ThrRanSrc/Scan001722_HV1_DAQ.root
 #DAQ FILES END.
 
 #MASK:
-Masks=3052,3056
 #MASK END.
 
 #MAPPING:
@@ -34,8 +31,8 @@ Masks=3052,3056
 #MAPPING END.
 
 #PARAMETERS:
-CorrelationTime=1
-NoiseShift=-50
+CorrelationTime=0.2,0.4,0.6,0.8,1.0
+NoiseShift=50,100,150,200,250,300,350,400,450,450
 NoiseWindows=25
 NumberOfSigmas=3
 #PARAMETERS END.

@@ -31,7 +31,6 @@ ReaderTXT::ReaderTXT(std::string& aname):name(aname)
 
 void ReaderTXT::setType()
 {
-  int numType = 0;
   bool read = false;
   bool found=false;
   std::string line;
