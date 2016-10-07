@@ -17,17 +17,26 @@
 #include "TString.h"
 using namespace std;
 double time_range = 0;
+
+void Analysis::LabelXaxis(std::string & Xaxis)
+{
+  if (read.getType() == "volEff" || read.getType() == "noisevolEff") Xaxis = "Applied HV(V)";
+  else if (read.getType() == "thrEff" || read.getType() == "noisethrEff") Xaxis = "Threshold (mV)";
+  else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff") Xaxis = "Attenuator Factor";
+  else if (read.getType() == "PulEff" || read.getType() == "noisePulEff") Xaxis = "Pulse lenght (ns)";
+}
+
+bool comp(const std::pair<int, float> &a, const std::pair<int, float> &b) 
+{
+  return a.second < b.second;
+}
+
 #define longueur_strip 20
 #define largeur_strip 1
 #define area_strip longueur_strip*largeur_strip
 #define timespilltotal 45
 #define timespill 7
 double trigger_max = 0;
-
-bool comp(const std::pair<int, float> &a, const std::pair<int, float> &b) 
-{
-  return a.second < b.second;
-}
 
 std::map<std::string, std::pair<double, double>> real_comp_eff;
 std::map<std::string, std::pair<double, double>> real_comp_efff;
@@ -41,7 +50,7 @@ std::map<std::string, std::vector<double>> Mean_cluster_nbr;
 std::map<std::string, std::vector<double>> Standard_dev_cluster_nbr;
 std::map<std::string, std::vector<double>> Mean_Spatial_Resolution;
 std::map<std::string, std::vector<double>> Standard_dev_Spatial_Resolution;
-std::string clusterisationmethod = "both";
+
 void Analysis::writeObject(std::string &dirName, TObject *object) 
 {
   out.writeObject(dirName, object);
@@ -57,10 +66,6 @@ void Analysis::ShiftTimes()
     time_range = stod(read.getParameters()["TimeSluster_us"]);
   }
   else time_range = 0.15;
-  if (read.getParameters().find("Clusterisation_method") !=read.getParameters().end()) 
-  {
-    clusterisationmethod = read.getParameters()["Clusterisation_method"];
-  }
   std::vector<double> Noise_shift;
   std::vector<double> Noise_Window;
   std::vector<double> Window;
@@ -470,20 +475,14 @@ void Analysis::ShiftTimes()
                     << xmaxgauss2al2 << "] sigma=" << total->GetParameter(2 + l)
                     << " mean=" << total->GetParameter(1 + l)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
-          if (xmingauss2al2 >= 0 && xmaxgauss2al2 <= TimeMax)
-            cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al2] = {
-                xmingauss2al2, xmaxgauss2al2};
-          else
-            std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal
-                      << std::endl;
+          if (xmingauss2al2 >= 0 && xmaxgauss2al2 <= TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al2] = {xmingauss2al2, xmaxgauss2al2};
+          else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
         }
         delete gfit2;
         delete leg2;
-        // delete crystal2;
         delete total;
         delete Dist_Without_Alignment;
         delete gfit;
-        // delete crystal;
         delete total2;
         delete leg;
         delete Dist_With_Alignment;
@@ -505,34 +504,32 @@ void Analysis::ShiftTimes()
       }
       // for noise
       std::cout << yellow << "Windows for noise :" << normal << std::endl;
-      for (unsigned int kk = 0; kk != Noise_Window.size(); ++kk) {
-        for (unsigned int ll = 0; ll != Noise_shift.size(); ++ll) {
+      for (unsigned int kk = 0; kk != Noise_Window.size(); ++kk) 
+      {
+        for (unsigned int ll = 0; ll != Noise_shift.size(); ++ll) 
+        {
           // unaligned
-          std::string noise = chan + "_" + std::to_string(Noise_Window[kk]) +
-                              "_" + std::to_string(Noise_shift[ll]) +
-                              "_Noise_un";
-          std::string noise2 = chan + "_" + std::to_string(Noise_Window[kk]) +
-                               "_" + std::to_string(Noise_shift[ll]) +
-                               "_Noise_al";
+          std::string noise = chan + "_" + std::to_string(Noise_Window[kk]) +"_" + std::to_string(Noise_shift[ll]) +"_Noise_un";
+          std::string noise2 = chan + "_" + std::to_string(Noise_Window[kk]) +"_" + std::to_string(Noise_shift[ll]) +"_Noise_al";
           double xmin = 0.;
           double xmax = 0.;
-          if (Noise_shift[ll] < 0) {
+          if (Noise_shift[ll] < 0) 
+          {
             xmin = fabs(Noise_shift[ll]) - Noise_Window[kk];
             xmax = fabs(Noise_shift[ll]) + Noise_Window[kk];
           }
-          if (Noise_shift[ll] > 0) {
+          if (Noise_shift[ll] > 0) 
+          {
             xmin = TimeMax - Noise_shift[ll] - Noise_Window[kk];
             xmax = TimeMax - Noise_shift[ll] + Noise_Window[kk];
           }
-          if (xmin >= 0 && xmax <= TimeMax) {
-            std::cout << yellow << "[" << xmin << ";" << xmax << "]" << normal
-                      << std::endl;
+          if (xmin >= 0 && xmax <= TimeMax) 
+          {
+            std::cout << yellow << "[" << xmin << ";" << xmax << "]" << normal<< std::endl;
             cham.SelectionTimes[read.getDAQFiles()[file]][noise] = {xmin, xmax};
-            cham.SelectionTimes[read.getDAQFiles()[file]][noise2] = {xmin,
-                                                                     xmax};
-          } else
-            std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal
-                      << std::endl;
+            cham.SelectionTimes[read.getDAQFiles()[file]][noise2] = {xmin,xmax};
+          } 
+          else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
         }
       }
     }
@@ -557,85 +554,61 @@ void Analysis::ShiftTimes()
     moy_time_strip.clear();
     InHertzPerCm.clear();
   }
-  for (std::map<std::string,
-                std::pair<std::vector<double>, std::vector<double>>>::iterator
-           it = ParamValueError.begin();
-       it != ParamValueError.end(); ++it) {
+  for (std::map<std::string,std::pair<std::vector<double>, std::vector<double>>>::iterator it = ParamValueError.begin();it != ParamValueError.end(); ++it) 
+  {
     std::vector<double> Xs;
-    if (read.getType() == "volEff" || read.getType() == "noisevolEff")
-      Xs = read.getVoltages();
-    else if (read.getType() == "thrEff" || read.getType() == "noisethrEff")
-      Xs = read.getThresholds();
-    else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff")
-      Xs = read.getAttenuators();
-    else
-      Xs = read.getPulses();
+    if (read.getType() == "volEff" || read.getType() == "noisevolEff")Xs = read.getVoltages();
+    else if (read.getType() == "thrEff" || read.getType() == "noisethrEff") Xs = read.getThresholds();
+    else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff") Xs = read.getAttenuators();
+    else Xs = read.getPulses();
     std::vector<double> z(Xs.size(), 0.0);
-    TGraphErrors *gr = new TGraphErrors(read.getDAQFiles().size(), &(Xs[0]),
-                                        &(((it->second).first)[0]), &(z[0]),
-                                        &(((it->second).second)[0]));
+    TGraphErrors *gr = new TGraphErrors(read.getDAQFiles().size(), &(Xs[0]),&(((it->second).first)[0]), &(z[0]),&(((it->second).second)[0]));
     std::vector<std::string> tmp;
     tokenize(it->first, tmp, "_");
     std::string part = "";
-    if (tmp[2] == "al")
-      part = "aligned";
-    else
-      part = "unaligned";
-    std::string name =
-        "Fit_Parameters_Values/Chamber" + tmp[3] + "/" + part + "/" + tmp[1];
+    if (tmp[2] == "al")part = "aligned";
+    else part = "unaligned";
+    std::string name = "Fit_Parameters_Values/Chamber" + tmp[3] + "/" + part + "/" + tmp[1];
     gr->SetTitle(tmp[0].c_str());
     out.writeObject(name, gr);
     delete gr;
   }
 }
 
-void Analysis::Construct_Plot() {
+void Analysis::Construct_Plot() 
+{
   std::map<std::string, std::vector<double>> eff;
   std::map<std::string, std::vector<double>> eEff;
   std::map<std::string, std::vector<double>> eff1;
   std::map<std::string, std::vector<double>> eEff1;
   std::map<std::string, std::vector<double>> vol;
   std::map<std::string, std::vector<double>> eVol;
-  for (int i = 0; i != read.getDAQFiles().size(); ++i) {
-    std::map<std::string, std::vector<std::pair<double, double>>> eff_erroreff =
-        Eff_ErrorEff(read.getDAQFiles()[i]);
-    for (std::map<std::string, std::vector<std::pair<double, double>>>::iterator
-             it = eff_erroreff.begin();
-         it != eff_erroreff.end(); ++it) {
-      if ((it->second)[0].first == -1)
-        continue;
-      else {
+  for (int i = 0; i != read.getDAQFiles().size(); ++i) 
+  {
+    std::map<std::string, std::vector<std::pair<double, double>>> eff_erroreff =Eff_ErrorEff(read.getDAQFiles()[i]);
+    for(std::map<std::string, std::vector<std::pair<double, double>>>::iterator it=eff_erroreff.begin();it != eff_erroreff.end();++it) 
+    {
+      if ((it->second)[0].first == -1)continue;
+      else 
+      {
         eff[it->first].push_back(eff_erroreff[it->first][0].first);
         eEff[it->first].push_back(eff_erroreff[it->first][0].second);
         eff1[it->first].push_back(eff_erroreff[it->first][1].first);
-        eEff1[it->first].push_back(eff_erroreff[it->first][1].first -
-                                   eff_erroreff[it->first][1].second);
-        if (read.getType() == "volEff" || read.getType() == "noisevolEff")
-          vol[it->first].push_back(read.getVoltages()[i]);
-        else if (read.getType() == "thrEff" || read.getType() == "noisethrEff")
-          vol[it->first].push_back(read.getThresholds()[i]);
-        else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff")
-          vol[it->first].push_back(read.getAttenuators()[i]);
-        else if (read.getType() == "PulEff" || read.getType() == "noisePulEff")
-          vol[it->first].push_back(read.getPulses()[i]);
+        eEff1[it->first].push_back(eff_erroreff[it->first][1].first -eff_erroreff[it->first][1].second);
+        if (read.getType() == "volEff" || read.getType() == "noisevolEff")vol[it->first].push_back(read.getVoltages()[i]);
+        else if (read.getType() == "thrEff" || read.getType() == "noisethrEff")vol[it->first].push_back(read.getThresholds()[i]);
+        else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff")vol[it->first].push_back(read.getAttenuators()[i]);
+        else if (read.getType() == "PulEff" || read.getType() == "noisePulEff")vol[it->first].push_back(read.getPulses()[i]);
         eVol[it->first].push_back(0.0);
       }
     }
   }
-  for (std::map<std::string, std::vector<double>>::iterator it = eff.begin();
-       it != eff.end(); ++it) {
-    if (it->second.size() == 0)
-      continue;
-    TGraphErrors *gr = new TGraphErrors(
-        it->second.size(), &(vol[it->first][0]), &(eff[it->first][0]),
-        &(eVol[it->first][0]), &(eEff[it->first][0]));
-    TGraphErrors *gr1 = new TGraphErrors(
-        it->second.size(), &(vol[it->first][0]), &(eff1[it->first][0]),
-        &(eVol[it->first][0]), &(eEff1[it->first][0]));
-    TGraphAsymmErrors *gr2 = new TGraphAsymmErrors(
-        it->second.size(), &(vol[it->first][0]), &(eff[it->first][0]),
-        &(eVol[it->first][0]), &(eVol[it->first][0]), &(eEff1[it->first][0]),
-        &(eVol[it->first][0]));
+  for (std::map<std::string, std::vector<double>>::iterator it = eff.begin();it != eff.end(); ++it) 
+  {
+    if (it->second.size() == 0)continue;
+    TGraphErrors *gr = new TGraphErrors(it->second.size(), &(vol[it->first][0]), &(eff[it->first][0]),&(eVol[it->first][0]), &(eEff[it->first][0]));
+    TGraphErrors *gr1 = new TGraphErrors(it->second.size(), &(vol[it->first][0]), &(eff1[it->first][0]),&(eVol[it->first][0]), &(eEff1[it->first][0]));
+    TGraphAsymmErrors *gr2 = new TGraphAsymmErrors(it->second.size(), &(vol[it->first][0]), &(eff[it->first][0]),&(eVol[it->first][0]), &(eVol[it->first][0]), &(eEff1[it->first][0]),&(eVol[it->first][0]));
     gr->SetTitle(it->first.c_str());
     gr2->SetTitle((it->first + " Zone").c_str());
     gr->SetMarkerStyle(8);
@@ -657,14 +630,7 @@ void Analysis::Construct_Plot() {
     std::string bv = tmp[3] + " " + tmp[4];
     double vol = read.getVoltages()[0];
     double thr = read.getThresholds()[0];
-    if (read.getType() == "volEff" || read.getType() == "noisevolEff")
-      Xaxis = "Applied HV(V)";
-    else if (read.getType() == "thrEff" || read.getType() == "noisethrEff")
-      Xaxis = "Threshold (mV)";
-    else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff")
-      Xaxis = "Attenuator Factor";
-    else if (read.getType() == "PulEff" || read.getType() == "noisePulEff")
-      Xaxis = "Pulse lenght (ns)";
+    LabelXaxis(Xaxis);
     gr->GetXaxis()->SetTitle(Xaxis.c_str());
     gr->GetYaxis()->SetTitle(Yaxis.c_str());
     gr->GetYaxis()->SetRangeUser(0.0, 1.0);
@@ -804,7 +770,8 @@ void Analysis::Construct_Plot() {
 
 //-------------------------------------------------------
 std::map<std::string, std::vector<std::pair<double, double>>>
-Analysis::Eff_ErrorEff(std::string &file) {
+Analysis::Eff_ErrorEff(std::string &file) 
+{
   static int filenumber = 0;
   std::map<std::string, TH1F *> general_multilicity;
   std::map<std::string, TH1F *> nbr_cluster;
@@ -812,17 +779,14 @@ Analysis::Eff_ErrorEff(std::string &file) {
   std::map<std::string, TH1F *> when;
   std::map<std::string, TH1F *> when2;
   std::map<std::string, TH1F *> when3;
-  std::map<std::string, TH1F *> when4;
   std::map<std::string, TH1F *> when5;
-  std::map<std::string, TH1F *> when6;
   std::map<std::string, TH1F *> center;
   std::map<std::string, TH1F *> clu;
   std::map<std::string, std::map<std::string, TH2F *>> Correlation;
   std::map<std::string, std::map<std::string, TH2F *>> Correlation2;
   std::map<std::string, std::map<std::string, TH2F *>> Correlation21;
   std::map<std::string, std::map<std::string, TProfile2D *>> CorrelationProfile;
-  std::map<std::string, std::map<std::string, TProfile2D *>>
-      CorrelationProfile2;
+  std::map<std::string, std::map<std::string, TProfile2D *>>CorrelationProfile2;
   std::map<std::string, TProfile2D *> Resolution;
   std::map<std::string, TH1F *> Correlation_time;
   std::map<std::string, std::vector<std::pair<double, double>>> eff;
@@ -836,77 +800,42 @@ Analysis::Eff_ErrorEff(std::string &file) {
   std::vector<std::string> tmp;
   std::vector<std::string> tmp2;
   tmp2.push_back("0");
-  if (read.getParameters().find("CorrelationTime") !=
-      read.getParameters().end()) {
+  if (read.getParameters().find("CorrelationTime") !=read.getParameters().end()) 
+  {
     tokenize(read.getParameters()["CorrelationTime"], tmp, ",");
-    for (unsigned int i = 0; i != tmp.size(); ++i) {
+    for (unsigned int i = 0; i != tmp.size(); ++i) 
+    {
       Cor.push_back(stof(tmp[i]));
       Cor2.push_back(stof(tmp[i]));
       tmp2.push_back(tmp[i]);
     }
   }
-  for (std::map<std::string, std::pair<double, double>>::iterator it =
-           cham.SelectionTimes[file].begin();
-       it != cham.SelectionTimes[file].end(); ++it) {
+  for (std::map<std::string, std::pair<double, double>>::iterator it =cham.SelectionTimes[file].begin();it != cham.SelectionTimes[file].end(); ++it) 
+  {
     ++nn;
     std::string p = it->first +"*"+ file;
     std::string n1 = std::to_string(nn);
     std::vector<std::string> lol;
     tokenize(it->first, lol, "_");
-    TString ti = Form("Fit %s Window +- %.2f shift %.2f %s", lol[3].c_str(),
-                      stof(lol[1]), stof(lol[2]), lol[4].c_str());
-    for (unsigned int co = 0; co != Cor.size(); ++co) {
+    TString ti = Form("Fit %s Window +- %.2f shift %.2f %s", lol[3].c_str(),stof(lol[1]), stof(lol[2]), lol[4].c_str());
+    for (unsigned int co = 0; co != Cor.size(); ++co) 
+    {
       ++nn;
-      Correlation[p][tmp[co]] =
-          new TH2F(("Cor_" + n1 + "_" + tmp[co]).c_str(),
-                   ("Correlation " + ti + " " + tmp[co].c_str() + "ns"), 130, 0,
-                   130, 130, 0, 130);
-      CorrelationProfile[p][tmp[co]] =
-          new TProfile2D(("Cor2D_" + n1 + "_" + tmp[co]).c_str(),
-                         ("Correlation2D " + ti + " " + tmp[co].c_str() + "ns"),
-                         130, 0, 130, 130, 0, 130);
-      Correlation2[p][tmp[co]] =
-          new TH2F(("Cor_" + n1 + "_" + tmp2[co] + "_" + tmp2[co + 1]).c_str(),
-                   ("Correlation " + ti + " bettwen " + tmp2[co].c_str() + "_" +
-                    tmp2[co + 1].c_str() + "ns"),
-                   130, 0, 130, 130, 0, 130);
-      Correlation21[p][tmp[co]] =
-          new TH2F(("Cor21_" + n1 + "_" + tmp[co]).c_str(),
-                   ("Correlation " + ti + " " + tmp[co].c_str() + "ns"),
-                   int(Cor[co]) + 1, 0, Cor[co] + 1, 130, 0, 130);
-      CorrelationProfile2[p][tmp[co]] = new TProfile2D(
-          ("Cor2D" + n1 + "_" + tmp2[co] + "_" + tmp2[co + 1]).c_str(),
-          ("Correlation2D " + ti + " bettwen " + tmp2[co].c_str() + "_" +
-           tmp2[co + 1].c_str() + "ns"),
-          130, 0, 130, 130, 0, 130);
+      Correlation[p][tmp[co]]=new TH2F(("Cor_" +n1+ "_" +tmp[co]).c_str(),("Correlation "+ti+" "+tmp[co].c_str()+"ns"),130,0,130,130,0,130);
+      CorrelationProfile[p][tmp[co]]=new TProfile2D(("Cor2D_" + n1 + "_" + tmp[co]).c_str(),("Correlation2D " + ti + " " + tmp[co].c_str() + "ns"),130, 0, 130, 130, 0, 130);
+      Correlation2[p][tmp[co]]=new TH2F(("Cor_" + n1 + "_" + tmp2[co] + "_" + tmp2[co + 1]).c_str(),("Correlation " + ti + " bettwen " + tmp2[co].c_str() + "_" +tmp2[co + 1].c_str() + "ns"),130, 0, 130, 130, 0, 130);
+      Correlation21[p][tmp[co]] =new TH2F(("Cor21_" + n1 + "_" + tmp[co]).c_str(),("Correlation " + ti + " " + tmp[co].c_str() + "ns"),int(Cor[co]) + 1, 0, Cor[co] + 1, 130, 0, 130);
+      CorrelationProfile2[p][tmp[co]] = new TProfile2D(("Cor2D" + n1 + "_" + tmp2[co] + "_" + tmp2[co + 1]).c_str(),("Correlation2D " + ti + " bettwen " + tmp2[co].c_str() + "_" +tmp2[co + 1].c_str() + "ns"),130, 0, 130, 130, 0, 130);
     }
-    Correlation_time[p] =
-        new TH1F(("Cortimr_" + n1).c_str(), "Correlation time distribution",
-                 1000, -500, 500);
-    Resolution[p] = new TProfile2D(("Resol" + n1).c_str(), "Spatial Resolution",
-                                   4, 0, 800, 32, 0, 32);
-    general_multilicity[p] = new TH1F(
-        ("Genmulti" + n1).c_str(), ("General Multiplicity " + ti), 128, 0, 128);
-    nbr_cluster[p] = new TH1F(("NbrCluster" + n1).c_str(),
-                              ("Number of Cluster " + ti), 65, 0, 65);
-    cluster_multiplicity[p] = new TH1F(("ClusterSize" + n1).c_str(),
-                                       ("Cluster size " + ti), 20, 0, 20);
-    when[p] =
-        new TH1F(("FirstTSCluster" + n1).c_str(),
-                 ("First timestamp of the cluster " + ti), 10000, 0, 1000);
-    when2[p] = new TH1F(("Time_between_clusters" + n1).c_str(),
-                        ("Time between cluster " + ti), 10000, 0, 1000);
-    when3[p] = new TH1F(("Time_between_hits" + n1).c_str(),
-                        ("Time between hits no clusterisation at all" + ti),
-                        5000, 0, 500);
-    when4[p] =
-        new TH1F(("Time_between_hits_in_TEMPORAL_clustering" + n1).c_str(),
-                 ("Time distribution in cluster not taking care of the spatial "
-                  "clustering " +
-                  ti),
-                 10000, 0, 1000);
+    Correlation_time[p] =new TH1F(("Cortimr_" + n1).c_str(), "Correlation time distribution",1000, -500, 500);
+    Resolution[p] = new TProfile2D(("Resol" + n1).c_str(), "Spatial Resolution",4, 0, 800, 32, 0, 32);
+    general_multilicity[p] = new TH1F(("Genmulti" + n1).c_str(), ("General Multiplicity " + ti), 128, 0, 128);
+    nbr_cluster[p] = new TH1F(("NbrCluster" + n1).c_str(),("Number of Cluster " + ti), 65, 0, 65);
+    cluster_multiplicity[p] = new TH1F(("ClusterSize" + n1).c_str(),("Cluster size " + ti), 20, 0, 20);
+    when[p]=new TH1F(("FirstTSCluster" + n1).c_str(),("First timestamp of the cluster " + ti), 10000, 0, 1000);
+    when2[p] = new TH1F(("Time_between_clusters" + n1).c_str(),("Time between cluster " + ti), 10000, 0, 1000);
+    when3[p] = new TH1F(("Time_between_hits" + n1).c_str(),("Time between hits no clusterisation at all" + ti),5000, 0, 500);
     when5[p] = new TH1F(("Time_between_hits_in_cluster" + n1).c_str(),("Time distribution in cluster" + ti), 10000, 0, 1000);
-    when6[p] = new TH1F(("Time_between_temporal_cluster" + n1).c_str(),("Time between cluster in time" + ti), 10000, 0, 1000);
     center[p] = new TH1F(("CenterOfCluster" + n1).c_str(),("Center of the cluster " + ti), 130, 0, 130);
     clu[p] = new TH1F(("MultiClusterized" + n1).c_str(),("Multipicity clusterised " + ti), 130, 0, 130);
     std::string fr = "Real_Spatial_Distribution*" + it->first + "_File" +std::to_string(filenumber);
@@ -916,12 +845,14 @@ Analysis::Eff_ErrorEff(std::string &file) {
     cham.CreateTH2(fr3);
     cham.CreateTH2(fr2, trigger_max + 200, ceil((trigger_max + 200) / 10) + 1);
     TFile dataFile(file.c_str());
-    if (dataFile.IsOpen() != true) {
+    if (dataFile.IsOpen() != true) 
+    {
       eff[p].push_back({-1.0, -1.0});
       continue;
     }
     TTree *dataTree = (TTree *)dataFile.Get("RAWData");
-    if (!dataTree) {
+    if (!dataTree) 
+    {
       eff[p].push_back({-1.0, -1.0});
       continue;
     }
@@ -938,141 +869,122 @@ Analysis::Eff_ErrorEff(std::string &file) {
     numGoodEvents[it->first] = 0.0;
     TH1D *dataInfo = (TH1D *)dataFile.Get("ID");
     float duration = -1.25;
-    if (dataInfo) {
-      dataInfo->SetBinContent(4, dataInfo->GetBinContent(4) -
-                                     dataInfo->GetBinContent(3));
+    if (dataInfo) 
+    {
+      dataInfo->SetBinContent(4, dataInfo->GetBinContent(4) -dataInfo->GetBinContent(3));
       float diff = dataInfo->GetBinContent(4);
       delete dataInfo;
       duration = std::ceil(diff / timespilltotal) * timespill;
-      // for(unsigned int i=0;i!=1000;++i)std::cout<<diff<<"
-      // "<<duration<<std::endl;
     }
     unsigned int nEntries = dataTree->GetEntries();
     std::map<int, double> InHertzPerCm;
-    for (unsigned int i = 0; i != read.getNbrChambers(); ++i) {
-      InHertzPerCm[i + 1] =
-          1.0 / (1.0e-9 * nEntries * (it->second.second - it->second.first) *
-                 area_strip);
-      // InHertzPerCm[i+1]=1.0/(duration*longueur*largeur_strip_strip_strip);
+    for (unsigned int i = 0; i != read.getNbrChambers(); ++i) 
+    {
+      InHertzPerCm[i + 1] =1.0 / (1.0e-9 * nEntries * (it->second.second - it->second.first) *area_strip);
     }
     int totalisCh = 0;
-    for (unsigned int i = 0; i < nEntries; i++) {
+    for (unsigned int i = 0; i < nEntries; i++) 
+    {
       std::map<int, int> stripnewold;
       std::multiset<float> timebetween_hits;
       std::map<float, std::multimap<int, float>> Hits_classed_by_timestamp;
       std::map<float, std::multimap<int, float>> Hits_adjacents_in_time;
       std::multiset<std::pair<int, float>> Hits_arranged;
-      std::vector<std::pair<float, std::vector<std::multimap<int, float>>>>
-          Clusters;
+      std::vector<std::pair<float, std::vector<std::multimap<int, float>>>>Clusters;
       dataTree->GetEntry(i);
       int isCh = 0;
-      for (int h = 0; h < data.TDCNHits; h++) {
+      for (int h = 0; h < data.TDCNHits; h++) 
+      {
         int newstrip = 0;
         double newtime = 0.;
-        if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h), file,
-                             it->first, newstrip, newtime))
-          continue;
+        if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h), file,it->first, newstrip, newtime))continue;
         cham.FillTH2(fr, data.TDCCh->at(h));
         cham.FillTH2(fr2, data.TDCCh->at(h), data.TDCTS->at(h));
-        for (int l = 0; l < data.TDCNHits; l++) {
+        for (int l = 0; l < data.TDCNHits; l++) 
+        {
           int newstrip2 = 0;
           double newtime2 = 0.;
-
-          if (!cham.InsideZone(data.TDCCh->at(l), data.TDCTS->at(l), file,
-                               it->first, newstrip2, newtime2))
-            continue;
-          if (h != l)
-            Correlation_time[p]->Fill(newtime - newtime2);
-          for (int val = 0; val != Cor.size(); ++val) {
-            if (fabs(newtime2 - newtime) <= Cor[val]) {
+          if (!cham.InsideZone(data.TDCCh->at(l), data.TDCTS->at(l), file,it->first, newstrip2, newtime2))continue;
+          if (h != l)Correlation_time[p]->Fill(newtime - newtime2);
+          for (int val = 0; val != Cor.size(); ++val) 
+          {
+            if (fabs(newtime2 - newtime) <= Cor[val]) 
+            {
               Correlation[p][tmp[val]]->Fill(newstrip, newstrip2);
-              if (h > l)
-                Correlation21[p][tmp[val]]->Fill(fabs(newtime - newtime2),
-                                                 fabs(newstrip - newstrip2));
-
-              CorrelationProfile[p][tmp[val]]->Fill(newstrip, newstrip2,
-                                                    fabs(newtime - newtime2));
+              if (h > l)Correlation21[p][tmp[val]]->Fill(fabs(newtime - newtime2),fabs(newstrip - newstrip2));
+              CorrelationProfile[p][tmp[val]]->Fill(newstrip, newstrip2,fabs(newtime - newtime2));
             }
           }
-          for (int val = 0; val != Cor2.size() - 1; ++val) {
-            if (fabs(newtime2 - newtime) <= Cor2[val + 1] &&
-                fabs(newtime2 - newtime) >= Cor2[val]) {
+          for (int val = 0; val != Cor2.size() - 1; ++val) 
+          {
+            if (fabs(newtime2 - newtime) <= Cor2[val + 1] &&fabs(newtime2 - newtime) >= Cor2[val]) 
+            {
               Correlation2[p][tmp2[val + 1]]->Fill(newstrip, newstrip2);
-              CorrelationProfile2[p][tmp2[val + 1]]->Fill(newstrip, newstrip2,
-                                                          newtime - newtime2);
+              CorrelationProfile2[p][tmp2[val + 1]]->Fill(newstrip, newstrip2,newtime - newtime2);
             }
           }
         }
-        Hits_classed_by_timestamp[newtime].insert(
-            std::pair<int, float>(newstrip, newtime));
+        Hits_classed_by_timestamp[newtime].insert(std::pair<int, float>(newstrip, newtime));
         Hits_arranged.insert(std::pair<int, float>(newstrip, newtime));
         timebetween_hits.insert(newtime);
         // std::cout<<green<<newstrip<<"  "<<newtime<<normal<<std::endl;
         stripnewold[newstrip] = data.TDCCh->at(h);
         ++isCh;
       }
-      if (isCh > 0) {
-
+      if (isCh > 0) 
+      {
         totalisCh += isCh;
         numGoodEvents[it->first]++;
         general_multilicity[p]->Fill(isCh);
-        if (clusterisationmethod == "both") {
-          for (std::multiset<float>::iterator lo = timebetween_hits.begin();
-               lo != timebetween_hits.end(); ++lo) {
-            std::multiset<float>::iterator lo2 = lo;
-            ++lo2;
-            if (lo2 != timebetween_hits.end())
-              when3[p]->Fill(*lo2 - *lo);
-          }
-          double ctimes = 7.;
-          double cspaces = 2.;
-          std::vector<std::vector<std::pair<int, float>>> ClusterG;
-          for (std::multiset<std::pair<int, float>>::iterator itp =
-                   Hits_arranged.begin();
-               itp != Hits_arranged.end(); ++itp) {
-            if (itp == Hits_arranged.begin()) {
-              ClusterG.push_back({*itp});
-            } else {
-              bool insert = true;
-              for (unsigned int kpk = 0; kpk != ClusterG.size(); ++kpk) {
-                bool inserit = false;
-                for (unsigned int kp = 0; kp != ClusterG[kpk].size(); ++kp) {
-                  // std::cout<<itp->first-ClusterG[kpk][kp].first<<"
-                  // "<<itp->second-ClusterG[kpk][kp].second<<endl;
-                  if (fabs(itp->first - ClusterG[kpk][kp].first) < cspaces &&
-                      fabs(itp->second - ClusterG[kpk][kp].second) < ctimes) {
-                    // std::cout<<itp->first<<"  "<<ClusterG[kpk][kp].first<<"
-                    // "<<itp->second<<"  "<<ClusterG[kpk][kp].second<<"
-                    // "<<ctimes<<std::endl;
-                    inserit = true;
-                    break;
-                  }
-                }
-                if (inserit == true) {
-                  ClusterG[kpk].push_back(*itp);
-                  insert = false;
+        for (std::multiset<float>::iterator lo = timebetween_hits.begin();lo != timebetween_hits.end(); ++lo) 
+        {
+          std::multiset<float>::iterator lo2 = lo;
+          ++lo2;
+          if (lo2 != timebetween_hits.end())when3[p]->Fill(*lo2 - *lo);
+        }
+        double ctimes = 7.;
+        double cspaces = 2.;
+        std::vector<std::vector<std::pair<int, float>>> ClusterG;
+        for (std::multiset<std::pair<int, float>>::iterator itp =Hits_arranged.begin();itp != Hits_arranged.end(); ++itp) 
+        {
+          if (itp == Hits_arranged.begin()) ClusterG.push_back({*itp});
+          else 
+          {
+            bool insert = true;
+            for (unsigned int kpk = 0; kpk != ClusterG.size(); ++kpk) 
+            {
+              bool inserit = false;
+              for (unsigned int kp = 0; kp != ClusterG[kpk].size(); ++kp) 
+              {
+                if (fabs(itp->first - ClusterG[kpk][kp].first) < cspaces &&fabs(itp->second - ClusterG[kpk][kp].second) < ctimes) 
+                {
+                  inserit = true;
                   break;
                 }
               }
-
-              if (insert == true) {
-                ClusterG.push_back({*itp});
+              if (inserit == true) 
+              {
+                ClusterG[kpk].push_back(*itp);
+                insert = false;
+                break;
               }
             }
+            if (insert == true) ClusterG.push_back({*itp});
           }
-          std::vector<std::vector<std::pair<int, float>>> ClusterG2;
-          std::map<int, int> fusion;
-          std::set<int> supress;
-          for (unsigned int kpk = 0; kpk != ClusterG.size(); ++kpk) {
-            for (unsigned int lpl = 0; lpl != ClusterG[kpk].size(); ++lpl) {
-              for (unsigned int kpkk = 0; kpkk != ClusterG.size(); ++kpkk) {
-                for (unsigned int lplk = 0; lplk != ClusterG[kpkk].size();
-                     ++lplk) {
-                  if (lplk != lpl && kpkk != kpk &&
-                      fabs(ClusterG[kpkk][lplk].first -
-                           ClusterG[kpk][lpl].first) < cspaces &&
-                      fabs(ClusterG[kpkk][lplk].second -
-                           ClusterG[kpk][lpl].second) < ctimes) {
+        }
+        std::vector<std::vector<std::pair<int, float>>> ClusterG2;
+        std::map<int, int> fusion;
+        std::set<int> supress;
+        for (unsigned int kpk = 0; kpk != ClusterG.size(); ++kpk) 
+        {
+          for (unsigned int lpl = 0; lpl != ClusterG[kpk].size(); ++lpl) 
+          {
+            for (unsigned int kpkk = 0; kpkk != ClusterG.size(); ++kpkk) 
+            {
+              for(unsigned int lplk = 0; lplk != ClusterG[kpkk].size();++lplk) 
+              {
+                  if(lplk!=lpl && kpkk != kpk && fabs(ClusterG[kpkk][lplk].first -ClusterG[kpk][lpl].first) < cspaces &&fabs(ClusterG[kpkk][lplk].second -ClusterG[kpk][lpl].second) < ctimes) 
+                  {
                     fusion[kpk] = kpkk;
                     supress.insert(kpkk);
                   }
@@ -1080,187 +992,75 @@ Analysis::Eff_ErrorEff(std::string &file) {
               }
             }
           }
-          for (unsigned int kpk = 0; kpk != ClusterG.size(); ++kpk) {
-            if (supress.find(kpk) == supress.end()) {
+          for (unsigned int kpk = 0; kpk != ClusterG.size(); ++kpk) 
+          {
+            if (supress.find(kpk) == supress.end()) 
+            {
               std::vector<std::pair<int, float>> r;
               r.insert(r.end(), ClusterG[kpk].begin(), ClusterG[kpk].end());
-              if (fusion.find(kpk) != fusion.end()) {
-                r.insert(r.end(), ClusterG[fusion[kpk]].begin(),
-                         ClusterG[fusion[kpk]].end());
+              if (fusion.find(kpk) != fusion.end()) 
+              {
+                r.insert(r.end(), ClusterG[fusion[kpk]].begin(),ClusterG[fusion[kpk]].end());
               }
               ClusterG2.push_back(r);
             }
           }
           nbr_cluster[p]->Fill(ClusterG2.size());
-          for (unsigned int kpk = 0; kpk != ClusterG2.size(); ++kpk) {
+          for (unsigned int kpk = 0; kpk != ClusterG2.size(); ++kpk) 
+          {
             cluster_multiplicity[p]->Fill(ClusterG2[kpk].size());
             int sumpos = 0;
             int posmax = -1;
             int posmin = 99999999;
             std::sort(ClusterG2[kpk].begin(), ClusterG2[kpk].end(), comp);
             when[p]->Fill(ClusterG2[kpk][0].second);
-            if (kpk != ClusterG2.size() - 1) {
-              std::sort(ClusterG2[kpk + 1].begin(), ClusterG2[kpk + 1].end(),
-                        comp);
-              when2[p]->Fill(ClusterG2[kpk + 1][0].second -
-                             ClusterG2[kpk][ClusterG2[kpk].size() - 1].second);
+            if (kpk != ClusterG2.size() - 1) 
+            {
+              std::sort(ClusterG2[kpk + 1].begin(), ClusterG2[kpk + 1].end(),comp);
+              when2[p]->Fill(ClusterG2[kpk + 1][0].second -ClusterG2[kpk][ClusterG2[kpk].size() - 1].second);
             }
-            for (unsigned int j = 0; j != ClusterG2[kpk].size(); ++j) {
-              if (j != ClusterG2[kpk].size() - 1)
-                when5[p]->Fill(ClusterG2[kpk][j + 1].second -
-                               ClusterG2[kpk][j].second);
+            for (unsigned int j = 0; j != ClusterG2[kpk].size(); ++j) 
+            {
+              if (j != ClusterG2[kpk].size() - 1)when5[p]->Fill(ClusterG2[kpk][j + 1].second -ClusterG2[kpk][j].second);
               sumpos += ClusterG2[kpk][j].first;
-              if (ClusterG2[kpk][j].first > posmax)
-                posmax = ClusterG2[kpk][j].first;
-              if (ClusterG2[kpk][j].first < posmin)
-                posmin = ClusterG2[kpk][j].first;
+              if (ClusterG2[kpk][j].first > posmax)posmax = ClusterG2[kpk][j].first;
+              if (ClusterG2[kpk][j].first < posmin)posmin = ClusterG2[kpk][j].first;
             }
             center[p]->Fill(ceil(sumpos * 1.0 / ClusterG2[kpk].size()));
-            std::pair<int, int> str = cham.FindPosition(
-                stripnewold[std::round(sumpos * 1.0 / ClusterG2[kpk].size())]);
-            Resolution[p]->Fill((str.first * 2 + 1) * 100, str.second,
-                                (posmax - posmin) * largeur_strip * 1.0 / sqrt(12));
-            cham.FillTH2(fr3, stripnewold[std::round(std::round(
-                                  sumpos * 1.0 / ClusterG2[kpk].size()))]);
+            std::pair<int, int> str = cham.FindPosition(stripnewold[std::round(sumpos * 1.0 / ClusterG2[kpk].size())]);
+            Resolution[p]->Fill((str.first * 2 + 1) * 100, str.second,(posmax - posmin) * largeur_strip * 1.0 / sqrt(12));
+            cham.FillTH2(fr3, stripnewold[std::round(std::round(sumpos * 1.0 / ClusterG2[kpk].size()))]);
           }
-        } else {
-          //////////////////////////////////////////////////////////////////////
-          /////////////////////old clusterisation /////////////////////////////
-
-          float firs = (Hits_classed_by_timestamp.begin())->first;
-          for (std::map<float, std::multimap<int, float>>::iterator iti =
-                   Hits_classed_by_timestamp.begin();
-               iti != Hits_classed_by_timestamp.end(); ++iti) {
-            Hits_adjacents_in_time[firs].insert((iti->second).begin(),
-                                                (iti->second).end());
-            // std::cout<<red<<it->first-firs<<"
-            // "<<int((it->second).size())<<normal<<std::endl;
-            std::map<float, std::multimap<int, float>>::iterator itt = iti;
-            ++itt;
-            if (itt != Hits_classed_by_timestamp.end()) {
-              when3[p]->Fill(itt->first - iti->first);
-              if (itt->first - iti->first > time_range) {
-                firs = itt->first;
-                when6[p]->Fill(itt->first - iti->first);
-                // std::cout<<red<<itt->first-it->first<<std::endl;
-              } else
-                when4[p]->Fill(itt->first - iti->first);
-            }
-          }
-
-          for (std::map<float, std::multimap<int, float>>::iterator itii =
-                   Hits_adjacents_in_time.begin();
-               itii != Hits_adjacents_in_time.end(); ++itii) {
-            std::vector<std::multimap<int, float>> vecc;
-            std::multimap<int, float> mapp = (itii->second);
-            // std::sort(vec.begin(),vec.end());
-            std::multimap<int, float> mapp2;
-            for (std::multimap<int, float>::iterator y = mapp.begin();
-                 y != mapp.end(); ++y) {
-              std::multimap<int, float>::iterator itii = y;
-              if (itii == mapp.begin())
-                mapp2.insert(*itii);
-              if (itii != mapp.end()) {
-                ++itii;
-                if (fabs(itii->first - y->first) == 1)
-                  mapp2.insert(*itii);
-                else {
-                  vecc.push_back(mapp2);
-                  mapp2.clear();
-                  mapp2.insert(*itii);
-                }
-              }
-            }
-            Clusters.push_back({itii->first, vecc});
-          }
-          int nbclus = 0;
-          float timeclusterbefore = 0;
-          for (unsigned int i = 0; i != Clusters.size(); ++i) {
-            when[p]->Fill(Clusters[i].first);
-            if (i != 0)
-              when2[p]->Fill(Clusters[i].first - timeclusterbefore);
-
-            nbclus += (Clusters[i].second).size();
-            int clus_hit_sum = 0;
-            for (unsigned int j = 0; j != (Clusters[i].second).size(); ++j) {
-              double min = std::numeric_limits<int>::max();
-              double max = std::numeric_limits<int>::min();
-              cluster_multiplicity[p]->Fill((Clusters[i].second)[j].size());
-              clus_hit_sum += (Clusters[i].second)[j].size();
-              for (std::multimap<int, float>::iterator k =
-                       (Clusters[i].second)[j].begin();
-                   k != (Clusters[i].second)[j].end(); ++k) {
-                std::multimap<int, float>::iterator il = k;
-                ++il;
-                if (il != (Clusters[i].second)[j].end())
-                  when5[p]->Fill(k->second - il->second);
-                timeclusterbefore = k->second;
-                // std::cout<<green<<k->second-Clusters[i].first<<normal<<std::endl;
-                if (k->first < min)
-                  min = k->first;
-                if (k->first > max)
-                  max = k->first;
-              }
-              center[p]->Fill((max + min) / 2);
-              std::pair<int, int> str =
-                  cham.FindPosition(stripnewold[std::round((max + min) / 2)]);
-              Resolution[p]->Fill((str.first * 2 + 1) * 100, str.second,
-                                  (Clusters[i].second)[j].size() * largeur_strip *
-                                      1.0 / sqrt(12));
-              cham.FillTH2(fr3, stripnewold[std::round((max + min) / 2)]);
-            }
-            if (clus_hit_sum != 0)
-              ;
-            clu[p]->Fill(clus_hit_sum);
-          }
-          if (nbclus != 0)
-            nbr_cluster[p]->Fill(nbclus);
         }
       }
-    }
-    ////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
-
-    dataFile.Close();
-    Mean_cluster_size[it->first].push_back(cluster_multiplicity[p]->GetMean());
-    Mean_cluster_nbr[it->first].push_back(nbr_cluster[p]->GetMean());
-    Standard_dev_cluster_size[it->first].push_back(
-        cluster_multiplicity[p]->GetRMS());
-    Standard_dev_cluster_nbr[it->first].push_back(nbr_cluster[p]->GetRMS());
-    Mean_Spatial_Resolution[it->first].push_back(Resolution[p]->GetMean(3));
-    Standard_dev_Spatial_Resolution[it->first].push_back(
-        Resolution[p]->GetRMS(3));
-    eff[it->first].push_back({numGoodEvents[it->first] / nEntries,
-                              sqrt((numGoodEvents[it->first] *
-                                    (nEntries - numGoodEvents[it->first])) /
-                                   nEntries) /
-                                  numGoodEvents[it->first]});
-    if (stof(lol[2]) == 0) {
-      real_comp_eff[p] = {eff[it->first][0].first,
-                          it->second.second - it->second.first};
-      real_comp_efff[p] = {cluster_multiplicity[p]->GetMean() *
-                               nbr_cluster[p]->GetMean(),
-                           totalisCh * 1.0 / nEntries};
-    } else {
-      comp_eff[p] = {eff[it->first][0].first,
-                     totalisCh * 1.0 /
-                         (nEntries * (it->second.second - it->second.first))};
-      // comp_eff2[p]={eff[it->first][0].first,totalisCh*1.0/(nEntries*(it->second.second-it->second.first))};
-    }
-    std::vector<std::string> lolll;
-    tokenize(it->first, lolll, "_");
-    std::string name = fr + "_Chamber" + lolll[0];
-    timer[p] = (it->second.second - it->second.first);
-    int hhh = cham.ReturnTH2(name)->Integral();
-    if (duration != -1)
-      cham.ScaleTime(fr, InHertzPerCm);
-
-    int nbrpar = read.getSpatialWindows()[lolll[0]].size();
-
-    double val = cham.ReturnTH2(name)->Integral() / (16 * nbrpar);
-    double result = hhh / ((16 * nbrpar) * area_strip * 1.0e-9 *
+      dataFile.Close();
+      Mean_cluster_size[it->first].push_back(cluster_multiplicity[p]->GetMean());
+      Mean_cluster_nbr[it->first].push_back(nbr_cluster[p]->GetMean());
+      Standard_dev_cluster_size[it->first].push_back(cluster_multiplicity[p]->GetRMS());
+      Standard_dev_cluster_nbr[it->first].push_back(nbr_cluster[p]->GetRMS());
+      Mean_Spatial_Resolution[it->first].push_back(Resolution[p]->GetMean(3));
+      Standard_dev_Spatial_Resolution[it->first].push_back(Resolution[p]->GetRMS(3));
+      eff[it->first].push_back({numGoodEvents[it->first] / nEntries,sqrt((numGoodEvents[it->first] *(nEntries - numGoodEvents[it->first])) /nEntries) /numGoodEvents[it->first]});
+      if (stof(lol[2]) == 0) 
+      {
+        real_comp_eff[p] = {eff[it->first][0].first,it->second.second - it->second.first};
+        real_comp_efff[p] = {cluster_multiplicity[p]->GetMean() *nbr_cluster[p]->GetMean(),totalisCh * 1.0 / nEntries};
+      } 
+      else 
+      {
+        comp_eff[p] = {eff[it->first][0].first,totalisCh * 1.0 /(nEntries * (it->second.second - it->second.first))};
+      }
+      std::vector<std::string> lolll;
+      tokenize(it->first, lolll, "_");
+      std::string name = fr + "_Chamber" + lolll[0];
+      timer[p] = (it->second.second - it->second.first);
+      int hhh = cham.ReturnTH2(name)->Integral();
+      if (duration != -1)cham.ScaleTime(fr, InHertzPerCm);
+      int nbrpar = read.getSpatialWindows()[lolll[0]].size();
+      double val = cham.ReturnTH2(name)->Integral() / (16 * nbrpar);
+      double result = hhh / ((16 * nbrpar) * area_strip * 1.0e-9 *
                            (it->second.second - it->second.first) * nEntries);
-    std::cout << blue << " windows nanosecondes "
+      std::cout << blue << " windows nanosecondes "
               << 1.0e-9 * (it->second.second - it->second.first) << " area "
               << area_strip << " nbrtiggers " << nEntries << normal
               << std::endl;
@@ -1276,30 +1076,29 @@ Analysis::Eff_ErrorEff(std::string &file) {
     // for(unsigned int u=0;u!=1000;++u)
     // std::cout<<red<<cham.ReturnTH2(name)->Integral()<<"  "<<nbrpar<<"
     // "<<val<<normal<<std::endl;
-    if (duration != -1)
-      cham.ScaleTime(fr3, InHertzPerCm);
+    if (duration != -1)cham.ScaleTime(fr3, InHertzPerCm);
     InHertzPerCm.clear();
   }
 
   // My proba
-  for (std::map<std::string, std::pair<double, double>>::iterator it =
-           cham.SelectionTimes[file].begin();
-       it != cham.SelectionTimes[file].end(); ++it) {
+  for(std::map<std::string,std::pair<double,double>>::iterator it=cham.SelectionTimes[file].begin();it!=cham.SelectionTimes[file].end();++it) 
+  {
     ++nn;
     std::map<std::string, double> numGoodEvents;
     std::string p = it->first + "*" + file;
     std::string n1 = std::to_string(nn);
     std::vector<std::string> lol;
     tokenize(it->first, lol, "_");
-    if (lol[3] == "Noise")
-      continue;
+    if (lol[3] == "Noise")continue;
     TFile dataFile(file.c_str());
-    if (dataFile.IsOpen() != true) {
+    if (dataFile.IsOpen() != true) 
+    {
       eff[p].push_back({-1.0, -1.0});
       continue;
     }
     TTree *dataTree = (TTree *)dataFile.Get("RAWData");
-    if (!dataTree) {
+    if (!dataTree) 
+    {
       eff[p].push_back({-1.0, -1.0});
       continue;
     }
@@ -1315,83 +1114,59 @@ Analysis::Eff_ErrorEff(std::string &file) {
     //****************** MACRO ***************************************
     TH1D *dataInfo = (TH1D *)dataFile.Get("ID");
     float duration = 1.;
-    if (dataInfo) {
-      dataInfo->SetBinContent(4, dataInfo->GetBinContent(4) -
-                                     dataInfo->GetBinContent(3));
+    if (dataInfo) 
+    {
+      dataInfo->SetBinContent(4, dataInfo->GetBinContent(4) -dataInfo->GetBinContent(3));
       float diff = dataInfo->GetBinContent(4);
       delete dataInfo;
       duration = std::ceil(diff / timespilltotal) * timespill;
     }
     unsigned int nEntries = dataTree->GetEntries();
-    for (unsigned int i = 0; i < nEntries; i++) {
+    for (unsigned int i = 0; i < nEntries; i++) 
+    {
       dataTree->GetEntry(i);
       int isCh = 0;
-      for (int h = 0; h < data.TDCNHits; h++) {
+      for (int h = 0; h < data.TDCNHits; h++) 
+      {
         int newstrip = 0;
         double newtime = 0.;
-        if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h), file,
-                             it->first, newstrip, newtime))
-          continue;
+        if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h), file,it->first, newstrip, newtime))continue;
         ++isCh;
       }
-      if (isCh > 0) {
-        for (std::map<std::string, std::pair<double, double>>::iterator ok =
-                 comp_eff.begin();
-             ok != comp_eff.end(); ++ok) {
+      if (isCh > 0) 
+      {
+        for (std::map<std::string, std::pair<double, double>>::iterator ok =comp_eff.begin();ok != comp_eff.end(); ++ok)
+        {
           std::vector<std::string> lol2;
           std::vector<std::string> lol3;
           tokenize(ok->first, lol2, "*");
           tokenize(lol2[0], lol3, "_");
-          if (lol2[1] != file || lol3[4] != lol[4])
-            continue;
-          double lambda_noise =
-              (ok->second).second * (it->second.second - it->second.first);
-          double num = TMath::PoissonI(isCh, lambda_noise) *
-                       (1 - real_comp_eff[p].first);
+          if (lol2[1] != file || lol3[4] != lol[4])continue;
+          double lambda_noise =(ok->second).second * (it->second.second - it->second.first);
+          double num = TMath::PoissonI(isCh, lambda_noise) *(1 - real_comp_eff[p].first);
           double lambda_signal_noise = real_comp_efff[p].second;
-          double denum = TMath::PoissonI(0, lambda_noise) *
-                         TMath::PoissonI(isCh, lambda_signal_noise);
-          if (isCh > real_comp_efff[p].first)
-            numGoodEvents[ok->first] += 1.0 * num / denum;
-          else
-            numGoodEvents[ok->first] += 1.0;
+          double denum = TMath::PoissonI(0, lambda_noise) *TMath::PoissonI(isCh, lambda_signal_noise);
+          if (isCh > real_comp_efff[p].first)numGoodEvents[ok->first] += 1.0 * num / denum;
+          else numGoodEvents[ok->first] += 1.0;
         }
       }
     }
     double minn = 2;
-    for (std::map<std::string, double>::iterator ok = numGoodEvents.begin();
-         ok != numGoodEvents.end(); ++ok) {
-      if (numGoodEvents[ok->first] / (1.0 * nEntries) < minn)
-        minn = 1.0 * numGoodEvents[ok->first];
+    for (std::map<std::string, double>::iterator ok = numGoodEvents.begin();ok != numGoodEvents.end(); ++ok) 
+    {
+      if (numGoodEvents[ok->first] / (1.0 * nEntries) < minn)minn = 1.0 * numGoodEvents[ok->first];
     }
-    eff[it->first].push_back(
-        {minn / (1.0 * nEntries),
-         sqrt((minn * (nEntries - minn)) / nEntries) / minn});
+    eff[it->first].push_back({minn / (1.0 * nEntries),sqrt((minn * (nEntries - minn)) / nEntries) / minn});
     dataFile.Close();
   }
   //////////////////////////////////////////////////////////////////
-  for (std::map<std::string, std::map<std::string, TH2F *>>::iterator it =
-           Correlation.begin();
-       it != Correlation.end(); ++it) {
+  for (std::map<std::string, std::map<std::string, TH2F *>>::iterator it =Correlation.begin();it != Correlation.end(); ++it) 
+  {
     std::string namee = GoodName(it->first, read);
-    /*std::cout << GoodName(it->first) << std::endl;
-    std::vector<std::string> tmp;
-    tokenize(it->first, tmp, "*");
-    std::size_t found = tmp[1].find_last_of("/");
-    std::string name = tmp[1].substr(found + 1);
-    std::vector<std::string> tmp2;
-    tokenize(tmp[0], tmp2, "_");
-    TString nameee = Form("%s/Chamber%s/%0.2f sigma/Shifted %0.2fns/%s/%s",
-                          name.c_str(), tmp2[0].c_str(), stof(tmp2[1]),
-                          stof(tmp2[2]), tmp2[3].c_str(), tmp2[4].c_str());
-    std::string namee = nameee.Data();*/
-    for (std::map<std::string, TH2F *>::iterator itt =
-             Correlation[it->first].begin();
-         itt != Correlation[it->first].end(); ++itt) {
+    for (std::map<std::string, TH2F *>::iterator itt =Correlation[it->first].begin();itt != Correlation[it->first].end(); ++itt) 
+    {
       writeObject(namee, Correlation[it->first][itt->first]);
       writeObject(namee, Correlation2[it->first][itt->first]);
-      double integral = Correlation21[it->first][itt->first]->Integral();
-      Correlation21[it->first][itt->first]->Scale(1.0 / integral);
       writeObject(namee, Correlation21[it->first][itt->first]);
       delete Correlation[it->first][itt->first];
       delete Correlation2[it->first][itt->first];
@@ -1401,25 +1176,13 @@ Analysis::Eff_ErrorEff(std::string &file) {
   Correlation.clear();
   Correlation2.clear();
   Correlation21.clear();
-  for (std::map<std::string, std::map<std::string, TProfile2D *>>::iterator it =
-           CorrelationProfile.begin();
-       it != CorrelationProfile.end(); ++it) {
-    /*std::vector<std::string> tmp;
-    tokenize(it->first, tmp, "*");
-    std::size_t found = tmp[1].find_last_of("/");
-    std::string name = tmp[1].substr(found + 1);
-    std::vector<std::string> tmp2;
-    tokenize(tmp[0], tmp2, "_");
-    TString nameee = Form("%s/Chamber%s/%0.2f sigma/Shifted %0.2fns/%s/%s",
-                          name.c_str(), tmp2[0].c_str(), stof(tmp2[1]),
-                          stof(tmp2[2]), tmp2[3].c_str(), tmp2[4].c_str());
-    std::string namee = nameee.Data();*/
+  for (std::map<std::string, std::map<std::string, TProfile2D *>>::iterator it =CorrelationProfile.begin();it != CorrelationProfile.end(); ++it) 
+  {
     std::string namee = GoodName(it->first, read);
     writeObject(namee, Resolution[it->first]);
     delete Resolution[it->first];
-    for (std::map<std::string, TProfile2D *>::iterator itt =
-             CorrelationProfile[it->first].begin();
-         itt != CorrelationProfile[it->first].end(); ++itt) {
+    for (std::map<std::string, TProfile2D *>::iterator itt =CorrelationProfile[it->first].begin();itt != CorrelationProfile[it->first].end(); ++itt) 
+    {
       writeObject(namee, CorrelationProfile[it->first][itt->first]);
       writeObject(namee, CorrelationProfile2[it->first][itt->first]);
       delete CorrelationProfile[it->first][itt->first];
@@ -1428,18 +1191,8 @@ Analysis::Eff_ErrorEff(std::string &file) {
   }
   CorrelationProfile.clear();
   CorrelationProfile2.clear();
-  for (std::map<std::string, TH1F *>::iterator it = clu.begin();
-       it != clu.end(); ++it) {
-    /*std::vector<std::string> tmp;
-    tokenize(it->first, tmp, "*");
-    std::size_t found = tmp[1].find_last_of("/");
-    std::string name = tmp[1].substr(found + 1);
-    std::vector<std::string> tmp2;
-    tokenize(tmp[0], tmp2, "_");
-    TString nameee = Form("%s/Chamber%s/%0.2f sigma/Shifted %0.2fns/%s/%s",
-                          name.c_str(), tmp2[0].c_str(), stof(tmp2[1]),
-                          stof(tmp2[2]), tmp2[3].c_str(), tmp2[4].c_str());
-    std::string namee = nameee.Data();*/
+  for (std::map<std::string, TH1F *>::iterator it = clu.begin();it != clu.end(); ++it) 
+  {
     std::string namee = GoodName(it->first, read);
     writeObject(namee, general_multilicity[it->first]);
     writeObject(namee, when[it->first]);
@@ -1447,9 +1200,7 @@ Analysis::Eff_ErrorEff(std::string &file) {
     writeObject(namee, nbr_cluster[it->first]);
     writeObject(namee, when2[it->first]);
     writeObject(namee, when3[it->first]);
-    writeObject(namee, when4[it->first]);
     writeObject(namee, when5[it->first]);
-    writeObject(namee, when6[it->first]);
     writeObject(namee, center[it->first]);
     writeObject(namee, Correlation_time[it->first]);
     writeObject(namee, clu[it->first]);
@@ -1459,9 +1210,7 @@ Analysis::Eff_ErrorEff(std::string &file) {
     delete nbr_cluster[it->first];
     delete when2[it->first];
     delete when3[it->first];
-    delete when4[it->first];
     delete when5[it->first];
-    delete when6[it->first];
     delete center[it->first];
     delete clu[it->first];
     delete Correlation_time[it->first];
@@ -1474,16 +1223,14 @@ Analysis::Eff_ErrorEff(std::string &file) {
   center.clear();
   clu.clear();
   when3.clear();
-  when4.clear();
   when5.clear();
   Correlation_time.clear();
-  when6.clear();
   filenumber++;
   return eff;
 }
 //-------------------------------------------------------
-int Analysis::Loop() {
-
+int Analysis::Loop() 
+{
   ShiftTimes();
   Construct_Plot();
   std::vector<double> XS;
@@ -1517,15 +1264,11 @@ int Analysis::Loop() {
     fd2->SetTitle((it->first + "_cluster_nbr_vs_").c_str());
     writeObject(namee, fd2);
     delete fd2;
-    TGraphErrors *fd3 = new TGraphErrors(
-        XS.size(), &(XS[0]), &(Mean_Spatial_Resolution[it->first][0]),
-        &(tmp4[0]), &(Standard_dev_Spatial_Resolution[it->first][0]));
+    TGraphErrors *fd3 = new TGraphErrors(XS.size(), &(XS[0]), &(Mean_Spatial_Resolution[it->first][0]),&(tmp4[0]), &(Standard_dev_Spatial_Resolution[it->first][0]));
     fd3->SetTitle((it->first + "_Spatial_Resolution_").c_str());
     writeObject(namee, fd3);
     delete fd3;
-    TGraphErrors *fd4 =
-        new TGraphErrors(XS.size(), &(XS[0]), &(Mean_Noise[it->first][0]),
-                         &(tmp4[0]), &(tmp4[0]));
+    TGraphErrors *fd4 =new TGraphErrors(XS.size(), &(XS[0]), &(Mean_Noise[it->first][0]),&(tmp4[0]), &(tmp4[0]));
     fd4->SetTitle((it->first + "_Mean_Noise_").c_str());
     writeObject(namee, fd4);
     delete fd4;
@@ -1632,39 +1375,26 @@ int Analysis::Loop() {
     gr2->SetFillColor(kRed);
     gr2->SetFillStyle(1001);
     gr1->Draw("a3P");
-    // std::system(("mkdir ./"+name+"/png").c_str());
-    // std::system(("mkdir ./"+name+"/C").c_str());
-    // cc->SaveAs(("./"+name+"/png/"+(itoo->first+"_M1.png")).c_str());
-    // cc->SaveAs(("./"+name+"/Method1/"+(itoo->first+".pdf")).c_str());
-    // cc->SaveAs(("./"+name+"/C/"+(itoo->first+"_M1.C")).c_str());
     writeObject(comp1, cc);
     gr2->Draw("a3P");
-    // cc->SaveAs(("./"+name+"/png/"+(itoo->first+"_M2.png")).c_str());
-    // cc->SaveAs(("./"+name+"/Method2/"+(itoo->first+".pdf")).c_str());
-    // cc->SaveAs(("./"+name+"/C/"+(itoo->first+"_M2.C")).c_str());
     writeObject(comp2, cc);
     gr1->Draw("a3P");
     gr2->Draw("SAME a3P");
-    // cc->SaveAs(("./"+name+"/png/"+(itoo->first+"_Both.png")).c_str());
-    // cc->SaveAs(("./"+name+"/Both/"+(itoo->first+".pdf")).c_str());
-    // cc->SaveAs(("./"+name+"/C/"+(itoo->first+"_Both.C")).c_str());
     writeObject(comp, cc);
     delete cc;
     delete gr1;
     delete gr2;
   }
 
-  for (std::map<std::string, std::map<std::string, TGraphErrors *>>::iterator
-           ittt = graph.begin();
-       ittt != graph.end(); ++ittt) {
+  for (std::map<std::string, std::map<std::string, TGraphErrors *>>::iterator ittt = graph.begin();ittt != graph.end(); ++ittt) 
+  {
     TCanvas *cann = new TCanvas(ittt->first.c_str(), ittt->first.c_str());
     TLegend *leg = new TLegend(0.1, 0.7, 0.35, 0.9);
     std::string title = "Noise contamination estimation";
     leg->SetHeader(title.c_str()); // option "C" allows to center the header
     static int iii = 0;
-    for (std::map<std::string, TGraphErrors *>::iterator ll =
-             ittt->second.begin();
-         ll != ittt->second.end(); ++ll) {
+    for (std::map<std::string, TGraphErrors *>::iterator ll =ittt->second.begin();ll != ittt->second.end(); ++ll) 
+    {
       static int a = 1;
       static int b = 1;
       TString nameee = "";
@@ -1672,7 +1402,8 @@ int Analysis::Loop() {
       tokenize(ll->first, tmp, "*");
       std::vector<std::string> tmp2;
       tokenize(tmp[0], tmp2, "_");
-      if (stof(tmp2[2]) < 0) {
+      if (stof(tmp2[2]) < 0) 
+      {
         ll->second->SetMarkerStyle(20);
         ll->second->SetMarkerSize(1);
         ll->second->SetMarkerColor(kGreen - a);
@@ -1680,11 +1411,11 @@ int Analysis::Loop() {
         ll->second->SetFillColor(kGreen - a);
         ll->second->SetLineWidth(1);
         ll->second->SetLineColor(kGreen - a);
-        nameee = Form("Efficiency corrected (+-%0.2fns Shifted %0.2fns "
-                      "trigger's begining)",
-                      stof(tmp2[1]), fabs(stof(tmp2[2])));
+        nameee = Form("Efficiency corrected (+-%0.2fns Shifted %0.2fns trigger's begining)",stof(tmp2[1]), fabs(stof(tmp2[2])));
         ++a;
-      } else if (stof(tmp2[2]) > 0) {
+      } 
+      else if (stof(tmp2[2]) > 0) 
+      {
         ll->second->SetMarkerStyle(21);
         ll->second->SetMarkerSize(1);
         ll->second->SetMarkerColor(kRed - b);
@@ -1692,11 +1423,10 @@ int Analysis::Loop() {
         ll->second->SetFillColor(kRed - b);
         ll->second->SetLineWidth(1);
         ll->second->SetLineColor(kRed - b);
-        nameee = Form(
-            "Efficiency corrected (+-%.2fns Shifted %.2fns trigger's end)",
-            stof(tmp2[1]), fabs(stof(tmp2[2])));
+        nameee = Form("Efficiency corrected (+-%.2fns Shifted %.2fns trigger's end)",stof(tmp2[1]), fabs(stof(tmp2[2])));
         ++b;
-      } else {
+      } else 
+      {
         ll->second->SetMarkerStyle(31);
         ll->second->SetMarkerSize(1);
         ll->second->SetMarkerColor(kBlue);
@@ -1710,29 +1440,18 @@ int Analysis::Loop() {
       std::string Yaxis = "Efficiency";
       double vol = read.getVoltages()[0];
       double thr = read.getThresholds()[0];
-      if (read.getType() == "volEff" || read.getType() == "noisevolEff")
-        Xaxis = "Applied HV(V)";
-      else if (read.getType() == "thrEff" || read.getType() == "noisethrEff")
-        Xaxis = "Threshold (mV)";
-      else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff")
-        Xaxis = "Attenuator Factor";
-      else if (read.getType() == "PulEff" || read.getType() == "noisePulEff")
-        Xaxis = "Pulse lenght (ns)";
+      LabelXaxis(Xaxis);
       ll->second->GetXaxis()->SetTitle(Xaxis.c_str());
       ll->second->GetYaxis()->SetTitle(Yaxis.c_str());
       ll->second->GetYaxis()->SetRangeUser(0.0, 1.0);
       leg->AddEntry(ll->second, nameee, "p");
-      if (iii == 0)
-        ll->second->Draw("AP");
-      else {
-        ll->second->Draw("SAME P");
-      }
+      if (iii == 0)ll->second->Draw("AP");
+      else ll->second->Draw("SAME P");
       cann->Update();
       ++iii;
     }
-    for (std::map<std::string, TGraphErrors *>::iterator lll =
-             graph2[ittt->first].begin();
-         lll != graph2[ittt->first].end(); ++lll) {
+    for (std::map<std::string, TGraphErrors *>::iterator lll =graph2[ittt->first].begin();lll != graph2[ittt->first].end(); ++lll) 
+    {
       static int aa = 1;
       static int bb = 1;
       TString nameee = "";
@@ -1770,14 +1489,7 @@ int Analysis::Loop() {
       std::string Yaxis = "Efficiency";
       double vol = read.getVoltages()[0];
       double thr = read.getThresholds()[0];
-      if (read.getType() == "volEff" || read.getType() == "noisevolEff")
-        Xaxis = "Applied HV(V)";
-      else if (read.getType() == "thrEff" || read.getType() == "noisethrEff")
-        Xaxis = "Threshold (mV)";
-      else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff")
-        Xaxis = "Attenuator Factor";
-      else if (read.getType() == "PulEff" || read.getType() == "noisePulEff")
-        Xaxis = "Pulse lenght (ns)";
+      LabelXaxis(Xaxis);
       lll->second->GetXaxis()->SetTitle(Xaxis.c_str());
       lll->second->GetYaxis()->SetTitle(Yaxis.c_str());
       lll->second->GetYaxis()->SetRangeUser(0.0, 1.0);
@@ -1793,25 +1505,24 @@ int Analysis::Loop() {
 
   std::map<std::string, std::vector<double>> Noise_Min;
   std::map<std::string, std::vector<double>> Noise_Max;
-  for (std::map<std::string, std::vector<double>>::iterator it =
-           Mean_Noise.begin();
-       it != Mean_Noise.end(); ++it) {
+  for (std::map<std::string, std::vector<double>>::iterator it =Mean_Noise.begin();it != Mean_Noise.end(); ++it) 
+  {
     std::vector<std::string> tmp;
     tokenize(it->first, tmp, "_");
     std::string name = "";
-    if (tmp[3] == "Noise")
-      name = tmp[0] + "_*_" + tmp[3] + "_" + tmp[4];
-    else
-      name = tmp[0] + "_" + tmp[1] + "_" + tmp[3] + "_" + tmp[4];
-    if (Noise_Min.find(name) == Noise_Min.end()) {
+    if (tmp[3] == "Noise")name = tmp[0] + "_*_" + tmp[3] + "_" + tmp[4];
+    else name = tmp[0] + "_" + tmp[1] + "_" + tmp[3] + "_" + tmp[4];
+    if (Noise_Min.find(name) == Noise_Min.end()) 
+    {
       Noise_Min[name] = it->second;
       Noise_Max[name] = it->second;
-    } else {
-      for (unsigned int j = 0; j != it->second.size(); ++j) {
-        if (Noise_Min[name][j] > it->second[j])
-          Noise_Min[name][j] = it->second[j];
-        if (Noise_Max[name][j] < it->second[j])
-          Noise_Max[name][j] = it->second[j];
+    } 
+    else 
+    {
+      for (unsigned int j = 0; j != it->second.size(); ++j) 
+      {
+        if (Noise_Min[name][j] > it->second[j])Noise_Min[name][j] = it->second[j];
+        if (Noise_Max[name][j] < it->second[j])Noise_Max[name][j] = it->second[j];
       }
     }
   }
@@ -1866,14 +1577,7 @@ int Analysis::Loop() {
       mg2->Add(gr11);
       p++;
     }
-    if (read.getType() == "volEff" || read.getType() == "noisevolEff")
-      Xaxis = "Applied HV(V)";
-    else if (read.getType() == "thrEff" || read.getType() == "noisethrEff")
-      Xaxis = "Threshold (mV)";
-    else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff")
-      Xaxis = "Attenuator Factor";
-    else if (read.getType() == "PulEff" || read.getType() == "noisePulEff")
-      Xaxis = "Pulse lenght (ns)";
+    LabelXaxis(Xaxis);
     gr11->GetXaxis()->SetTitle(Xaxis.c_str());
     gr11->GetYaxis()->SetTitle(Yaxis.c_str());
     std::string comp2 = "";

@@ -19,6 +19,7 @@ public:
   int Loop();
   void writeObject(std::string& dirName, TObject *object);
   void writeObject(const char* dirName, TObject *object);
+  void LabelXaxis(std::string&);
 private:
   OutFileRoot& out;
   Reader& read;

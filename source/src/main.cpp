@@ -3,6 +3,7 @@
 // Authors:  
 // Lagarde, lagarde@ipnl.in2p3.fr
 //-------------------------------------------------------
+#include "tdrStyle.h"
 #include "Colors.h"
 #include "OutFileRoot.h"
 #include "Chambers.h"
@@ -22,6 +23,7 @@ using namespace std;
 
 int main(int argc, char* argv[]) 
 {
+  setTDRStyle();
   if (argc < 3) 
   {
     std::cout<<red<<"#--------------------------------------------------#"<<normal<<std::endl;
