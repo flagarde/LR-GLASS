@@ -13,7 +13,7 @@ set( ${PROJECT_NAME}_VERSION_PATCH 0 )
 
 add_definitions( "-std=c++11 -Wall -ansi -Wno-long-long -Wno-sign-compare -fno-strict-aliasing -g -lpthread -ldl -lm" )
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/source/ROOT/)
-list(APPEND CMAKE_MODULE_PATH $ENV{ROOTSYS})
+list( APPEND CMAKE_MODULE_PATH $ENV{ROOTSYS}/etc/cmake/)
 configure_file ("./source/include/Version.h.in" "${CMAKE_SOURCE_DIR}/build/include/Version.h")
 include_directories(${CMAKE_SOURCE_DIR}/source/src/)
 include_directories(${CMAKE_SOURCE_DIR}/source/include/)
