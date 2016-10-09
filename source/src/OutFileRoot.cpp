@@ -8,7 +8,6 @@
 #include<iostream>
 bool OutFileRoot::setOutputFile(std::string& outputFileName)
 {
-  //getcwd(cwd, sizeof(cwd));
   outFile_ = new TFile(outputFileName.c_str(),"UPDATE");
   outFile_->SetBufferSize(5000000);
   outFile_->SetCompressionLevel(9);
@@ -36,7 +35,6 @@ bool OutFileRoot::writeObject(std::string& dirName, TObject *object)
   else outFile_->cd(dirName.c_str());
   if(object!=nullptr)
   {
-    
      object->Write();
      if(!outFile_->GetDirectory("TDR_PLOTS")) 
     {
@@ -44,12 +42,10 @@ bool OutFileRoot::writeObject(std::string& dirName, TObject *object)
       outFile_->cd("TDR_PLOTS");
     }
     else outFile_->cd("TDR_PLOTS");
-    TCanvas* can=nullptr;
-    std::cout<<red<<object->ClassName()<<normal<<std::endl; 
+    TCanvas* can=nullptr; 
     if(std::string(object->ClassName())=="TCanvas") 
     {
       can=(TCanvas*)object;
-      std::cout<<blue<<"jj"<<std::endl;
     }
     else 
     {
@@ -64,25 +60,12 @@ bool OutFileRoot::writeObject(std::string& dirName, TObject *object)
     prelim2->SetNDC();
     prelim2->SetTextSize(0.025);
     prelim2->DrawLatex(0.70, 0.83-0.025,"Work on progress");
-       if(std::string(object->ClassName())=="TCanvas")prelim->Draw("same");
+    if(std::string(object->ClassName())=="TCanvas")prelim->Draw("same");
     else prelim2->Draw();
     if(std::string(object->ClassName())=="TCanvas")prelim->Draw("same");
     else prelim2->Draw();
     std::string trdStylePLot="./Results/"+std::string(object->GetTitle())+".png";
     can->SaveAs(trdStylePLot.c_str());
-    //dirName.erase(std::remove(dirName.begin(), dirName.end(), ' '),dirName.end());
-    /*std::vector<std::string>tmp;
-    tokenize(dirName,tmp,"_");
-    std::string repertory="mkdir -p png/"+tmp[0]+"/"+dirName;
-    std::string go="cd png/"+tmp[0]+"/"+dirName;
-    std::string back="cd "+std::string(cwd);
-    std::system(repertory.c_str());
-    std::system(go.c_str());
-    std::string name=object->GetName();
-    name+=".png";
-    can->SaveAs(("png/"+tmp[0]+"/"+dirName+"/"+name).c_str());
-    std::system(back.c_str());
-    delete can;*/
   }
   return true;
 }
@@ -108,7 +91,6 @@ bool OutFileRoot::writeObject(const char * dirName, TObject *object)
     }
     else outFile_->cd("TDR_PLOTS");
     TCanvas* can=nullptr;
-    std::cout<<red<<object->ClassName()<<normal<<std::endl;
     if(std::string(object->ClassName())=="TCanvas") can=(TCanvas*)object;
     else 
     {
@@ -129,19 +111,6 @@ bool OutFileRoot::writeObject(const char * dirName, TObject *object)
     else prelim2->Draw();
     std::string trdStylePLot="./Results/"+std::string(object->GetTitle())+".png";
     can->SaveAs(trdStylePLot.c_str());
-    /*dirName.erase(std::remove(dirName.begin(), dirName.end(), ' '),dirName.end());
-    std::vector<std::string>tmp;
-    tokenize(dirName,tmp,"_");
-    std::string repertory="mkdir -p png/"+tmp[0]+"/"+dirName;
-    std::string go="cd png/"+tmp[0]+"/"+dirName;
-    std::string back="cd "+std::string(cwd);
-    std::system(repertory.c_str());
-    std::system(go.c_str());
-    std::string name=object->GetName();
-    name+=".png";
-    can->SaveAs(("png/"+tmp[0]+"/"+dirName+"/"+name).c_str());
-    std::system(back.c_str());
-    delete can;*/
   }
   return true;
 }
