@@ -579,8 +579,6 @@ void Analysis::Construct_Plot()
 {
   std::map<std::string, std::vector<double>> eff;
   std::map<std::string, std::vector<double>> eEff;
-  std::map<std::string, std::vector<double>> eff1;
-  std::map<std::string, std::vector<double>> eEff1;
   std::map<std::string, std::vector<double>> vol;
   std::map<std::string, std::vector<double>> eVol;
   for (int i = 0; i != read.getDAQFiles().size(); ++i) 
@@ -593,8 +591,6 @@ void Analysis::Construct_Plot()
       {
         eff[it->first].push_back(eff_erroreff[it->first][0].first);
         eEff[it->first].push_back(eff_erroreff[it->first][0].second);
-        eff1[it->first].push_back(eff_erroreff[it->first][1].first);
-        eEff1[it->first].push_back(eff_erroreff[it->first][1].first -eff_erroreff[it->first][1].second);
         if (read.getType() == "volEff" || read.getType() == "noisevolEff")vol[it->first].push_back(read.getVoltages()[i]);
         else if (read.getType() == "thrEff" || read.getType() == "noisethrEff")vol[it->first].push_back(read.getThresholds()[i]);
         else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff")vol[it->first].push_back(read.getAttenuators()[i]);
@@ -607,19 +603,11 @@ void Analysis::Construct_Plot()
   {
     if (it->second.size() == 0)continue;
     TGraphErrors *gr = new TGraphErrors(it->second.size(), &(vol[it->first][0]), &(eff[it->first][0]),&(eVol[it->first][0]), &(eEff[it->first][0]));
-    TGraphErrors *gr1 = new TGraphErrors(it->second.size(), &(vol[it->first][0]), &(eff1[it->first][0]),&(eVol[it->first][0]), &(eEff1[it->first][0]));
-    TGraphAsymmErrors *gr2 = new TGraphAsymmErrors(it->second.size(), &(vol[it->first][0]), &(eff[it->first][0]),&(eVol[it->first][0]), &(eVol[it->first][0]), &(eEff1[it->first][0]),&(eVol[it->first][0]));
     gr->SetTitle(it->first.c_str());
-    gr2->SetTitle((it->first + " Zone").c_str());
     gr->SetMarkerStyle(8);
     gr->SetLineStyle(9);
     gr->SetFillColor(0);
     gr->SetLineWidth(1);
-    gr1->SetTitle((it->first + "Corrected").c_str());
-    gr1->SetMarkerStyle(8);
-    gr1->SetLineStyle(9);
-    gr1->SetFillColor(0);
-    gr1->SetLineWidth(1);
     std::vector<std::string> tmp;
     tokenize(it->first, tmp, "_");
     std::string Xaxis = "";
@@ -634,30 +622,20 @@ void Analysis::Construct_Plot()
     gr->GetXaxis()->SetTitle(Xaxis.c_str());
     gr->GetYaxis()->SetTitle(Yaxis.c_str());
     gr->GetYaxis()->SetRangeUser(0.0, 1.0);
-    gr1->GetXaxis()->SetTitle(Xaxis.c_str());
-    gr1->GetYaxis()->SetTitle(Yaxis.c_str());
-    gr1->GetYaxis()->SetRangeUser(0.0, 1.0);
     if (int(shift) == 0) {
       if (read.getType() == "volEff" || read.getType() == "noisevolEff") {
         gr->SetName(Form("%s Efficiency, threshold = %.2fmV, +-%.2f",
                          bv.c_str(), thr, sig));
         gr->SetTitle(Form("%s Efficiency, threshold = %.2fmV, +-%.2f",
                           bv.c_str(), thr, sig));
-        gr1->SetName(Form("%s Efficiency, threshold = %.2fmV, +-%.2f corrected",
-                          bv.c_str(), thr, sig));
-        gr1->SetTitle(
-            Form("%s Efficiency, threshold = %.2fmV, +-%.2f corrected",
-                 bv.c_str(), thr, sig));
+       
       } else if (read.getType() == "thrEff" ||
                  read.getType() == "noisethrEff") {
         gr->SetName(Form("%s Efficiency, voltage = %.2fV, +-%.2f", bv.c_str(),
                          vol, sig));
         gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, +-%.2f", bv.c_str(),
                           vol, sig));
-        gr1->SetName(Form("%s Efficiency, voltage = %.2fV, +-%.2f corrected",
-                          bv.c_str(), vol, sig));
-        gr1->SetTitle(Form("%s Efficiency, voltage = %.2fV, +-%.2f corrected",
-                           bv.c_str(), vol, sig));
+       
       } else if (read.getType() == "srcEff" ||
                  read.getType() == "noisesrcEff") {
         gr->SetName(
@@ -666,12 +644,7 @@ void Analysis::Construct_Plot()
         gr->SetTitle(
             Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, +-%.2f",
                  bv.c_str(), vol, thr, sig));
-        gr1->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, "
-                          "+-%.2f corrected",
-                          bv.c_str(), vol, thr, sig));
-        gr1->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = "
-                           "%.2fmV, +-%.2f corrected",
-                           bv.c_str(), vol, thr, sig));
+       
       } else if (read.getType() == "PulEff" ||
                  read.getType() == "noisePulEff") {
         gr->SetName(
@@ -680,12 +653,7 @@ void Analysis::Construct_Plot()
         gr->SetTitle(
             Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, +-%.2f",
                  bv.c_str(), vol, thr, sig));
-        gr1->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, "
-                          "+-%.2f corrected",
-                          bv.c_str(), vol, thr, sig));
-        gr1->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = "
-                           "%.2fmV, +-%.2f corrected",
-                           bv.c_str(), vol, thr, sig));
+      
       }
     } else {
       if (read.getType() == "volEff" || read.getType() == "noisevolEff") {
@@ -695,12 +663,7 @@ void Analysis::Construct_Plot()
         gr->SetTitle(
             Form("%s Efficiency, threshold = %.2fmV, +-%.2f, shift %.2fns",
                  bv.c_str(), thr, sig, shift));
-        gr1->SetName(Form(
-            "%s Efficiency, threshold = %.2fmV, +-%.2f, shift %.2fns corrected",
-            bv.c_str(), thr, sig, shift));
-        gr1->SetTitle(Form(
-            "%s Efficiency, threshold = %.2fmV, +-%.2f, shift %.2fns corrected",
-            bv.c_str(), thr, sig, shift));
+       
       } else if (read.getType() == "thrEff" ||
                  read.getType() == "noisethrEff") {
         gr->SetName(Form("%s Efficiency, voltage = %.2fV, +-%.2f, shift %.2fns",
@@ -708,12 +671,7 @@ void Analysis::Construct_Plot()
         gr->SetTitle(
             Form("%s Efficiency, voltage = %.2fV, +-%.2f, shift %.2fns",
                  bv.c_str(), vol, sig, shift));
-        gr1->SetName(Form(
-            "%s Efficiency, voltage = %.2fV, +-%.2f, shift %.2fns corrected",
-            bv.c_str(), vol, sig, shift));
-        gr1->SetTitle(Form(
-            "%s Efficiency, voltage = %.2fV, +-%.2f, shift %.2fns corrected",
-            bv.c_str(), vol, sig, shift));
+      
       } else if (read.getType() == "srcEff" ||
                  read.getType() == "noisesrcEff") {
         gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, "
@@ -722,12 +680,7 @@ void Analysis::Construct_Plot()
         gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, "
                           "+-%.2f, shift %.2fns",
                           bv.c_str(), vol, thr, sig, shift));
-        gr1->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, "
-                          "+-%.2f, shift %.2fns corrected",
-                          bv.c_str(), vol, thr, sig, shift));
-        gr1->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = "
-                           "%.2fmV, +-%.2f, shift %.2fns corrected",
-                           bv.c_str(), vol, thr, sig, shift));
+      
       } else if (read.getType() == "PulEff" ||
                  read.getType() == "noisePulEff") {
         gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, "
@@ -736,12 +689,7 @@ void Analysis::Construct_Plot()
         gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, "
                           "+-%.2f, shift %.2fns",
                           bv.c_str(), vol, thr, sig, shift));
-        gr1->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, "
-                          "+-%.2f, shift %.2fns corrected",
-                          bv.c_str(), vol, thr, sig, shift));
-        gr1->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = "
-                           "%.2fmV, +-%.2f, shift %.2fns corrected",
-                           bv.c_str(), vol, thr, sig, shift));
+       
       }
     }
     TString nameee =
@@ -750,21 +698,7 @@ void Analysis::Construct_Plot()
     std::string namee = nameee.Data();
     // std::string name="Efficiency/Chamber"+tmp[0];
     out.writeObject(namee, gr);
-    out.writeObject(namee, gr1);
-    TCanvas *cann = new TCanvas("", "");
-    gr2->SetMarkerStyle(20);
-    gr2->SetMarkerSize(1);
-    gr2->SetMarkerColor(kCyan);
-    gr2->SetLineStyle(1);
-    gr2->SetFillColor(kCyan);
-    gr2->SetLineWidth(1);
-    gr2->SetLineColor(kCyan);
-    gr2->Draw("a3");
-    out.writeObject(namee, cann);
     delete gr;
-    delete gr1;
-    delete gr2;
-    delete cann;
   }
 }
 
@@ -1079,87 +1013,6 @@ Analysis::Eff_ErrorEff(std::string &file)
     if (duration != -1)cham.ScaleTime(fr3, InHertzPerCm);
     InHertzPerCm.clear();
   }
-
-  // My proba
-  for(std::map<std::string,std::pair<double,double>>::iterator it=cham.SelectionTimes[file].begin();it!=cham.SelectionTimes[file].end();++it) 
-  {
-    ++nn;
-    std::map<std::string, double> numGoodEvents;
-    std::string p = it->first + "*" + file;
-    std::string n1 = std::to_string(nn);
-    std::vector<std::string> lol;
-    tokenize(it->first, lol, "_");
-    if (lol[3] == "Noise")continue;
-    TFile dataFile(file.c_str());
-    if (dataFile.IsOpen() != true) 
-    {
-      eff[p].push_back({-1.0, -1.0});
-      continue;
-    }
-    TTree *dataTree = (TTree *)dataFile.Get("RAWData");
-    if (!dataTree) 
-    {
-      eff[p].push_back({-1.0, -1.0});
-      continue;
-    }
-    RAWData data;
-    data.TDCCh = new vector<int>;   // List of hits and their channels
-    data.TDCTS = new vector<float>; // List of the corresponding time stamps
-    data.TDCCh->clear();
-    data.TDCTS->clear();
-    dataTree->SetBranchAddress("EventNumber", &data.iEvent);
-    dataTree->SetBranchAddress("number_of_hits", &data.TDCNHits);
-    dataTree->SetBranchAddress("TDC_channel", &data.TDCCh);
-    dataTree->SetBranchAddress("TDC_TimeStamp", &data.TDCTS);
-    //****************** MACRO ***************************************
-    TH1D *dataInfo = (TH1D *)dataFile.Get("ID");
-    float duration = 1.;
-    if (dataInfo) 
-    {
-      dataInfo->SetBinContent(4, dataInfo->GetBinContent(4) -dataInfo->GetBinContent(3));
-      float diff = dataInfo->GetBinContent(4);
-      delete dataInfo;
-      duration = std::ceil(diff / timespilltotal) * timespill;
-    }
-    unsigned int nEntries = dataTree->GetEntries();
-    for (unsigned int i = 0; i < nEntries; i++) 
-    {
-      dataTree->GetEntry(i);
-      int isCh = 0;
-      for (int h = 0; h < data.TDCNHits; h++) 
-      {
-        int newstrip = 0;
-        double newtime = 0.;
-        if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h), file,it->first, newstrip, newtime))continue;
-        ++isCh;
-      }
-      if (isCh > 0) 
-      {
-        for (std::map<std::string, std::pair<double, double>>::iterator ok =comp_eff.begin();ok != comp_eff.end(); ++ok)
-        {
-          std::vector<std::string> lol2;
-          std::vector<std::string> lol3;
-          tokenize(ok->first, lol2, "*");
-          tokenize(lol2[0], lol3, "_");
-          if (lol2[1] != file || lol3[4] != lol[4])continue;
-          double lambda_noise =(ok->second).second * (it->second.second - it->second.first);
-          double num = TMath::PoissonI(isCh, lambda_noise) *(1 - real_comp_eff[p].first);
-          double lambda_signal_noise = real_comp_efff[p].second;
-          double denum = TMath::PoissonI(0, lambda_noise) *TMath::PoissonI(isCh, lambda_signal_noise);
-          if (isCh > real_comp_efff[p].first)numGoodEvents[ok->first] += 1.0 * num / denum;
-          else numGoodEvents[ok->first] += 1.0;
-        }
-      }
-    }
-    double minn = 2;
-    for (std::map<std::string, double>::iterator ok = numGoodEvents.begin();ok != numGoodEvents.end(); ++ok) 
-    {
-      if (numGoodEvents[ok->first] / (1.0 * nEntries) < minn)minn = 1.0 * numGoodEvents[ok->first];
-    }
-    eff[it->first].push_back({minn / (1.0 * nEntries),sqrt((minn * (nEntries - minn)) / nEntries) / minn});
-    dataFile.Close();
-  }
-  //////////////////////////////////////////////////////////////////
   for (std::map<std::string, std::map<std::string, TH2F *>>::iterator it =Correlation.begin();it != Correlation.end(); ++it) 
   {
     std::string namee = GoodName(it->first, read);
