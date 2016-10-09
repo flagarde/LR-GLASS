@@ -821,7 +821,6 @@ Analysis::Eff_ErrorEff(std::string &file)
     {
       std::map<int, int> stripnewold;
       std::multiset<float> timebetween_hits;
-      std::map<float, std::multimap<int, float>> Hits_classed_by_timestamp;
       std::map<float, std::multimap<int, float>> Hits_adjacents_in_time;
       std::multiset<std::pair<int, float>> Hits_arranged;
       std::vector<std::pair<float, std::vector<std::multimap<int, float>>>>Clusters;
@@ -858,7 +857,6 @@ Analysis::Eff_ErrorEff(std::string &file)
             }
           }
         }
-        Hits_classed_by_timestamp[newtime].insert(std::pair<int, float>(newstrip, newtime));
         Hits_arranged.insert(std::pair<int, float>(newstrip, newtime));
         timebetween_hits.insert(newtime);
         // std::cout<<green<<newstrip<<"  "<<newtime<<normal<<std::endl;
