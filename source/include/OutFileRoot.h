@@ -12,7 +12,6 @@
 #include "TLegend.h"
 #include <string>
 #include <iostream>
-//#include <unistd.h>
 class OutFileRoot
 {
   public:
@@ -22,6 +21,7 @@ class OutFileRoot
     {
       setOutputFile(outputFileName);
     }
+    std::string replaceStrChar(std::string str, const std::string& replace, char ch);
     bool setOutputFile(std::string& outputFileName);
     bool writeObject(std::string& dirName, TObject *object);
     bool writeObject(const char * dirName, TObject *object);
@@ -29,6 +29,5 @@ class OutFileRoot
     std::string _outputFileName;
     bool isOutFile_;
     TFile* outFile_;
-    //char cwd[1024];
 };
 #endif

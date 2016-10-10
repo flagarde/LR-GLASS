@@ -18,11 +18,13 @@
 #include "Analysis.h"
 #include <TInterpreter.h>
 #include "Version.h"
+#include "TError.h"
 
 using namespace std;
 
 int main(int argc, char* argv[]) 
 {
+  gErrorIgnoreLevel=900000;
   setTDRStyle();
   if (argc < 3) 
   {
