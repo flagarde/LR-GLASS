@@ -1,5 +1,5 @@
 #TYPE:
-type=noisethrEff
+type=volEff
 #TYPE END.
 
 #ANALYSIS:
@@ -9,15 +9,11 @@ TimeWindows_Ch1=100-500
 #ANALYSIS END.
 
 #VOL-THR-ATT-PUL:
-6800V_220mV
-6800V_300mV
-6800V_400mV
+6000V_330mV
 #VOL-THR-ATT-PUL END.
 
 #DAQ FILES:
-./Data/GIF_sept_2016/ThresholdRandom/Scan001708_HV1_DAQ.root
-./Data/GIF_sept_2016/ThresholdRandom/Scan001709_HV1_DAQ.root
-./Data/GIF_sept_2016/ThresholdRandom/Scan001710_HV1_DAQ.root
+./Data/GIF_sept_2016/Thr300Eff/Scan001733_HV2_DAQ.root
 #DAQ FILES END.
 
 #MASK:
@@ -36,7 +32,7 @@ TimeWindows_Ch1=100-500
 
 #PARAMETERS:
 CorrelationTime=0.2,0.4,0.6,0.8,1.0
-NoiseShift=550,1550,2550,3550,4550,5550,6550,7550,8550,9550
-NoiseWindows=500
+NoiseShift=75,100,125,150,-75,100,125,150
+NoiseWindows=25
 NumberOfSigmas=3
 #PARAMETERS END.
