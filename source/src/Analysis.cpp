@@ -16,6 +16,7 @@
 #include "TGraphAsymmErrors.h"
 #include "TString.h"
 #include "Cluster.h"
+#include "Sigmoid.h"
 using namespace std;
 double time_range = 0;
 int Cluster::nn=0;
@@ -146,6 +147,13 @@ void Analysis::ShiftTimes()
     dataTree->SetBranchAddress("number_of_hits", &data.TDCNHits);
     dataTree->SetBranchAddress("TDC_channel", &data.TDCCh);
     dataTree->SetBranchAddress("TDC_TimeStamp", &data.TDCTS);
+    bool issmallchamber=false;
+    int u;
+    if(dataTree->SetBranchAddress("BIF_GTC", &u))
+    {
+      issmallchamber=true;
+      std::cout<<"Is small chamber so I will not Fit anything ! "<<std::endl;
+    }
     unsigned int nEntries = dataTree->GetEntries();
     for (unsigned int i = 0; i < nEntries; i++) 
     {
@@ -359,50 +367,33 @@ void Analysis::ShiftTimes()
         ParamValueError["constant_2gauss_un_" + std::to_string(i + 1)]
             .first.push_back(total->GetParameter(6));
         // Error Params
-        ParamValueError["N_gauss_un_" + std::to_string(i + 1)].second.push_back(
-            gfit2->GetParError(0));
-        ParamValueError["mean_gauss_un_" + std::to_string(i + 1)]
-            .second.push_back(gfit2->GetParError(1));
-        ParamValueError["alpha_gauss_un_" + std::to_string(i + 1)]
-            .second.push_back(gfit2->GetParError(2));
-        ParamValueError["constant_gauss_un_" + std::to_string(i + 1)]
-            .second.push_back(gfit2->GetParError(3));
+        ParamValueError["N_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(0));
+        ParamValueError["mean_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(1));
+        ParamValueError["alpha_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(2));
+        ParamValueError["constant_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(3));
 
-        ParamValueError["N1_gauss_un_" + std::to_string(i + 1)]
-            .second.push_back(total->GetParError(0));
-        ParamValueError["mean1_2gauss_un_" + std::to_string(i + 1)]
-            .second.push_back(total->GetParError(1));
-        ParamValueError["sigma1_2gauss_un_" + std::to_string(i + 1)]
-            .second.push_back(total->GetParError(2));
-        ParamValueError["N2_2gauss_un_" + std::to_string(i + 1)]
-            .second.push_back(total->GetParError(3));
-        ParamValueError["mean2_2gauss_un_" + std::to_string(i + 1)]
-            .second.push_back(total->GetParError(4));
-        ParamValueError["sigma2_2gauss_un_" + std::to_string(i + 1)]
-            .second.push_back(total->GetParError(5));
-        ParamValueError["constant_2gauss_un_" + std::to_string(i + 1)]
-            .second.push_back(total->GetParError(6));
+        ParamValueError["N1_gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(0));
+        ParamValueError["mean1_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(1));
+        ParamValueError["sigma1_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(2));
+        ParamValueError["N2_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(3));
+        ParamValueError["mean2_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(4));
+        ParamValueError["sigma2_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(5));
+        ParamValueError["constant_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(6));
         // Real Window of interest
         std::cout << green << "Windows for signal :" << normal << std::endl;
-        for (unsigned int kk = 0; kk != Window.size(); ++kk) {
+        for (unsigned int kk = 0; kk != Window.size(); ++kk) 
+        {
           // unaligned
-          std::string gaussun = chan + "_" + std::to_string(Window[kk]) +
-                                "_0_Gaussian + constante_un";
-          std::string gauss2un1 = chan + "_" + std::to_string(Window[kk]) +
-                                  "_0_2 Gaussian1 + constante_un";
-          std::string gauss2un2 = chan + "_" + std::to_string(Window[kk]) +
-                                  "_0_2 Gaussian2 + constante_un";
-          double xmingaussun =
-              gfit2->GetParameter(1) - gfit2->GetParameter(2) * Window[kk];
-          double xmaxgaussun =
-              gfit2->GetParameter(1) + gfit2->GetParameter(2) * Window[kk];
+          std::string gaussun = chan + "_" + std::to_string(Window[kk]) +"_0_Gaussian + constante_un";
+          std::string gauss2un1 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian1 + constante_un";
+          std::string gauss2un2 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian2 + constante_un";
+          double xmingaussun =gfit2->GetParameter(1) - gfit2->GetParameter(2) * Window[kk];
+          double xmaxgaussun =gfit2->GetParameter(1) + gfit2->GetParameter(2) * Window[kk];
           std::cout << green << gaussun << " : [" << xmingaussun << ";"
                     << xmaxgaussun << "] sigma=" << gfit2->GetParameter(2)
                     << " mean=" << gfit2->GetParameter(1)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
-          if (xmingaussun >= 0 && xmaxgaussun <= TimeMax)
-            cham.SelectionTimes[read.getDAQFiles()[file]][gaussun] = {
-                xmingaussun, xmaxgaussun};
+          if(xmingaussun>=0&&xmaxgaussun<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gaussun]={xmingaussun, xmaxgaussun};
           else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
           // to select the right Gaussian
           int l = 0;
@@ -414,36 +405,25 @@ void Analysis::ShiftTimes()
           else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
           if (l == 3)l = 0;
           else l = 3;
-          double xmingauss2un2 = total->GetParameter(1 + l) -
-                                 total->GetParameter(2 + l) * Window[kk];
-          double xmaxgauss2un2 = total->GetParameter(1 + l) +
-                                 total->GetParameter(2 + l) * Window[kk];
+          double xmingauss2un2 = total->GetParameter(1 + l) -total->GetParameter(2 + l) * Window[kk];
+          double xmaxgauss2un2 = total->GetParameter(1 + l) +total->GetParameter(2 + l) * Window[kk];
           std::cout << green << gauss2un2 << " : [" << xmingauss2un2 << ";"
                     << xmaxgauss2un2 << "] sigma=" << total->GetParameter(2 + l)
                     << " mean=" << total->GetParameter(1 + l)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
-          if (xmingauss2un2 >= 0 && xmaxgauss2un2 <= TimeMax)
-            cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un2] = {
-                xmingauss2un2, xmaxgauss2un2};
+          if(xmingauss2un2>=0&&xmaxgauss2un2<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un2]={xmingauss2un2, xmaxgauss2un2};
           else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
           // aligned
-          std::string gaussal = chan + "_" + std::to_string(Window[kk]) +
-                                "_0_Gaussian + constante_al";
-          std::string gauss2al1 = chan + "_" + std::to_string(Window[kk]) +
-                                  "_0_2 Gaussian1 + constante_al";
-          std::string gauss2al2 = chan + "_" + std::to_string(Window[kk]) +
-                                  "_0_2 Gaussian2 + constante_al";
-          double xmingaussal =
-              gfit->GetParameter(1) - gfit->GetParameter(2) * Window[kk];
-          double xmaxgaussal =
-              gfit->GetParameter(1) + gfit->GetParameter(2) * Window[kk];
+          std::string gaussal = chan + "_" + std::to_string(Window[kk]) +"_0_Gaussian + constante_al";
+          std::string gauss2al1 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian1 + constante_al";
+          std::string gauss2al2 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian2 + constante_al";
+          double xmingaussal =gfit->GetParameter(1) - gfit->GetParameter(2) * Window[kk];
+          double xmaxgaussal =gfit->GetParameter(1) + gfit->GetParameter(2) * Window[kk];
           std::cout << green << gaussal << " : [" << xmingaussal << ";"
                     << xmaxgaussal << "] sigma=" << gfit->GetParameter(2)
                     << " mean=" << gfit->GetParameter(1)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
-          if (xmingaussal >= 0 && xmaxgaussal <= TimeMax)
-            cham.SelectionTimes[read.getDAQFiles()[file]][gaussal] = {
-                xmingaussal, xmaxgaussal};
+          if (xmingaussal>=0&&xmaxgaussal<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gaussal]={xmingaussal, xmaxgaussal};
           l = 0;
           if (total2->GetParameter(1) > total2->GetParameter(4))l = 3;
           //
@@ -453,9 +433,7 @@ void Analysis::ShiftTimes()
                     << xmaxgauss2al1 << "] sigma=" << total->GetParameter(2 + l)
                     << " mean=" << total->GetParameter(1 + l)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
-          if (xmingauss2al1 >= 0 && xmaxgauss2al1 <= TimeMax)
-            cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al1] = {
-                xmingauss2al1, xmaxgauss2al1};
+          if(xmingauss2al1>=0&&xmaxgauss2al1<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al1]={xmingauss2al1, xmaxgauss2al1};
           else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
           if (l == 3)l = 0;
           else l = 3;
@@ -1032,6 +1010,8 @@ int Analysis::Loop()
     gr1->Draw("a3P");
     gr2->Draw("SAME a3P");
     writeObject(comp, cc);
+    Sigmoide(gr1,out);
+    Sigmoide(gr2,out);
     delete cc;
     delete gr1;
     delete gr2;

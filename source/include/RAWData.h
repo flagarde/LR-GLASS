@@ -4,9 +4,9 @@
 class RAWData 
 {
   public:
-    int iEvent;     //Event i
-    int TDCNHits;   //Number of hits in event i
-    std::vector<int>* TDCCh;      //List of channels giving hits per event
-    std::vector<float>* TDCTS;      //List of the corresponding time stamps
+    int iEvent;
+    int TDCNHits;
+    std::vector<int>* TDCCh;
+    std::vector<float>* TDCTS;
 };
 #endif
