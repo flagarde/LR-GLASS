@@ -389,10 +389,10 @@ void Analysis::ShiftTimes()
           std::string gaussun = chan + "_" + std::to_string(Window[kk]) +"_0_Gaussian + constante_un";
           std::string gauss2un1 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian1 + constante_un";
           std::string gauss2un2 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian2 + constante_un";
-          double xmingaussun =gfit2->GetParameter(1) - gfit2->GetParameter(2) * Window[kk];
-          double xmaxgaussun =gfit2->GetParameter(1) + gfit2->GetParameter(2) * Window[kk];
+          double xmingaussun =gfit2->GetParameter(1) - fabs(gfit2->GetParameter(2)) * Window[kk];
+          double xmaxgaussun =gfit2->GetParameter(1) + fabs(gfit2->GetParameter(2)) * Window[kk];
           std::cout << green << gaussun << " : [" << xmingaussun << ";"
-                    << xmaxgaussun << "] sigma=" << gfit2->GetParameter(2)
+                    << xmaxgaussun << "] sigma=" << fabs(gfit2->GetParameter(2))
                     << " mean=" << gfit2->GetParameter(1)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
           if(xmingaussun>=0&&xmaxgaussun<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gaussun]={xmingaussun, xmaxgaussun};
@@ -400,18 +400,18 @@ void Analysis::ShiftTimes()
           // to select the right Gaussian
           int l = 0;
           if (total->GetParameter(1) > total->GetParameter(4))l = 3;
-          double xmingauss2un1 = total->GetParameter(1 + l) -total->GetParameter(2 + l) * Window[kk];
-          double xmaxgauss2un1 = total->GetParameter(1 + l) +total->GetParameter(2 + l) * Window[kk];
-          std::cout << green << gauss2un1 << " : [" << xmingauss2un1 << ";"<< xmaxgauss2un1 << "] sigma=" << total->GetParameter(2 + l)<< " mean=" << total->GetParameter(1 + l)<< "  nbrofsigma=" << Window[kk] << normal << std::endl;
+          double xmingauss2un1 = total->GetParameter(1 + l) -fabs(total->GetParameter(2 + l)) * Window[kk];
+          double xmaxgauss2un1 = total->GetParameter(1 + l) +fabs(total->GetParameter(2 + l)) * Window[kk];
+          std::cout << green << gauss2un1 << " : [" << xmingauss2un1 << ";"<< xmaxgauss2un1 << "] sigma=" << total->GetParameter(2 + l)<< " mean=" << fabs(total->GetParameter(1 + l))<< "  nbrofsigma=" << Window[kk] << normal << std::endl;
           if (xmingauss2un1 >= 0 && xmaxgauss2un1 <= TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un1] = {xmingauss2un1, xmaxgauss2un1};
           else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
           if (l == 3)l = 0;
           else l = 3;
-          double xmingauss2un2 = total->GetParameter(1 + l) -total->GetParameter(2 + l) * Window[kk];
-          double xmaxgauss2un2 = total->GetParameter(1 + l) +total->GetParameter(2 + l) * Window[kk];
+          double xmingauss2un2 = total->GetParameter(1 + l) -fabs(total->GetParameter(2 + l)) * Window[kk];
+          double xmaxgauss2un2 = total->GetParameter(1 + l) +fabs(total->GetParameter(2 + l)) * Window[kk];
           std::cout << green << gauss2un2 << " : [" << xmingauss2un2 << ";"
                     << xmaxgauss2un2 << "] sigma=" << total->GetParameter(2 + l)
-                    << " mean=" << total->GetParameter(1 + l)
+                    << " mean=" << fabs(total->GetParameter(1 + l))
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
           if(xmingauss2un2>=0&&xmaxgauss2un2<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un2]={xmingauss2un2, xmaxgauss2un2};
           else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
@@ -419,30 +419,30 @@ void Analysis::ShiftTimes()
           std::string gaussal = chan + "_" + std::to_string(Window[kk]) +"_0_Gaussian + constante_al";
           std::string gauss2al1 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian1 + constante_al";
           std::string gauss2al2 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian2 + constante_al";
-          double xmingaussal =gfit->GetParameter(1) - gfit->GetParameter(2) * Window[kk];
-          double xmaxgaussal =gfit->GetParameter(1) + gfit->GetParameter(2) * Window[kk];
+          double xmingaussal =gfit->GetParameter(1) - fabs(gfit->GetParameter(2)) * Window[kk];
+          double xmaxgaussal =gfit->GetParameter(1) + fabs(gfit->GetParameter(2)) * Window[kk];
           std::cout << green << gaussal << " : [" << xmingaussal << ";"
-                    << xmaxgaussal << "] sigma=" << gfit->GetParameter(2)
+                    << xmaxgaussal << "] sigma=" << fabs(gfit->GetParameter(2))
                     << " mean=" << gfit->GetParameter(1)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
           if (xmingaussal>=0&&xmaxgaussal<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gaussal]={xmingaussal, xmaxgaussal};
           l = 0;
           if (total2->GetParameter(1) > total2->GetParameter(4))l = 3;
           //
-          double xmingauss2al1 = total2->GetParameter(1 + l) -total2->GetParameter(2 + l) * Window[kk];
-          double xmaxgauss2al1 = total2->GetParameter(1 + l) +total2->GetParameter(2 + l) * Window[kk];
+          double xmingauss2al1 = total2->GetParameter(1 + l) -fabs(total2->GetParameter(2 + l)) * Window[kk];
+          double xmaxgauss2al1 = total2->GetParameter(1 + l) +fabs(total2->GetParameter(2 + l)) * Window[kk];
           std::cout << green << gauss2al1 << " : [" << xmingauss2al1 << ";"
-                    << xmaxgauss2al1 << "] sigma=" << total->GetParameter(2 + l)
+                    << xmaxgauss2al1 << "] sigma=" << fabs(total->GetParameter(2 + l))
                     << " mean=" << total->GetParameter(1 + l)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
           if(xmingauss2al1>=0&&xmaxgauss2al1<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al1]={xmingauss2al1, xmaxgauss2al1};
           else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
           if (l == 3)l = 0;
           else l = 3;
-          double xmingauss2al2 = total2->GetParameter(1 + l) -total2->GetParameter(2 + l) * Window[kk];
-          double xmaxgauss2al2 = total2->GetParameter(1 + l) +total2->GetParameter(2 + l) * Window[kk];
+          double xmingauss2al2 = total2->GetParameter(1 + l) -fabs(total2->GetParameter(2 + l)) * Window[kk];
+          double xmaxgauss2al2 = total2->GetParameter(1 + l) +fabs(total2->GetParameter(2 + l)) * Window[kk];
           std::cout << green << gauss2al2 << " : [" << xmingauss2al2 << ";"
-                    << xmaxgauss2al2 << "] sigma=" << total->GetParameter(2 + l)
+                    << xmaxgauss2al2 << "] sigma=" << fabs(total->GetParameter(2 + l))
                     << " mean=" << total->GetParameter(1 + l)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
           if (xmingauss2al2 >= 0 && xmaxgauss2al2 <= TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al2] = {xmingauss2al2, xmaxgauss2al2};
@@ -1103,7 +1103,9 @@ int Analysis::Loop()
                       "trigger's begining)",
                       stof(tmp2[1]), fabs(stof(tmp2[2])));
         ++aa;
-      } else if (stof(tmp2[2]) > 0) {
+      } 
+      else if (stof(tmp2[2]) > 0) 
+      {
         lll->second->SetMarkerStyle(21);
         lll->second->SetMarkerSize(1);
         lll->second->SetMarkerColor(kMagenta - bb);
@@ -1115,8 +1117,8 @@ int Analysis::Loop()
                       "trigger's end)",
                       stof(tmp2[1]), fabs(stof(tmp2[2])));
         ++bb;
-      } else {
-      }
+      } 
+      else ;
       std::string Xaxis = "";
       std::string Yaxis = "Efficiency";
       LabelXaxis(Xaxis);
