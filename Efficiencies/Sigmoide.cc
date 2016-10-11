@@ -107,16 +107,23 @@ void Sigmoide(string sName, int skip){
   lKnee->Draw();
   
   double WP = knee+150;
+  double add = (uLimit-lLimit)/11.; 
 
-  ltx->DrawLatex(knee-(uLimit-lLimit)/11.*4, 0.22, Form("WP = %.f V", WP));
-  ltx->DrawLatex(knee-(uLimit-lLimit)/11.*4, 0.15, Form("knee = %.f V", knee));
-  ltx->DrawLatex(knee-(uLimit-lLimit)/11.*4, 0.08, Form("HV(50%) = %.f V", p3));
+  if (knee > 10/11.*uLimit) add = -add*4;
+  ltx->DrawLatex(knee+add, 0.22, Form("WP = %.f V", WP));
+  ltx->DrawLatex(knee+add, 0.15, Form("knee = %.f V", knee));
+  ltx->DrawLatex(knee+add, 0.08, Form("HV(50%) = %.f V", p3));
 
   TLine* plateau = new TLine(lLimit-50, p1, uLimit+50, p1);
   plateau->SetLineStyle(2);
   plateau->Draw();
 
-  ltx->DrawLatex(lLimit+(uLimit-lLimit)/11., p1+0.04, Form("plateau = %.2f", p1));
+  add = (uLimit-lLimit)/11.;
+  
+  if ((knee - lLimit) < (uLimit-lLimit)*(3/11.)) add = knee + add;
+  else add = lLimit+add;
+
+  ltx->DrawLatex(add, p1+0.04, Form("plateau = %.2f", p1));
 
   cout << "knee = " << knee << endl;
 
@@ -127,5 +134,6 @@ void Sigmoide(string sName, int skip){
   c1->SaveAs(outName.c_str());
   
   Efficiency->Write();
+  fROOTStep.Close();
 
 }
