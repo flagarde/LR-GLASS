@@ -147,9 +147,11 @@ void Analysis::ShiftTimes()
     dataTree->SetBranchAddress("number_of_hits", &data.TDCNHits);
     dataTree->SetBranchAddress("TDC_channel", &data.TDCCh);
     dataTree->SetBranchAddress("TDC_TimeStamp", &data.TDCTS);
+    std::vector<int> u;
+    
     bool issmallchamber=false;
-    int u;
-    if(dataTree->SetBranchAddress("BIF_GTC", &u))
+    
+    if(dataTree->SetBranchAddress("BIF_GTC", &u)==0)
     {
       issmallchamber=true;
       std::cout<<"Is small chamber so I will not Fit anything ! "<<std::endl;
@@ -964,9 +966,6 @@ int Analysis::Loop()
           graph2[tmp[0]][tmp3[0]] = new TGraphErrors();
           point[tmp3[0]] = 0;
         }
-        // std::cout<<tmp3[0]<<"  "<<tmp[0]<<point[tmp3[0]]<<"
-        // "<<equiv[tmp3[1]]<<"
-        // "<<(it->second.first-(1-TMath::PoissonI(0,it->second.second*itt->second.second))/TMath::PoissonI(0,it->second.second*itt->second.second))<<endl;
         double effi_real = it->second.first;
         double effi_noise = itt->second.first;
         double k_factor=(1-TMath::PoissonI(0,itt->second.second*it->second.second))/(1-TMath::PoissonI(0,itt->second.second*timer[itt->first]));
@@ -1000,18 +999,22 @@ int Analysis::Loop()
     std::string comp1 = comp + "/Method1";
     std::string comp2 = comp + "/Method2";
     gr1->SetFillColor(kBlue);
+    gr1->SetTitle("Method1");
+    gr2->SetTitle("Method2");
     gr1->SetFillStyle(1001);
     gr2->SetFillColor(kRed);
     gr2->SetFillStyle(1001);
     gr1->Draw("a3P");
     writeObject(comp1, cc);
+    writeObject(comp1, gr1);
     gr2->Draw("a3P");
     writeObject(comp2, cc);
+    writeObject(comp2, gr2);
     gr1->Draw("a3P");
     gr2->Draw("SAME a3P");
     writeObject(comp, cc);
-    Sigmoide(gr1,out);
-    Sigmoide(gr2,out);
+    Sigmoide(gr1,out,itoo->first);
+    Sigmoide(gr2,out,itoo->first);
     delete cc;
     delete gr1;
     delete gr2;
@@ -1160,9 +1163,8 @@ int Analysis::Loop()
   TCanvas *can2 = new TCanvas("Combined2", "Combined2");
   int p = 0;
   int p2 = 0;
-  for (std::map<std::string, std::vector<double>>::iterator it =
-           Noise_Min.begin();
-       it != Noise_Min.end(); ++it) {
+  for (std::map<std::string, std::vector<double>>::iterator it =Noise_Min.begin();it != Noise_Min.end(); ++it) 
+  {
     TCanvas *cannn = new TCanvas(it->first.c_str(), it->first.c_str());
     TGraphAsymmErrors *gr11 = nullptr;
     cannn->cd();
@@ -1170,12 +1172,10 @@ int Analysis::Loop()
     std::string Yaxis = "";
     std::vector<std::string> tmp;
     tokenize(it->first, tmp, "_");
-    if (tmp[2] == "Noise") {
-
+    if (tmp[2] == "Noise") 
+    {
       Yaxis = "Noise in Hertz.cm-2";
-      gr11 = new TGraphAsymmErrors(
-          XS.size(), &(XS[0]), &(Noise_Max[it->first][0]), &(Vide[0]),
-          &(Vide[0]), &(Noise_Min[it->first][0]), &(Vide[0]));
+      gr11 = new TGraphAsymmErrors(XS.size(), &(XS[0]), &(Noise_Max[it->first][0]), &(Vide[0]),&(Vide[0]), &(Noise_Min[it->first][0]), &(Vide[0]));
       gr11->SetName(it->first.c_str());
       gr11->SetTitle(it->first.c_str());
       gr11->SetMarkerStyle(20);
@@ -1213,8 +1213,8 @@ int Analysis::Loop()
     cannn->cd();
     gr11->Draw("A3PL");
     writeObject(comp2, cannn);
-    delete cannn;
-    delete gr11;
+    //delete cannn;
+    //delete gr11;
   }
   std::string compp = "";
   if (p2 > 0) 
@@ -1233,9 +1233,9 @@ int Analysis::Loop()
     compp = "Hits_combined";
     writeObject(compp, can2);
   }
-  delete can1;
-  delete can2;
-  delete mg1;
-  delete mg2;
+  //delete can1;
+  //delete can2;
+  //delete mg1;
+  //delete mg2;
   return 1;
 }
