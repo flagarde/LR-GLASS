@@ -8,6 +8,7 @@ Partitions_Ch1=B1+B2+C1+C2
 TimeWindows_Ch1=100-500
 #ANALYSIS END.
 
+
 #VOL-THR-ATT-PUL:
 6000V_270mV
 6200V_270mV
@@ -42,7 +43,7 @@ TimeWindows_Ch1=100-500
 
 #PARAMETERS:
 CorrelationTime=0.2,0.4,0.6,0.8,1.0
-NoiseShift=-75,-100,-125,-150
+NoiseShift=75,100,125,150,-75,100,125,150
 NoiseWindows=25
 NumberOfSigmas=3
 #PARAMETERS END.
