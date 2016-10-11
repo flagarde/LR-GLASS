@@ -78,7 +78,7 @@ bool OutFileRoot::writeObject(std::string& dirName, TObject *object)
     nameobj=replaceStrChar(nameobj," ",'_');
     nameobj=replaceStrChar(nameobj,"+",'p');
     nameobj=replaceStrChar(nameobj,"-",'m');
-    std::string trdStylePLot="./Results/"+namek+nameobj+".png";
+    std::string trdStylePLot="./Results/"+namek+"/"+nameobj+".png";
     std::string repertory="mkdir -p ./Results/"+namek+"/";
     std::system(repertory.c_str());
     can->SaveAs(trdStylePLot.c_str(),"Q");

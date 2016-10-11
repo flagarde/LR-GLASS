@@ -8,7 +8,7 @@ add_compile_options(-std=c++1y)
 
 project( LRGRPC )
 set( ${PROJECT_NAME}_VERSION_MAJOR 4 )
-set( ${PROJECT_NAME}_VERSION_MINOR 0 )
+set( ${PROJECT_NAME}_VERSION_MINOR 5 )
 set( ${PROJECT_NAME}_VERSION_PATCH 0 )
 
 add_definitions( "-std=c++11 -Wall -ansi -Wno-long-long -Wno-sign-compare -fno-strict-aliasing -g -lpthread -ldl -lm" )
