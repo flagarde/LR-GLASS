@@ -113,6 +113,19 @@ void Analysis::ShiftTimes()
     cham.CreateTH1(th15, "Spatial", "Default");
     cham.CreateTH1(th11, "Time", "Default");
     cham.CreateTH1(th12, "Time", "Default");
+    TFile dataFile(read.getDAQFiles()[file].c_str());
+    if (dataFile.IsOpen() != true) 
+    {
+      std::cout << red << "Impossible to read " << read.getDAQFiles()[file]<< normal << std::endl;
+      std::exit(1);
+    }
+    TTree *dataTree = (TTree *)dataFile.Get("RAWData");
+    if (!dataTree) 
+    {
+      std::cout << red << "Impossible to read TTree RAWData" << normal<< std::endl;
+      delete dataTree;
+      std::exit(1);
+    }
     TH1F *Time_moy_per_chamber =new TH1F(th14.c_str(), th14.c_str(), read.getNbrChambers(), 1,read.getNbrChambers() + 1);
     for (std::vector<int>::iterator it = cham.Usefull_Strip.begin();it != cham.Usefull_Strip.end(); ++it) 
     {
@@ -125,18 +138,6 @@ void Analysis::ShiftTimes()
       int bin = ceil(max - min) + 1;
       time_dist_strip[*it] =new TH1F(name_root.c_str(), time_distr2.c_str(), bin, min, max);
       time_dist_strip2[*it] =new TH1F((name_root+" ").c_str(), time_distr22.c_str(), bin, min, max);
-    }
-    TFile dataFile(read.getDAQFiles()[file].c_str());
-    if (dataFile.IsOpen() != true) 
-    {
-      std::cout << red << "Impossible to read " << read.getDAQFiles()[file]<< normal << std::endl;
-      std::exit(1);
-    }
-    TTree *dataTree = (TTree *)dataFile.Get("RAWData");
-    if (!dataTree) 
-    {
-      std::cout << red << "Impossible to read TTree RAWData" << normal<< std::endl;
-      std::exit(1);
     }
     RAWData data;
     data.TDCCh = new std::vector<int>;   // List of hits and their channels
@@ -233,6 +234,7 @@ void Analysis::ShiftTimes()
         //cham.FillTH2(name3, data.TDCCh->at(h), data.TDCTS->at(h));
       }
     }
+    delete dataTree;
     cham.ScaleTime(name1, InHertzPerCm);
     for (unsigned int i = 0; i != read.getNbrChambers(); ++i) {
       double min =
@@ -346,28 +348,17 @@ void Analysis::ShiftTimes()
         leg2->Draw("same");
         out.writeObject(name1, Dist_Without_Alignment);
         // Params
-        ParamValueError["N_gauss_un_" + std::to_string(i + 1)].first.push_back(
-            gfit2->GetParameter(0));
-        ParamValueError["mean_gauss_un_" + std::to_string(i + 1)]
-            .first.push_back(gfit2->GetParameter(1));
-        ParamValueError["alpha_gauss_un_" + std::to_string(i + 1)]
-            .first.push_back(gfit2->GetParameter(2));
-        ParamValueError["constant_gauss_un_" + std::to_string(i + 1)]
-            .first.push_back(gfit2->GetParameter(3));
-        ParamValueError["N1_gauss_un_" + std::to_string(i + 1)].first.push_back(
-            total->GetParameter(0));
-        ParamValueError["mean1_2gauss_un_" + std::to_string(i + 1)]
-            .first.push_back(total->GetParameter(1));
-        ParamValueError["sigma1_2gauss_un_" + std::to_string(i + 1)]
-            .first.push_back(total->GetParameter(2));
-        ParamValueError["N2_2gauss_un_" + std::to_string(i + 1)]
-            .first.push_back(total->GetParameter(3));
-        ParamValueError["mean2_2gauss_un_" + std::to_string(i + 1)]
-            .first.push_back(total->GetParameter(4));
-        ParamValueError["sigma2_2gauss_un_" + std::to_string(i + 1)]
-            .first.push_back(total->GetParameter(5));
-        ParamValueError["constant_2gauss_un_" + std::to_string(i + 1)]
-            .first.push_back(total->GetParameter(6));
+        ParamValueError["N_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(0));
+        ParamValueError["mean_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(1));
+        ParamValueError["alpha_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(2));
+        ParamValueError["constant_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(3));
+        ParamValueError["N1_gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(0));
+        ParamValueError["mean1_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(1));
+        ParamValueError["sigma1_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(2));
+        ParamValueError["N2_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(3));
+        ParamValueError["mean2_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(4));
+        ParamValueError["sigma2_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(5));
+        ParamValueError["constant_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(6));
         // Error Params
         ParamValueError["N_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(0));
         ParamValueError["mean_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(1));
@@ -432,8 +423,8 @@ void Analysis::ShiftTimes()
           double xmingauss2al1 = total2->GetParameter(1 + l) -fabs(total2->GetParameter(2 + l)) * Window[kk];
           double xmaxgauss2al1 = total2->GetParameter(1 + l) +fabs(total2->GetParameter(2 + l)) * Window[kk];
           std::cout << green << gauss2al1 << " : [" << xmingauss2al1 << ";"
-                    << xmaxgauss2al1 << "] sigma=" << fabs(total->GetParameter(2 + l))
-                    << " mean=" << total->GetParameter(1 + l)
+                    << xmaxgauss2al1 << "] sigma=" << fabs(total2->GetParameter(2 + l))
+                    << " mean=" << total2->GetParameter(1 + l)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
           if(xmingauss2al1>=0&&xmaxgauss2al1<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al1]={xmingauss2al1, xmaxgauss2al1};
           else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
@@ -999,8 +990,10 @@ int Analysis::Loop()
     std::string comp1 = comp + "/Method1";
     std::string comp2 = comp + "/Method2";
     gr1->SetFillColor(kBlue);
-    gr1->SetTitle("Method1");
-    gr2->SetTitle("Method2");
+    gr1->SetTitle(((itoo->first)+"Method1").c_str());
+    gr1->SetName(((itoo->first)+"Method1").c_str());
+    gr2->SetTitle(((itoo->first)+"Method2").c_str());
+    gr2->SetName(((itoo->first)+"Method2").c_str());
     gr1->SetFillStyle(1001);
     gr2->SetFillColor(kRed);
     gr2->SetFillStyle(1001);
