@@ -109,7 +109,7 @@ void Sigmoide(string sName, int skip){
   double WP = knee+150;
   double add = (uLimit-lLimit)/11.; 
 
-  if (knee > 10/11.*uLimit) add = -add*4;
+  if (uLimit-knee < 4/11.*(uLimit-lLimit)) add = -add*4;
   ltx->DrawLatex(knee+add, 0.22, Form("WP = %.f V", WP));
   ltx->DrawLatex(knee+add, 0.15, Form("knee = %.f V", knee));
   ltx->DrawLatex(knee+add, 0.08, Form("HV(50%) = %.f V", p3));
@@ -133,7 +133,7 @@ void Sigmoide(string sName, int skip){
 
   c1->SaveAs(outName.c_str());
   
-  Efficiency->Write();
+  Efficiency->Write("Efficiency");
   fROOTStep.Close();
 
 }
