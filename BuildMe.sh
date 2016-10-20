@@ -20,6 +20,14 @@ CreateMakeFile()
   cmake ..
 }
 
+RemoveBuildDir()
+{
+  if [ -d build ];
+  then
+    rm -r build
+  fi
+}
+
 Compile()
 {
   echo "========================================================================="
@@ -38,4 +46,4 @@ CreateBuildDir
 cd build
 CreateMakeFile
 Compile
-
+RemoveBuildDir

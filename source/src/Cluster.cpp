@@ -172,17 +172,17 @@ double Cluster::getMeanResolution()
 
 double Cluster::getRMSNbrOfCluster()
 {
-  return nbr_cluster->GetRMS();
+  return nbr_cluster->GetRMS()*1.0/sqrt(cluster_multiplicity->GetEntries());
 }
 
 double Cluster::getRMSClusterSize()
 {
-  return cluster_multiplicity->GetRMS();
+  return cluster_multiplicity->GetRMS()*1.0/sqrt(cluster_multiplicity->GetEntries());
 }
 
 double Cluster::getRMSResolution()
 {
-  return Resolution->GetMean(3);
+  return Resolution->GetRMS(3)*1.0/sqrt(cluster_multiplicity->GetEntries());
 }
 
 Cluster::~Cluster()
