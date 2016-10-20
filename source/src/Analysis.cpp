@@ -536,8 +536,9 @@ void Analysis::ShiftTimes()
   }
 }
 
-void Analysis::Construct_Plot() 
+std::map<std::string,TGraphErrors*> Analysis::Construct_Plot() 
 {
+  std::map<std::string,TGraphErrors*> good;
   std::map<std::string, std::vector<double>> eff;
   std::map<std::string, std::vector<double>> eEff;
   std::map<std::string, std::vector<double>> vol;
@@ -630,11 +631,12 @@ void Analysis::Construct_Plot()
       }
     }
     TString nameee =Form("Efficiency/Chamber%s/%.2f sigma/Shifted %.2fns/%s",tmp[0].c_str(), stof(tmp[1]), stof(tmp[2]), tmp[3].c_str());
+    if(stof(tmp[2])==0) good[it->first]=gr;
     std::string namee = nameee.Data();
     // std::string name="Efficiency/Chamber"+tmp[0];
     out.writeObject(namee, gr);
-    delete gr;
   }
+  return good;
 }
 
 //-------------------------------------------------------
@@ -702,13 +704,13 @@ Analysis::Eff_ErrorEff(std::string &file)
     TFile dataFile(file.c_str());
     if (dataFile.IsOpen() != true) 
     {
-      eff[p].push_back({-1.0, -1.0});
+      eff[it->first].push_back({-1.0, -1.0});
       continue;
     }
     TTree *dataTree = (TTree *)dataFile.Get("RAWData");
     if (!dataTree) 
     {
-      eff[p].push_back({-1.0, -1.0});
+      eff[it->first].push_back({-1.0, -1.0});
       continue;
     }
     RAWData data;
@@ -879,7 +881,7 @@ Analysis::Eff_ErrorEff(std::string &file)
 int Analysis::Loop() 
 {
   ShiftTimes();
-  Construct_Plot();
+  std::map<std::string,TGraphErrors*> eff=Construct_Plot();
   std::vector<double> XS;
   if (read.getType() == "volEff" || read.getType() == "noisevolEff")XS = read.getVoltages();
   else if (read.getType() == "thrEff" || read.getType() == "noisethrEff")XS = read.getThresholds();
@@ -1006,13 +1008,14 @@ int Analysis::Loop()
     gr1->Draw("a3P");
     gr2->Draw("SAME a3P");
     writeObject(comp, cc);
-    Sigmoide(gr1,out,itoo->first);
-    Sigmoide(gr2,out,itoo->first);
+    Sigmoide(gr1,eff[itoo->first],out,itoo->first);
+    Sigmoide(gr2,eff[itoo->first],out,itoo->first);
     delete cc;
     delete gr1;
     delete gr2;
   }
-
+  for(std::map<std::string,TGraphErrors*>::iterator tt=eff.begin();tt!=eff.end();++tt) delete tt->second;
+  eff.clear();
   for (std::map<std::string, std::map<std::string, TGraphErrors *>>::iterator ittt = graph.begin();ittt != graph.end(); ++ittt) 
   {
     TCanvas *cann = new TCanvas(ittt->first.c_str(), ittt->first.c_str());

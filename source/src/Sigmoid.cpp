@@ -4,8 +4,11 @@
 #include"TLine.h"
 #include"TLatex.h"
 #include"TGraphAsymmErrors.h"
+#include"TGraphErrors.h"
 #include "OutFileRoot.h"
-void Sigmoide(TGraphAsymmErrors* Efficiency,OutFileRoot& out,std::string name)
+#include<iostream>
+#include"Colors.h"
+void Sigmoide(TGraphAsymmErrors* Efficiency,TGraphErrors* EfficiencyStat,OutFileRoot& out,std::string name)
 {  
   int lLimit=0; 
   int uLimit=0;
@@ -15,11 +18,17 @@ void Sigmoide(TGraphAsymmErrors* Efficiency,OutFileRoot& out,std::string name)
     double y=0.0;
     Efficiency->GetPoint(i, x, y);
     double errorY = Efficiency->GetErrorYlow(i);
+    double errorYlow_stat = EfficiencyStat->GetErrorYlow(i);
+    double errorYhigh_stat = EfficiencyStat->GetErrorYhigh(i);
+    double errorYhigh = sqrt(errorY/2*errorY/2+errorYhigh_stat*errorYhigh_stat);
+    double errorYlow = sqrt(errorY/2*errorY/2 + errorYlow_stat*errorYlow_stat);
     Efficiency->SetPoint(i, x, y-errorY/2);
-    Efficiency->SetPointEYhigh (i, errorY/2);
-    Efficiency->SetPointEYlow (i, errorY/2);
+    Efficiency->SetPointEYhigh (i, errorYhigh);
+    Efficiency->SetPointEYlow (i, errorYlow);
     if (i == 0) lLimit = x;
     else if (i == Efficiency->GetN()-1) uLimit = x;
+    std::cout<<yellow << "HV = " << x << " eff = "  << y-errorY/2 << " errorY = " << errorY/2 << " errorYhigh_stat = " << errorYhigh_stat << " errorYlow_stat = " << errorYlow_stat <<normal<<std::endl;
+    
   }
   int color = 2;
   int marker = 20;
@@ -58,14 +67,17 @@ void Sigmoide(TGraphAsymmErrors* Efficiency,OutFileRoot& out,std::string name)
   lKnee->SetLineStyle(2);
   lKnee->Draw();
   double WP = knee+150;
-  ltx->DrawLatex(knee-(uLimit-lLimit)/11.*4, 0.22, Form("WP = %.f V", WP));
-  ltx->DrawLatex(knee-(uLimit-lLimit)/11.*4, 0.15, Form("knee = %.f V", knee));
-  ltx->DrawLatex(knee-(uLimit-lLimit)/11.*4, 0.08, Form("HV(50%) = %.f V", p3));
+  double add = (uLimit-lLimit)/11.;
+  if (uLimit-knee < 4/11.*(uLimit-lLimit)) add = -add*4;
+  ltx->DrawLatex(knee+add, 0.22, Form("WP = %.f V", WP));
+  ltx->DrawLatex(knee+add, 0.15, Form("knee = %.f V", knee));
+  ltx->DrawLatex(knee+add, 0.08, Form("HV(50%) = %.f V", p3));
   TLine* plateau = new TLine(lLimit-50, p1, uLimit+50, p1);
   plateau->SetLineStyle(2);
   plateau->Draw();
-  ltx->DrawLatex(lLimit+(uLimit-lLimit)/11., p1+0.04, Form("plateau = %.2f", p1));
-  ltx->DrawLatex(lLimit+(uLimit-lLimit)/11., p1+0.04, Form("plateau = %.2f", p1));
+  if ((knee - lLimit) < (uLimit-lLimit)*(3/11.)) add = knee + add;
+  else add = lLimit+add;
+  ltx->DrawLatex(add, p1+0.04, Form("plateau = %.2f", p1));
   c1->Update();
   out.writeObject("Sigmoid",c1);
   delete c1;
