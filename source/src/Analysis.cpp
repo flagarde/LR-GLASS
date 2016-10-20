@@ -52,7 +52,8 @@ std::map<std::string, std::vector<double>> Mean_cluster_nbr;
 std::map<std::string, std::vector<double>> Standard_dev_cluster_nbr;
 std::map<std::string, std::vector<double>> Mean_Spatial_Resolution;
 std::map<std::string, std::vector<double>> Standard_dev_Spatial_Resolution;
-
+std::map<std::string, std::vector<double>> clusterwithsup7hits;
+std::map<std::string, std::vector<double>> clusterwithsup7hits_std;
 void Analysis::writeObject(std::string &dirName, TObject *object) 
 {
   out.writeObject(dirName, object);
@@ -678,7 +679,7 @@ Analysis::Eff_ErrorEff(std::string &file)
     
     ++nn;
     std::string p = it->first +"*"+ file;
-    Cluster clusters(7.0,2.0,p,cham,read);
+    Cluster clusters(7.0,3.0,p,cham,read);
     std::string n1 = std::to_string(nn);
     std::vector<std::string> lol;
     tokenize(it->first, lol, "_");
@@ -793,6 +794,10 @@ Analysis::Eff_ErrorEff(std::string &file)
       Standard_dev_cluster_nbr[it->first].push_back(clusters.getRMSNbrOfCluster());
       Mean_Spatial_Resolution[it->first].push_back(clusters.getMeanResolution());
       Standard_dev_Spatial_Resolution[it->first].push_back(clusters.getRMSResolution());
+      clusterwithsup7hits[it->first].push_back(clusters.getSup7hitCluster()[0]*1.0/nEntries);
+      clusterwithsup7hits_std[it->first].push_back(
+      sqrt(
+      (clusters.getSup7hitCluster()[0]*1.0/nEntries)*(1-(clusters.getSup7hitCluster()[0]*1.0/nEntries))/sqrt(nEntries)));
       clusters.write(out);
       eff[it->first].push_back({numGoodEvents[it->first] / nEntries,sqrt((numGoodEvents[it->first] *(nEntries - numGoodEvents[it->first])) /nEntries) /numGoodEvents[it->first]});
       if (stof(lol[2]) == 0) 
@@ -910,6 +915,10 @@ int Analysis::Loop()
     fd4->SetTitle((it->first + "_Mean_Noise_").c_str());
     writeObject(namee, fd4);
     delete fd4;
+    TGraphErrors *fd5 =new TGraphErrors(XS.size(), &(XS[0]), &(clusterwithsup7hits[it->first][0]),&(tmp4[0]), &(clusterwithsup7hits_std[it->first][0]));
+    fd5->SetTitle((it->first + "_Probability_to_hav_cluster_sup7_").c_str());
+    writeObject(namee, fd5);
+    delete fd5;
   }
   std::map<std::string, std::map<std::string, TGraphErrors *>> graph;
   std::map<std::string, std::map<std::string, TGraphErrors *>> graph2;

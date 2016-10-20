@@ -4,6 +4,7 @@
 #include "TProfile2D.h"
 #include "TObject.h"
 #include "OutFileRoot.h"
+#include<array>
 inline  bool comp(const std::pair<int, float> &a, const std::pair<int, float> &b) 
 {
   return a.second < b.second;
@@ -163,6 +164,14 @@ double Cluster::getMeanNbrOfCluster()
 double Cluster::getMeanClusterSize()
 {
   return cluster_multiplicity->GetMean();
+}
+
+std::array<double,2> Cluster::getSup7hitCluster()
+{
+  double error=0.0;
+  double value=cluster_multiplicity->IntegralAndError(7,120,error);
+  std::array<double,2>a={value,error};	
+  return a;
 }
 
 double Cluster::getMeanResolution()

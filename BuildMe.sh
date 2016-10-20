@@ -24,8 +24,9 @@ RemoveBuildDir()
 {
   if [ -d build ];
   then
-    rm -r build
+    rm -rf build
   fi
+  echo "Deleting build"
 }
 
 Compile()

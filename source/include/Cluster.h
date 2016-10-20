@@ -11,6 +11,7 @@
 #include "Chambers.h"
 #include "Reader.h"
 #include "OutFileRoot.h"
+#include <array>
 #define longueur_strip 20
 #define largeur_strip 1
 class Cluster
@@ -28,6 +29,7 @@ class Cluster
     double getRMSNbrOfCluster();
     double getRMSClusterSize();
     double getRMSResolution();
+    std::array<double,2>getSup7hitCluster();
     void run();
     void write(OutFileRoot&);
     Cluster()=delete;
