@@ -9,3 +9,5 @@ build/
 LRGRPC
 Results/
 !.CMakeLists.txt
+Data/
+

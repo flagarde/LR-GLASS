@@ -152,8 +152,7 @@ void Analysis::ShiftTimes()
     std::vector<int> u;
     
     bool issmallchamber=false;
-    
-    if(dataTree->SetBranchAddress("BIF_GTC", &u)==0)
+    if(dataTree->GetListOfBranches()->FindObject("BIF_TS"))
     {
       issmallchamber=true;
       std::cout<<"Is small chamber so I will not Fit anything ! "<<std::endl;
@@ -237,13 +236,10 @@ void Analysis::ShiftTimes()
     }
     delete dataTree;
     cham.ScaleTime(name1, InHertzPerCm);
-    for (unsigned int i = 0; i != read.getNbrChambers(); ++i) {
-      double min =
-          cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(i + 1)]
-              .first;
-      double max =
-          cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(1 + i)]
-              .second;
+    for (unsigned int i = 0; i != read.getNbrChambers(); ++i) 
+    {
+      double min =cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(i + 1)].first;
+      double max =cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(1 + i)].second;
       std::string chan = std::to_string(i + 1);
       if (read.getType() == "volEff" || read.getType() == "thrEff" ||read.getType() == "srcEff" || read.getType() == "PulEff") 
       {
@@ -255,59 +251,64 @@ void Analysis::ShiftTimes()
         std::string name_align = th12 + "_Chamber" + std::to_string(i + 1);
         Dist_With_Alignment->cd();
         cham.ReturnTH1(name_align)->Draw();
-        TF1 *gfit =new TF1("gfit", "[0]*exp(-0.5*((x-[1])/[2])^2)+[3]", min, max);
-        gfit->SetParameters(1.1, moy_time_chamber[i], 20.0, 1.0);
-        gfit->SetParNames("N", "mean", "sigma", "constant");
-        gfit->SetLineColor(kRed);
-        for(unsigned int i=0;i!=10;++i)
+        TF1 *gfit=nullptr;
+        TF1 *total2=nullptr;
+        TF1 *gfit2=nullptr;
+        TF1 *total=nullptr;
+        if(issmallchamber==false)
         {
+          gfit =new TF1("gfit", "[0]*exp(-0.5*((x-[1])/[2])^2)+[3]", min, max);
+          gfit->SetParameters(1.1, moy_time_chamber[i], 20.0, 1.0);
+          gfit->SetParNames("N", "mean", "sigma", "constant");
+          gfit->SetLineColor(kRed);
           cham.ReturnTH1(name_align)->Fit("gfit", "EM0QW");
-          gfit->SetParameters(gfit->GetParameter(0), gfit->GetParameter(1),gfit->GetParameter(2),gfit->GetParameter(3));
-        }
-        TF1 *total2 = new TF1("total2","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]*exp(-0.5*((x-[4])/[5])^2)+[6]",min, max);
-        total2->SetParameters(1.0, moy_time_chamber[i], 5.0, 1.0,moy_time_chamber[i]+10.0, 12.0,1.0);
-        total2->SetParNames("N1", "mean1", "sigma1", "N2", "mean2", "sigma2","constant");
-        total2->SetLineColor(kGreen);
-        for(unsigned int i=0;i!=10;++i)
-        {
+          total2 = new TF1("total2","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]*exp(-0.5*((x-[4])/[5])^2)+[6]",min, max);
+          total2->SetParameters(1.0, moy_time_chamber[i], 5.0, 1.0,moy_time_chamber[i]+10.0, 12.0,1.0);
+          total2->SetParNames("N1", "mean1", "sigma1", "N2", "mean2", "sigma2","constant");
+          total2->SetLineColor(kGreen);
           cham.ReturnTH1(name_align)->Fit("total2", "EM0QW");
-          total2->SetParameters(total2->GetParameter(0), total2->GetParameter(1),total2->GetParameter(2),total2->GetParameter(3),total2->GetParameter(4),total2->GetParameter(5),total2->GetParameter(6));
+          Dist_With_Alignment->Update();
+          gfit->Draw("same");
+          total2->Draw("same");
         }
-        Dist_With_Alignment->Update();
-        gfit->Draw("same");
-        total2->Draw("same");
         Dist_With_Alignment->Update();
         // Params
-        ParamValueError["N_gauss_al_" + std::to_string(i + 1)].first.push_back(gfit->GetParameter(0));
-        ParamValueError["mean_gauss_al_" + std::to_string(i + 1)].first.push_back(gfit->GetParameter(1));
-        ParamValueError["alpha_gauss_al_" + std::to_string(i + 1)].first.push_back(gfit->GetParameter(2));
-        ParamValueError["constant_gauss_al_" + std::to_string(i + 1)].first.push_back(gfit->GetParameter(3));
-        ParamValueError["N1_gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(0));
-        ParamValueError["mean1_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(1));
-        ParamValueError["sigma1_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(2));
-        ParamValueError["N2_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(3));
-        ParamValueError["mean2_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(4));
-        ParamValueError["sigma2_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(5));
-        ParamValueError["constant_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(6));
-        // Error Params
-        ParamValueError["N_gauss_al_" + std::to_string(i + 1)].second.push_back(gfit->GetParError(0));
-        ParamValueError["mean_gauss_al_" + std::to_string(i + 1)].second.push_back(gfit->GetParError(1));
-        ParamValueError["alpha_gauss_al_" + std::to_string(i + 1)].second.push_back(gfit->GetParError(2));
-        ParamValueError["constant_gauss_al_" + std::to_string(i + 1)].second.push_back(gfit->GetParError(3));
-        ParamValueError["N1_gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(0));
-        ParamValueError["mean1_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(1));
-        ParamValueError["sigma1_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(2));
-        ParamValueError["N2_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(3));
-        ParamValueError["mean2_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(4));
-        ParamValueError["sigma2_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(5));
-        ParamValueError["constant_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(6));
+        if(issmallchamber==false)
+        {
+          ParamValueError["N_gauss_al_" + std::to_string(i + 1)].first.push_back(gfit->GetParameter(0));
+          ParamValueError["mean_gauss_al_" + std::to_string(i + 1)].first.push_back(gfit->GetParameter(1));
+          ParamValueError["alpha_gauss_al_" + std::to_string(i + 1)].first.push_back(gfit->GetParameter(2));
+          ParamValueError["constant_gauss_al_" + std::to_string(i + 1)].first.push_back(gfit->GetParameter(3));
+          ParamValueError["N1_gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(0));
+          ParamValueError["mean1_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(1));
+          ParamValueError["sigma1_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(2));
+          ParamValueError["N2_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(3));
+          ParamValueError["mean2_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(4));
+          ParamValueError["sigma2_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(5));
+          ParamValueError["constant_2gauss_al_" + std::to_string(i + 1)].first.push_back(total2->GetParameter(6));
+          // Error Params
+          ParamValueError["N_gauss_al_" + std::to_string(i + 1)].second.push_back(gfit->GetParError(0));
+          ParamValueError["mean_gauss_al_" + std::to_string(i + 1)].second.push_back(gfit->GetParError(1));
+          ParamValueError["alpha_gauss_al_" + std::to_string(i + 1)].second.push_back(gfit->GetParError(2));
+          ParamValueError["constant_gauss_al_" + std::to_string(i + 1)].second.push_back(gfit->GetParError(3));
+          ParamValueError["N1_gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(0));
+          ParamValueError["mean1_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(1));
+          ParamValueError["sigma1_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(2));
+          ParamValueError["N2_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(3));
+          ParamValueError["mean2_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(4));
+          ParamValueError["sigma2_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(5));
+          ParamValueError["constant_2gauss_al_" + std::to_string(i + 1)].second.push_back(total2->GetParError(6));
+        }
         TLegend *leg = new TLegend(0.55, 0.2, 0.85, 0.5);
         std::string title = "Fits for the time distribution [" +std::to_string(int(min)) + ";" + std::to_string(int(max)) +"]";
         leg->SetTextSize(.020);
         leg->SetHeader(title.c_str()); // option "C" allows to center the header
         leg->AddEntry(cham.ReturnTH1(name_align), "Time distribution", "f");
-        leg->AddEntry("gfit", "Gaussian + constant fit", "l");
-        leg->AddEntry("total2", "Sum of two Gaussian + constant", "l");
+        if(issmallchamber==false)
+        {
+          leg->AddEntry("gfit", "Gaussian + constant fit", "l");
+          leg->AddEntry("total2", "Sum of two Gaussian + constant", "l");
+        }
         leg->Draw("same");
         out.writeObject(name1, Dist_With_Alignment);
         // unaligned times
@@ -317,128 +318,131 @@ void Analysis::ShiftTimes()
         std::string name_unalign = th11 + "_Chamber" + std::to_string(i + 1);
         Dist_Without_Alignment->cd();
         cham.ReturnTH1(name_unalign)->Draw();
-        TF1 *gfit2 =new TF1("gfit2", "[0]*exp(-0.5*((x-[1])/[2])^2)+[3]", min, max);
-        gfit2->SetParameters(1.1, moy_time_chamber[i], 20.0, 1.0);
-        gfit2->SetParNames("N", "mean", "alpha", "constant");
-        gfit2->SetLineColor(kRed);
-        for(unsigned int i=0;i!=10;++i)
+        if(issmallchamber==false)
         {
+          gfit2 =new TF1("gfit2", "[0]*exp(-0.5*((x-[1])/[2])^2)+[3]", min, max);
+          gfit2->SetParameters(1.1, moy_time_chamber[i], 20.0, 1.0);
+          gfit2->SetParNames("N", "mean", "alpha", "constant");
+          gfit2->SetLineColor(kRed);
           cham.ReturnTH1(name_unalign)->Fit("gfit2", "EM0QW");
           gfit2->SetParameters(gfit2->GetParameter(0),gfit2->GetParameter(1),gfit2->GetParameter(2),gfit2->GetParameter(3));
-        }
-        TF1 *total = new TF1("total","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]*exp(-0.5*((x-[4])/[5])^2)+[6]",min, max);
-        total->SetParameters(1.0, moy_time_chamber[i], 5.0, 1.0,moy_time_chamber[i]+10.0, 12.0,1.0);
-        total->SetParNames("N1", "mean1", "sigma1", "N2", "mean2", "sigma2","constant");
-        total->SetLineColor(kGreen);
-        for(unsigned int i=0;i!=10;++i)
-        {
+          total = new TF1("total","[0]*exp(-0.5*((x-[1])/[2])^2)+[3]*exp(-0.5*((x-[4])/[5])^2)+[6]",min, max);
+          total->SetParameters(1.0, moy_time_chamber[i], 5.0, 1.0,moy_time_chamber[i]+10.0, 12.0,1.0);
+          total->SetParNames("N1", "mean1", "sigma1", "N2", "mean2", "sigma2","constant");
+          total->SetLineColor(kGreen);
           cham.ReturnTH1(name_unalign)->Fit("total", "EM0QW");
           total->SetParameters(total->GetParameter(0), total->GetParameter(1),total->GetParameter(2),total->GetParameter(3),total->GetParameter(4),total->GetParameter(5),total->GetParameter(6));
+          Dist_Without_Alignment->Update();
+          gfit2->Draw("same");
+          total->Draw("same");
         }
-        Dist_Without_Alignment->Update();
-        gfit2->Draw("same");
-        total->Draw("same");
         Dist_Without_Alignment->Update();
         TLegend *leg2 = new TLegend(0.55, 0.2, 0.85, 0.5);
         std::string title2 = "Fits for the time distribution [" +std::to_string(int(min)) + ";" + std::to_string(int(max)) +"]";
         leg2->SetTextSize(.020);
         leg2->SetHeader(title2.c_str());
         leg2->AddEntry(cham.ReturnTH1(name_unalign), "Time distribution", "f");
-        leg2->AddEntry("gfit2", "Gaussian + constant fit", "l");
-        leg2->AddEntry("total", "Sum of two Gaussian + constant", "l");
+        if(issmallchamber==false)
+        {
+          leg2->AddEntry("gfit2", "Gaussian + constant fit", "l");
+          leg2->AddEntry("total", "Sum of two Gaussian + constant", "l");
+        }
         leg2->Draw("same");
         out.writeObject(name1, Dist_Without_Alignment);
-        // Params
-        ParamValueError["N_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(0));
-        ParamValueError["mean_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(1));
-        ParamValueError["alpha_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(2));
-        ParamValueError["constant_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(3));
-        ParamValueError["N1_gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(0));
-        ParamValueError["mean1_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(1));
-        ParamValueError["sigma1_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(2));
-        ParamValueError["N2_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(3));
-        ParamValueError["mean2_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(4));
-        ParamValueError["sigma2_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(5));
-        ParamValueError["constant_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(6));
-        // Error Params
-        ParamValueError["N_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(0));
-        ParamValueError["mean_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(1));
-        ParamValueError["alpha_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(2));
-        ParamValueError["constant_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(3));
-
-        ParamValueError["N1_gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(0));
-        ParamValueError["mean1_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(1));
-        ParamValueError["sigma1_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(2));
-        ParamValueError["N2_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(3));
-        ParamValueError["mean2_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(4));
-        ParamValueError["sigma2_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(5));
-        ParamValueError["constant_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(6));
-        // Real Window of interest
-        std::cout << green << "Windows for signal :" << normal << std::endl;
-        for (unsigned int kk = 0; kk != Window.size(); ++kk) 
+        if(issmallchamber==false)
         {
-          // unaligned
-          std::string gaussun = chan + "_" + std::to_string(Window[kk]) +"_0_Gaussian + constante_un";
-          std::string gauss2un1 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian1 + constante_un";
-          std::string gauss2un2 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian2 + constante_un";
-          double xmingaussun =gfit2->GetParameter(1) - fabs(gfit2->GetParameter(2)) * Window[kk];
-          double xmaxgaussun =gfit2->GetParameter(1) + fabs(gfit2->GetParameter(2)) * Window[kk];
-          std::cout << green << gaussun << " : [" << xmingaussun << ";"
+          // Params
+          ParamValueError["N_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(0));
+          ParamValueError["mean_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(1));
+          ParamValueError["alpha_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(2));
+          ParamValueError["constant_gauss_un_" + std::to_string(i + 1)].first.push_back(gfit2->GetParameter(3));
+          ParamValueError["N1_gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(0));
+          ParamValueError["mean1_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(1));
+          ParamValueError["sigma1_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(2));
+          ParamValueError["N2_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(3));
+          ParamValueError["mean2_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(4));
+          ParamValueError["sigma2_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(5));
+          ParamValueError["constant_2gauss_un_" + std::to_string(i + 1)].first.push_back(total->GetParameter(6));
+          // Error Params
+          ParamValueError["N_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(0));
+          ParamValueError["mean_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(1));
+          ParamValueError["alpha_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(2));
+          ParamValueError["constant_gauss_un_" + std::to_string(i + 1)].second.push_back(gfit2->GetParError(3));
+
+          ParamValueError["N1_gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(0));
+          ParamValueError["mean1_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(1));
+          ParamValueError["sigma1_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(2));
+          ParamValueError["N2_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(3));
+          ParamValueError["mean2_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(4));
+          ParamValueError["sigma2_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(5));
+          ParamValueError["constant_2gauss_un_" + std::to_string(i + 1)].second.push_back(total->GetParError(6));
+        // Real Window of interest
+          std::cout << green << "Windows for signal :" << normal << std::endl;
+          for (unsigned int kk = 0; kk != Window.size(); ++kk) 
+          {
+            // unaligned
+            std::string gaussun = chan + "_" + std::to_string(Window[kk]) +"_0_Gaussian + constante_un";
+            std::string gauss2un1 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian1 + constante_un";
+            std::string gauss2un2 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian2 + constante_un";
+            double xmingaussun =gfit2->GetParameter(1) - fabs(gfit2->GetParameter(2)) * Window[kk];
+            double xmaxgaussun =gfit2->GetParameter(1) + fabs(gfit2->GetParameter(2)) * Window[kk];
+            std::cout << green << gaussun << " : [" << xmingaussun << ";"
                     << xmaxgaussun << "] sigma=" << fabs(gfit2->GetParameter(2))
                     << " mean=" << gfit2->GetParameter(1)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
-          if(xmingaussun>=0&&xmaxgaussun<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gaussun]={xmingaussun, xmaxgaussun};
-          else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
-          // to select the right Gaussian
-          int l = 0;
-          if (total->GetParameter(1) > total->GetParameter(4))l = 3;
-          double xmingauss2un1 = total->GetParameter(1 + l) -fabs(total->GetParameter(2 + l)) * Window[kk];
-          double xmaxgauss2un1 = total->GetParameter(1 + l) +fabs(total->GetParameter(2 + l)) * Window[kk];
-          std::cout << green << gauss2un1 << " : [" << xmingauss2un1 << ";"<< xmaxgauss2un1 << "] sigma=" << total->GetParameter(2 + l)<< " mean=" << fabs(total->GetParameter(1 + l))<< "  nbrofsigma=" << Window[kk] << normal << std::endl;
-          if (xmingauss2un1 >= 0 && xmaxgauss2un1 <= TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un1] = {xmingauss2un1, xmaxgauss2un1};
-          else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
-          if (l == 3)l = 0;
-          else l = 3;
-          double xmingauss2un2 = total->GetParameter(1 + l) -fabs(total->GetParameter(2 + l)) * Window[kk];
-          double xmaxgauss2un2 = total->GetParameter(1 + l) +fabs(total->GetParameter(2 + l)) * Window[kk];
-          std::cout << green << gauss2un2 << " : [" << xmingauss2un2 << ";"
+            if(xmingaussun>=0&&xmaxgaussun<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gaussun]={xmingaussun, xmaxgaussun};
+            else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
+            // to select the right Gaussian
+            int l = 0;
+            if (total->GetParameter(1) > total->GetParameter(4))l = 3;
+            double xmingauss2un1 = total->GetParameter(1 + l) -fabs(total->GetParameter(2 + l)) * Window[kk];
+            double xmaxgauss2un1 = total->GetParameter(1 + l) +fabs(total->GetParameter(2 + l)) * Window[kk];
+            std::cout << green << gauss2un1 << " : [" << xmingauss2un1 << ";"<< xmaxgauss2un1 << "] sigma=" << total->GetParameter(2 + l)<< " mean=" << fabs(total->GetParameter(1 + l))<< "  nbrofsigma=" << Window[kk] << normal << std::endl;
+            if (xmingauss2un1 >= 0 && xmaxgauss2un1 <= TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un1] = {xmingauss2un1, xmaxgauss2un1};
+            else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
+            if (l == 3)l = 0;
+            else l = 3;
+            double xmingauss2un2 = total->GetParameter(1 + l) -fabs(total->GetParameter(2 + l)) * Window[kk];
+            double xmaxgauss2un2 = total->GetParameter(1 + l) +fabs(total->GetParameter(2 + l)) * Window[kk];
+            std::cout << green << gauss2un2 << " : [" << xmingauss2un2 << ";"
                     << xmaxgauss2un2 << "] sigma=" << total->GetParameter(2 + l)
                     << " mean=" << fabs(total->GetParameter(1 + l))
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
-          if(xmingauss2un2>=0&&xmaxgauss2un2<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un2]={xmingauss2un2, xmaxgauss2un2};
-          else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
-          // aligned
-          std::string gaussal = chan + "_" + std::to_string(Window[kk]) +"_0_Gaussian + constante_al";
-          std::string gauss2al1 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian1 + constante_al";
-          std::string gauss2al2 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian2 + constante_al";
-          double xmingaussal =gfit->GetParameter(1) - fabs(gfit->GetParameter(2)) * Window[kk];
-          double xmaxgaussal =gfit->GetParameter(1) + fabs(gfit->GetParameter(2)) * Window[kk];
-          std::cout << green << gaussal << " : [" << xmingaussal << ";"
+            if(xmingauss2un2>=0&&xmaxgauss2un2<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2un2]={xmingauss2un2, xmaxgauss2un2};
+            else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
+            // aligned
+            std::string gaussal = chan + "_" + std::to_string(Window[kk]) +"_0_Gaussian + constante_al";
+            std::string gauss2al1 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian1 + constante_al";
+            std::string gauss2al2 = chan + "_" + std::to_string(Window[kk]) +"_0_2 Gaussian2 + constante_al";
+            double xmingaussal =gfit->GetParameter(1) - fabs(gfit->GetParameter(2)) * Window[kk];
+            double xmaxgaussal =gfit->GetParameter(1) + fabs(gfit->GetParameter(2)) * Window[kk];
+            std::cout << green << gaussal << " : [" << xmingaussal << ";"
                     << xmaxgaussal << "] sigma=" << fabs(gfit->GetParameter(2))
                     << " mean=" << gfit->GetParameter(1)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
-          if (xmingaussal>=0&&xmaxgaussal<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gaussal]={xmingaussal, xmaxgaussal};
-          l = 0;
-          if (total2->GetParameter(1) > total2->GetParameter(4))l = 3;
-          //
-          double xmingauss2al1 = total2->GetParameter(1 + l) -fabs(total2->GetParameter(2 + l)) * Window[kk];
-          double xmaxgauss2al1 = total2->GetParameter(1 + l) +fabs(total2->GetParameter(2 + l)) * Window[kk];
-          std::cout << green << gauss2al1 << " : [" << xmingauss2al1 << ";"
+            if (xmingaussal>=0&&xmaxgaussal<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gaussal]={xmingaussal, xmaxgaussal};
+            l = 0;
+            if (total2->GetParameter(1) > total2->GetParameter(4))l = 3;
+            //
+            double xmingauss2al1 = total2->GetParameter(1 + l) -fabs(total2->GetParameter(2 + l)) * Window[kk];
+            double xmaxgauss2al1 = total2->GetParameter(1 + l) +fabs(total2->GetParameter(2 + l)) * Window[kk];
+            std::cout << green << gauss2al1 << " : [" << xmingauss2al1 << ";"
                     << xmaxgauss2al1 << "] sigma=" << fabs(total2->GetParameter(2 + l))
                     << " mean=" << total2->GetParameter(1 + l)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
-          if(xmingauss2al1>=0&&xmaxgauss2al1<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al1]={xmingauss2al1, xmaxgauss2al1};
-          else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
-          if (l == 3)l = 0;
-          else l = 3;
-          double xmingauss2al2 = total2->GetParameter(1 + l) -fabs(total2->GetParameter(2 + l)) * Window[kk];
-          double xmaxgauss2al2 = total2->GetParameter(1 + l) +fabs(total2->GetParameter(2 + l)) * Window[kk];
-          std::cout << green << gauss2al2 << " : [" << xmingauss2al2 << ";"
+            if(xmingauss2al1>=0&&xmaxgauss2al1<=TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al1]={xmingauss2al1, xmaxgauss2al1};
+            else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
+            if (l == 3)l = 0;
+            else l = 3;
+            double xmingauss2al2 = total2->GetParameter(1 + l) -fabs(total2->GetParameter(2 + l)) * Window[kk];
+            double xmaxgauss2al2 = total2->GetParameter(1 + l) +fabs(total2->GetParameter(2 + l)) * Window[kk];
+            std::cout << green << gauss2al2 << " : [" << xmingauss2al2 << ";"
                     << xmaxgauss2al2 << "] sigma=" << fabs(total->GetParameter(2 + l))
                     << " mean=" << total->GetParameter(1 + l)
                     << "  nbrofsigma=" << Window[kk] << normal << std::endl;
-          if (xmingauss2al2 >= 0 && xmaxgauss2al2 <= TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al2] = {xmingauss2al2, xmaxgauss2al2};
-          else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
+            if (xmingauss2al2 >= 0 && xmaxgauss2al2 <= TimeMax)cham.SelectionTimes[read.getDAQFiles()[file]][gauss2al2] = {xmingauss2al2, xmaxgauss2al2};
+            else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
+          }
         }
         delete gfit2;
         delete leg2;
