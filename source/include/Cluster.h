@@ -12,8 +12,6 @@
 #include "Reader.h"
 #include "OutFileRoot.h"
 #include <array>
-#define longueur_strip 20
-#define largeur_strip 1
 class Cluster
 {
   public:
@@ -52,5 +50,6 @@ class Cluster
     TProfile2D* Resolution;
     Chambers& cham;
     Reader& read;
+    
 };
 #endif

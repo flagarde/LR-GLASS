@@ -7,6 +7,7 @@
 void ReaderCSV::setType(){;}
 void ReaderCSV::setMask(){;}
 void ReaderCSV::setMapping(){;}
+void ReaderCSV::setDimensions(){;}
 void ReaderCSV::setDAQFiles(){;}
 void ReaderCSV::setCAENFiles(){;}
 void ReaderCSV::setParameters(){;}

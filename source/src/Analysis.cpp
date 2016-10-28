@@ -33,13 +33,13 @@ bool comp(const std::pair<int, float> &a, const std::pair<int, float> &b)
   return a.second < b.second;
 }
 
-#define longueur_strip 20
-#define largeur_strip 1
-#define area_strip longueur_strip*largeur_strip
+
 #define timespilltotal 45
 #define timespill 7
 double trigger_max = 0;
-
+double longueur_strip=20.0;
+double largeur_strip=1.0;
+double area_strip=longueur_strip*largeur_strip;
 std::map<std::string, std::pair<double, double>> real_comp_eff;
 std::map<std::string, std::pair<double, double>> real_comp_efff;
 std::map<std::string, std::pair<double, double>> comp_eff;
@@ -155,7 +155,7 @@ void Analysis::ShiftTimes()
     if(dataTree->GetListOfBranches()->FindObject("BIF_TS"))
     {
       issmallchamber=true;
-      std::cout<<"Is small chamber so I will not Fit anything ! "<<std::endl;
+      std::cout<<"Is small chamber so I will fit anything ! "<<std::endl;
     }
     unsigned int nEntries = dataTree->GetEntries();
     for (unsigned int i = 0; i < nEntries; i++) 
@@ -177,7 +177,7 @@ void Analysis::ShiftTimes()
     for (unsigned int i = 0; i != read.getNbrChambers(); ++i) 
     {
       double duration_window=(cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(i + 1)].second -cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(1 + i)].first);
-      InHertzPerCm[i + 1] =1.0 /(nEntries*1.0e-9*area_strip*duration_window);
+      InHertzPerCm[i + 1] =1.0 /(nEntries*1.0e-9*read.getDimensions()[std::to_string(i+1)][0]*read.getDimensions()[std::to_string(i+1)][1]*duration_window);
     }
     for (unsigned int i = 0; i < nEntries; i++) 
     {
@@ -349,6 +349,14 @@ void Analysis::ShiftTimes()
         }
         leg2->Draw("same");
         out.writeObject(name1, Dist_Without_Alignment);
+        if(issmallchamber==true)
+        {
+            std::string un = chan + "_0_0_Small Chamber_un";
+            std::string al = chan + "_0_0_Small Chamber_al";
+            cham.SelectionTimes[read.getDAQFiles()[file]][un]={cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(i + 1)].first, cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(1 + i)].second};
+                      cham.SelectionTimes[read.getDAQFiles()[file]][al]={cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(i + 1)].first, cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(1 + i)].second};
+            std::cout<<"Window signal ["<<cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(i + 1)].first<<";"<<cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(i + 1)].second<<"]"<<std::endl;
+        }
         if(issmallchamber==false)
         {
           // Params
@@ -741,7 +749,7 @@ Analysis::Eff_ErrorEff(std::string &file)
     std::map<int, double> InHertzPerCm;
     for (unsigned int i = 0; i != read.getNbrChambers(); ++i) 
     {
-      InHertzPerCm[i + 1] =1.0 / (1.0e-9 * nEntries * (it->second.second - it->second.first) *area_strip);
+      InHertzPerCm[i + 1] =1.0 / (1.0e-9 * nEntries * (it->second.second - it->second.first) *read.getDimensions()[std::to_string(i+1)][0]*read.getDimensions()[std::to_string(i+1)][1]);
     }
     int totalisCh = 0;
     for (unsigned int i = 0; i < nEntries; i++) 
@@ -821,16 +829,12 @@ Analysis::Eff_ErrorEff(std::string &file)
       if (duration != -1)cham.ScaleTime(fr, InHertzPerCm);
       int nbrpar = read.getSpatialWindows()[lolll[0]].size();
       double val = cham.ReturnTH2(name)->Integral() / (16 * nbrpar);
-      double result = hhh / ((16 * nbrpar) * area_strip * 1.0e-9 *(it->second.second - it->second.first) * nEntries);
-      std::cout << blue << " windows nanosecondes "
-              << 1.0e-9 * (it->second.second - it->second.first) << " area "
-              << area_strip << " nbrtiggers " << nEntries << normal
-              << std::endl;
-    std::cout << blue << " nbr strips " << (16 * nbrpar) << " nbr hits" << hhh
-              << " result "
-              << hhh / (1.0e-9 * (it->second.second - it->second.first) *
-                        area_strip * nEntries * (16 * nbrpar))
-              << " mon calcul" << result << normal << std::endl;
+      double result = hhh / ((16 * nbrpar) * read.getDimensions()[lol[0]][0]*read.getDimensions()[lol[0]][1] * 1.0e-9 *(it->second.second - it->second.first) * nEntries);
+      if(stof(lol[1])==0)std::cout <<red<<"Signal region ["<<it->second.first<<";"<<it->second.second<<"]";
+      else std::cout <<green<<"Noise region ["<<it->second.first<<";"<<it->second.second<<"]";
+      std::cout<<" chamber"<<lol[0]<< " windows_nanosecondes : "<< 1.0e-9 * (it->second.second - it->second.first) << " area : "
+              << read.getDimensions()[lol[0]][0]*read.getDimensions()[lol[0]][1] << " nbrtiggers : " << nEntries;
+    std::cout << " nbr strips : " << (16 * nbrpar) << " nbr hits : " << hhh<< " nbr hits.cm-2.s-1 : " << result << normal << std::endl;
     // std::cout<<red<<nbrpar<<"
     // "<<InHertzPerCm[std::stoi(lolll[0])]<<normal<<std::endl;
     // if(isnan(double(val))==true)val=0;

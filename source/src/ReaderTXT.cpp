@@ -26,6 +26,7 @@ ReaderTXT::ReaderTXT(std::string& aname):name(aname)
   setParameters();
   setMapping();
   setConditions();
+  setDimensions();
   PrintConfig();
 }
 
@@ -309,7 +310,7 @@ void ReaderTXT::setSpatialWindows()
       {
         std::vector<std::string> token;
         tokenize(line,token,"=");
-        if(token.size()!=2)
+        if(token.size()!=2&&token[0].find("Partitions_Ch")!=std::string::npos)
         {
           std::cout<<red<<"Please provide Partitions_Ch{NbrChamber}=Partition+Partition..."<<normal<<std::endl;
           std::exit(1);
@@ -335,6 +336,62 @@ void ReaderTXT::setSpatialWindows()
     std::exit(1);
   }
 }
+
+void ReaderTXT::setDimensions()
+{
+  for(unsigned int i=0;i!=ToVerify.size();++i)
+  {
+    Dimensions[ToVerify[i]]={1.0,20.0};
+  }
+  bool read=false;
+  std::string line;
+  std::ifstream myfile(name);
+  if(myfile.is_open())
+  {
+    while(getline(myfile,line))
+    {
+      if(line=="#ANALYSIS END.") read = false;
+      if(read)
+      {
+        std::vector<std::string> token;
+        tokenize(line,token,"=");
+        if(token.size()!=2&&token[0].find("Dimensions_Ch")!=std::string::npos)
+        {
+          std::cout<<red<<"Please provide Dimensions_Ch{NbrChamber}={width}*{length}"<<normal<<std::endl;
+          std::exit(1);
+        }
+        if(token[0].find("Dimensions_Ch")!=std::string::npos)
+        {
+            std::vector<std::string> token2;
+            tokenize(token[1],token2,"*");
+            if(token2.size()!=2)
+            {
+                std::cout<<red<<"Please provide Dimensions_Ch{NbrChamber}={width}*{length}"<<normal<<std::endl;
+                std::exit(1);
+            }
+        }
+        for(unsigned int o=0;o!=ToVerify.size();++o)
+        {
+          if(token[0]=="Dimensions_Ch"+ToVerify[o]) 
+          {
+            std::vector<std::string> token2;
+            tokenize(token[1],token2,"*");
+            Dimensions[ToVerify[o]]={stod(token2[0]),stod(token2[1])};
+          } 
+        }
+      }
+      if(line=="#ANALYSIS:") read = true;
+    }
+    myfile.close(); 
+  }
+  else std::cout<<"Impossible to find "<<name<<" !!"<<std::endl;
+  if(SpatialWindows.size()!=NbrChambers) 
+  {
+    std::cout<<red<<"Partitions_Ch{NbrChamber} parameter is missing for some Chambers"<<normal<<std::endl;
+    std::exit(1);
+  }
+}
+
 
 void ReaderTXT::setTimeWindows()
 {

@@ -12,6 +12,7 @@ class ReaderCSV:public Reader
   ~ReaderCSV(){};
   void setType();
   void setMask();
+  void setDimensions();
   void setMapping();
   void setDAQFiles();
   void setCAENFiles();

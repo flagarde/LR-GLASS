@@ -12,6 +12,7 @@ class ReaderTXT:public Reader
   ~ReaderTXT(){};
   void setType();
   void setMask();
+  void setDimensions();
   void setMapping();
   void setDAQFiles();
   void setCAENFiles();

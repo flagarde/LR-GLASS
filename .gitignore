@@ -3,11 +3,11 @@
 *.png
 .txt
 lrGlass
-GIF/*
-H2/*
-build/
+GIF/**/
+H2/**/
+build/*
 LRGRPC
-Results/
+Results/**/
 !.CMakeLists.txt
-Data/
+Data/**/
 

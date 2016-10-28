@@ -13,6 +13,7 @@ class Reader
   virtual void setMask()=0;
   virtual void setMapping()=0;
   virtual void setDAQFiles()=0;
+  virtual void setDimensions()=0;
   virtual void setCAENFiles()=0;
   virtual void setParameters()=0;
   virtual void setNbrChambers()=0;
@@ -30,6 +31,7 @@ class Reader
   std::set<int>& getMask();
   std::map<std::string,int>& getMapping();
   std::map<std::string,bool>& getInvertedMapping();
+  std::map<std::string,std::vector<double>>& getDimensions();
   std::vector<std::string>& getDAQFiles();
   std::vector<std::string>& getCAENFiles();
   std::map<std::string,std::string>& getParameters();
@@ -49,6 +51,7 @@ class Reader
   std::map<std::string,std::string>Parameters;
   std::map<std::string,std::vector<std::string>>SpatialWindows;
   std::map<std::string,std::vector<std::string>>TimeWindows;
+  std::map<std::string,std::vector<double>>Dimensions;
   std::vector<double>Voltages;
   std::vector<double>Attenuators;
   std::vector<double>Thresholds;
