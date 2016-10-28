@@ -10,7 +10,7 @@ Content:
 * source	: Source files
 * cards		: Cards files
 * BuildMe.sh    : Script to compile the program
-* RunMe.sh      : Just run ./RunMe.sh cards and take a cofee ;)
+* RunMe.sh      : Just run ./RunMe.sh path_to_cards and take a cofee ;)
   
   >One script to rule them all, 
   >One script to find them, 
@@ -18,9 +18,9 @@ Content:
 
 Syntax:
 --------------------------------------------------------------------------------
-./lrGlass outputFile.root card.txt 
+./LRGRPC outputFile.root card.txt 
 
-for help execute: ./lrGlass
+for help execute: ./LRGRPC
 
 
 
