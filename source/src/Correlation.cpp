@@ -138,7 +138,7 @@ void Cluster::run()
     center->Fill(ceil(sumpos * 1.0 / ClusterG2[kpk].size()));
     std::pair<int, int> str = cham.FindPosition(stripnewold[std::round(sumpos * 1.0 / ClusterG2[kpk].size())]);
     std::string chambre=cham.FindChamber(stripnewold[std::round(sumpos * 1.0 / ClusterG2[kpk].size())]);
-    //Resolution->Fill((str.first * 2 + 1) * 100, str.second,(posmax - posmin) * read.getDimensions()[chambre][0] * 1.0 / sqrt(12));
+    Resolution->Fill((str.first * 2 + 1) * 100, str.second,(posmax - posmin) * read.getDimensions()[chambre][0] * 1.0 / sqrt(12));
     //cham.FillTH2(fr3, stripnewold[std::round(std::round(sumpos * 1.0 / ClusterG2[kpk].size()))]);
   }
   Clear();

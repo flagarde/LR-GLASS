@@ -8,5 +8,6 @@ class RAWData
     int TDCNHits;
     std::vector<int>* TDCCh;
     std::vector<float>* TDCTS;
+    std::vector<int>* Thres;
 };
 #endif

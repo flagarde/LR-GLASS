@@ -23,7 +23,7 @@ std::pair<int, int> Chambers::FindPosition(int strip)
     if (diff >= 0 && diff < 16) 
     {
       if (read.getInvertedMapping()[it->first] == true)diff = 15 - diff;
-      a={StripShift[it->first.substr(1, 2)].first,StripShift[it->first.substr(1, 2)].second + diff};
+      a={StripShift[FindPartition(strip)].first,StripShift[FindPartition(strip)].second + diff};
       break;
     }
   }
@@ -46,23 +46,40 @@ int Chambers::FindStrip(int strip)
   return ret;
 }
 
-std::string Chambers::FindChamber(int strip) {
-  for (std::map<std::string, int>::iterator it = read.getMapping().begin();
-       it != read.getMapping().end(); ++it) {
+std::string Chambers::FindChamber(int strip) 
+{
+  static std::vector<std::string>letters={"A","B","C","D"};
+  for (std::map<std::string, int>::iterator it = read.getMapping().begin();it != read.getMapping().end(); ++it) 
+  {
     int diff = strip - it->second;
-    if (diff >= 0 && diff < 16) {
-      return it->first.substr(0, 1);
+    if (diff >= 0 && diff < 16) 
+    {
+      for(unsigned int i=0;i!=letters.size();++i)
+      {
+        if(it->first.find(letters[i].c_str())!=std::string::npos)
+        {
+          return it->first.substr(0, it->first.find(letters[i].c_str()));
+        }
+      }
     }
   }
   return "";
 }
 
 std::string Chambers::FindPartition(int strip) {
+static std::vector<std::string>letters={"A","B","C","D"};
   for (std::map<std::string, int>::iterator it = read.getMapping().begin();
        it != read.getMapping().end(); ++it) {
     int diff = strip - it->second;
-    if (diff >= 0 && diff < 16) {
-      return it->first.substr(1, 2);
+    if (diff >= 0 && diff < 16) 
+    {
+      for(unsigned int i=0;i!=letters.size();++i)
+      {
+        if(it->first.find(letters[i].c_str())!=std::string::npos)
+        {
+      return it->first.substr(it->first.find(letters[i].c_str()), it->first.size()-it->first.find(letters[i].c_str()));
+      }
+      }
     }
   }
   return "";
@@ -91,7 +108,7 @@ void Chambers::FillTH2(std::string &name, int &strip, double X) {
 
 void Chambers::Scale(std::string &name, double value) {
   for (int i = 0; i != read.getNbrChambers(); ++i) {
-   /* if (TChamberTH2.find(name + "_Chamber" + std::to_string(i + 1)) !=
+    if (TChamberTH2.find(name + "_Chamber" + std::to_string(i + 1)) !=
         TChamberTH2.end()) {
       TH2F *hnew =
           (TH2F *)TChamberTH2[name + "_Chamber" + std::to_string(i + 1)]->Clone(
@@ -139,16 +156,16 @@ void Chambers::Scale(std::string &name, double value) {
       std::string name = read.getDAQFiles()[stoi(tmp2[0])].substr(found + 1) +
                          "/Chamber" + tmp2[1];
       TString nameee;
-      if (tmp3.size() >= 4)
-        nameee = Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",
-                      name.c_str(), stof(tmp3[1]), stof(tmp3[2]),
-                      tmp3[3].c_str(), tmp3[4].c_str());
-      else
-        nameee = Form("%s/%s/Scaled", name.c_str(), realname.c_str());
+      //if (tmp3.size() >= 4)
+        //nameee = Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",
+          //            name.c_str(), stof(tmp3[1]), stof(tmp3[2]),
+            //          tmp3[3].c_str(), tmp3[4].c_str());
+      //else
+       // nameee = Form("%s/%s/Scaled", name.c_str(), realname.c_str());
       std::string namee = nameee.Data();
       writeObject(namee, hnew);
       delete hnew;
-    }*/
+    }
   }
 }
 
@@ -166,7 +183,7 @@ TH2F *Chambers::ReturnTH2(std::string &name)
 
 void Chambers::ScaleTime(std::string &name, std::map<int, double> &values) 
 {
-  /*for (int i = 0; i != read.getNbrChambers(); ++i) 
+  for (int i = 0; i != read.getNbrChambers(); ++i) 
   {
     if (TChamberTH2.find(name + "_Chamber" + std::to_string(i + 1)) !=
   TChamberTH2.end()) {
@@ -186,12 +203,12 @@ void Chambers::ScaleTime(std::string &name, std::map<int, double> &values)
       std::string name = read.getDAQFiles()[stoi(tmp2[0])].substr(found + 1) +
                          "/Chamber" + tmp2[1];
       TString nameee;
-      if (tmp3.size() >= 4)
-        nameee = Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",
-                      name.c_str(), stof(tmp3[1]), stof(tmp3[2]),
-                      tmp3[3].c_str(), tmp3[4].c_str());
-      else
-        nameee = Form("%s/%s/Scaled", name.c_str(), realname.c_str());
+      //if (tmp3.size() >= 4)
+        //nameee = Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",
+          //            name.c_str(), stof(tmp3[1]), stof(tmp3[2]),
+             //         tmp3[3].c_str(), tmp3[4].c_str());
+      //else
+        //nameee = Form("%s/%s/Scaled", name.c_str(), realname.c_str());
       std::string namee = nameee.Data();
       writeObject(namee, hnew);
       delete hnew;
@@ -214,17 +231,16 @@ void Chambers::ScaleTime(std::string &name, std::map<int, double> &values)
       std::string name = read.getDAQFiles()[stoi(tmp2[0])].substr(found + 1) +
                          "/Chamber" + tmp2[1];
       TString nameee;
-      if (tmp3.size() >= 4)
-        nameee = Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",
-                      name.c_str(), stof(tmp3[1]), stof(tmp3[2]),
-                      tmp3[3].c_str(), tmp3[4].c_str());
-      else
-        nameee = Form("%s/%s/Scaled", name.c_str(), realname.c_str());
+      //if (tmp3.size() >= 4)
+        //nameee = Form("%s/%0.2f sigma/Shifted %0.2fns/%s/%s/Scaled",
+          //            name.c_str(), stof(tmp3[1]), stof(tmp3[2]),
+            //          tmp3[3].c_str(), tmp3[4].c_str());
+      //else nameee = Form("%s/%s/Scaled", name.c_str(), realname.c_str());
       std::string namee = nameee.Data();
       writeObject(namee, hnew);
       delete hnew;
     }
-  }*/
+  }
 }
 
 void Chambers::CreateTH2(std::string &name, double size, int bin) {
@@ -366,24 +382,24 @@ void Chambers::CreateTH2(std::string &name, int binx, double xmin, double xmax,
   }
 }
 
-void Chambers::CreateTH1(std::string &name, int binx, std::string xtype,
-                         std::string xmin_max) {
-  for (int i = 0; i != read.getNbrChambers(); ++i) {
+void Chambers::CreateTH1(std::string &name, int binx, std::string xtype,std::string xmin_max) 
+{
+  for (int i = 0; i != read.getNbrChambers(); ++i) 
+  {
     double xmin = 0;
     double xmax = 0;
-    if (xtype == "Spatial") {
-      xmin =
-          Min_Max_Spatial_Windows[xmin_max + "_Chamber" + std::to_string(i + 1)]
-              .first;
-      xmax =
-          Min_Max_Spatial_Windows[xmin_max + "_Chamber" + std::to_string(i + 1)]
-              .second;
-    } else if (xtype == "Time") {
-      xmin = Min_Max_Time_Windows[xmin_max + "_Chamber" + std::to_string(i + 1)]
-                 .first;
-      xmax = Min_Max_Time_Windows[xmin_max + "_Chamber" + std::to_string(i + 1)]
-                 .second;
-    } else {
+    if (xtype == "Spatial") 
+    {
+      xmin =Min_Max_Spatial_Windows[xmin_max + "_Chamber" + std::to_string(i + 1)].first;
+      xmax =Min_Max_Spatial_Windows[xmin_max + "_Chamber" + std::to_string(i + 1)].second;
+    } 
+    else if (xtype == "Time") 
+    {
+      xmin = Min_Max_Time_Windows[xmin_max + "_Chamber" + std::to_string(i + 1)].first;
+      xmax = Min_Max_Time_Windows[xmin_max + "_Chamber" + std::to_string(i + 1)].second;
+    } 
+    else 
+    {
       std::cout << red << xtype << " not recognized !" << normal << std::endl;
       std::exit(1);
     }
@@ -481,23 +497,22 @@ void Chambers::CreateTH2(std::string &name, std::string xtype,
   }
 }
 
-void Chambers::CreateTH1(std::string &name, int bin, double min, double max) {
-  for (unsigned int i = 0; i != read.getNbrChambers(); ++i) {
-    TChamberTH1[name + "_Chamber" + std::to_string(i + 1)] = new TH1F(
-        (name + "_Chamber" + std::to_string(i + 1)).c_str(),
-        (name + "_Chamber" + std::to_string(i + 1)).c_str(), bin, min, max);
+void Chambers::CreateTH1(std::string &name, int bin, double min, double max) 
+{
+  for (unsigned int i = 0; i != read.getNbrChambers(); ++i) 
+  {
+    std::string namee=name + "_Chamber" + std::to_string(i + 1);
+    TChamberTH1[namee] = new TH1F(namee.c_str(),namee.c_str(), bin, min, max);
   }
 };
 
-Chambers &Chambers::operator=(Chambers &other) {
-  if (this != &other) {
-    for (std::map<std::string, TH2F *>::iterator it =
-             (other.TChamberTH2).begin();
-         it != (other.TChamberTH2).end(); ++it)
+Chambers &Chambers::operator=(Chambers &other) 
+{
+  if (this != &other) 
+  {
+    for (std::map<std::string, TH2F *>::iterator it =(other.TChamberTH2).begin();it != (other.TChamberTH2).end(); ++it)
       TChamberTH2[it->first] = it->second;
-    for (std::map<std::string, TH1F *>::iterator it =
-             (other.TChamberTH1).begin();
-         it != (other.TChamberTH1).end(); ++it)
+    for (std::map<std::string, TH1F *>::iterator it =(other.TChamberTH1).begin();it != (other.TChamberTH1).end(); ++it)
       TChamberTH1[it->first] = it->second;
     other.out = out;
     other.read = read;
@@ -507,21 +522,17 @@ Chambers &Chambers::operator=(Chambers &other) {
   return *this;
 }
 
-void Chambers::FillTH1(std::string &name, int strip, double value,
-                       double poids) {
-  if (FindChamber(strip) == "")
-    return;
-  if (FindPartition(strip) == "")
-    return;
+void Chambers::FillTH1(std::string &name, int strip, double value,double poids) 
+{
+  if (FindChamber(strip) == "")return;
+  if (FindPartition(strip) == "")return;
   std::string name2 = name + "_Chamber" + FindChamber(strip);
-  if (TChamberTH1.find(name2) != TChamberTH1.end()) {
-    TChamberTH1[name2]->Fill(value, poids);
-  } else
-    std::cout << red << name2 << " not found " << std::endl;
+  if (TChamberTH1.find(name2) != TChamberTH1.end()) TChamberTH1[name2]->Fill(value, poids);
+  else std::cout << red << name2 << " not found " << std::endl;
 }
 
-void Chambers::Fill_Min_Max_Time_Windows(std::string na, double min,
-                                         double max) {
+void Chambers::Fill_Min_Max_Time_Windows(std::string na, double min,double max) 
+{
   if (na == "") {
     std::string name = "Default";
     TimeWindowName.insert(name);
@@ -579,7 +590,8 @@ void Chambers::Fill_Min_Max_Spatial_Windows(std::string na, int min, int max) {
   }
 }
 
-Chambers::Chambers(OutFileRoot &out_, Reader &read_) : out(out_), read(read_) {
+Chambers::Chambers(OutFileRoot &out_, Reader &read_) : out(out_), read(read_) 
+{
   Fill_Min_Max_Time_Windows();
   Fill_Min_Max_Spatial_Windows();
   Fill_Useful_Strip();
@@ -604,12 +616,12 @@ void Chambers::Write()
     tokenize(tmp4[1],tmp3,"_");
     TString good=GoodFolder(read.getDAQFiles()[filenumber],read);
     TString nameee="";
-    if (tmp3.size() >= 4) nameee =Form("%s/Chamber%d/%.1f sigma/Shifted %.1fns/%s/%s/",good.Data(),chamber,stof(tmp3[1]), stof(tmp3[2]), tmp3[3].c_str(), tmp3[4].c_str());
-    else nameee = Form("%s/Chamber%d/%s/",good.Data(),chamber,realname.c_str());
+    //if (tmp3.size() >= 4) nameee =Form("%s/Chamber%d/%.1f sigma/Shifted %.1fns/%s/%s/",good.Data(),chamber,stof(tmp3[1]), stof(tmp3[2]), tmp3[3].c_str(), tmp3[4].c_str());
+   // else nameee = Form("%s/Chamber%d/%s/",good.Data(),chamber,realname.c_str());
     std::cout<<nameee<<std::endl;
     if(it->second!=nullptr)writeObject(nameee.Data(), it->second);
-  }*/
- /* for (std::map<std::string, TH1F *>::iterator it = TChamberTH1.begin();
+  }
+  for (std::map<std::string, TH1F *>::iterator it = TChamberTH1.begin();
        it != TChamberTH1.end(); ++it) {
      std::cout<<green<<it->first<<normal<<std::endl;
     std::vector<std::string> tmp4;
@@ -628,8 +640,8 @@ void Chambers::Write()
     std::cout<<std::endl;
     for(unsigned int y=0;y!=tmp3.size();++y) std::cout<<tmp3[y]<<" "<<std::endl;
     TString nameee="";
-    if (tmp3.size() >= 4) nameee =Form("%s/Chamber%d/%0.2f sigma/Shifted %0.2fns/%s/%s",good.Data(),chamber,stof(tmp3[1]), stof(tmp3[2]), tmp3[3].c_str(), tmp3[4].c_str());
-    else nameee = Form("%s/Chamber%d/%s",good.Data(),chamber,realname.c_str());
+    //if (tmp3.size() >= 4) nameee =Form("%s/Chamber%d/%0.2f sigma/Shifted %0.2fns/%s/%s",good.Data(),chamber,stof(tmp3[1]), stof(tmp3[2]), tmp3[3].c_str(), tmp3[4].c_str());
+   // else nameee = Form("%s/Chamber%d/%s",good.Data(),chamber,realname.c_str());
     
     std::cout<<red<<nameee<<normal<<std::endl;
     writeObject(nameee.Data(), it->second);
@@ -661,17 +673,17 @@ bool Chambers::InsideZone(int strip, double time, double shift, double winmin,do
   if (winmin != -1 &&winmax != -1) return false;
   if ((time - shift) > winmax && (time - shift) < winmin)return false;
   if ((time - shift) > stof(read.getTimeWindows()[chamber][1]) ||(time - shift) < stof(read.getTimeWindows()[chamber][0]))return false;
-  for (unsigned int i = 0; i != read.getSpatialWindows()[chamber].size(); ++i) if (read.getSpatialWindows()[chamber][i] == par) return true;
+  for (unsigned int i=0; i != read.getSpatialWindows()[chamber].size(); ++i) if (read.getSpatialWindows()[chamber][i] == par) return true;
   return false;
 }
 
-bool Chambers::InsideZone(int strip, double time, std::string file,
-                          std::string name, int &stripnew, double &timenew) {
+bool Chambers::InsideZone(int strip, double time, std::string file,std::string name, int &stripnew, double &timenew) 
+{
   std::string chamber = FindChamber(strip);
   std::string par = FindPartition(strip);
-  if (chamber == "")
-    return false;
-  if (read.getMask().find(strip) != read.getMask().end()) {
+  if (chamber == "") return false;
+  if (read.getMask().find(strip) != read.getMask().end()) 
+  {
     return false;
   }
   std::vector<std::string> tmp;
@@ -679,15 +691,13 @@ bool Chambers::InsideZone(int strip, double time, std::string file,
   timenew = time;
   double winmin = SelectionTimes[file][name].first;
   double winmax = SelectionTimes[file][name].second;
-  if (chamber != tmp[0])
-    return false;
-  if (tmp[4] == "al")
-    timenew = timenew - MoyTimeStrip[file][strip] +
-              MoyTimeChamber[file][stoi(chamber) - 1];
-  if (timenew > winmax || timenew < winmin)
-    return false;
-  for (unsigned int i = 0; i != read.getSpatialWindows()[chamber].size(); ++i) {
-    if (read.getSpatialWindows()[chamber][i] == par) {
+  if (chamber != tmp[0]) return false;
+  if (tmp[4] == "al") timenew = timenew - MoyTimeStrip[file][strip] +MoyTimeChamber[file][stoi(chamber) - 1];
+  if (timenew > winmax || timenew < winmin)return false;
+  for (unsigned int i = 0; i != read.getSpatialWindows()[chamber].size(); ++i) 
+  {
+    if (read.getSpatialWindows()[chamber][i] == par) 
+    {
       stripnew = FindStrip(strip);
       return true;
     }

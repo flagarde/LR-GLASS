@@ -10,4 +10,4 @@ LRGRPC
 Results/**/
 !.CMakeLists.txt
 Data/**/
-
+cards/**/

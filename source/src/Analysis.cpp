@@ -20,6 +20,7 @@
 using namespace std;
 double time_range = 0;
 int Cluster::nn=0;
+bool issmallchamber=false;
 void Analysis::LabelXaxis(std::string & Xaxis)
 {
   if (read.getType() == "volEff" || read.getType() == "noisevolEff") Xaxis = "Applied HV(V)";
@@ -54,6 +55,9 @@ std::map<std::string, std::vector<double>> Mean_Spatial_Resolution;
 std::map<std::string, std::vector<double>> Standard_dev_Spatial_Resolution;
 std::map<std::string, std::vector<double>> clusterwithsup7hits;
 std::map<std::string, std::vector<double>> clusterwithsup7hits_std;
+double clocktic=1;
+int ASICThreshold=1;
+bool dontbrokemypc=false;
 void Analysis::writeObject(std::string &dirName, TObject *object) 
 {
   out.writeObject(dirName, object);
@@ -64,9 +68,18 @@ void Analysis::writeObject(const char *dirName, TObject *object)
 }
 void Analysis::ShiftTimes()
 {
+  if (read.getParameters().find("DontBreakeMyPC") !=read.getParameters().end()) 
+  {
+    dontbrokemypc = true;
+    std::cout<<yellow<<" OK I WILL TRY TO NOT KILL YOUR PC !!!"<<normal<<std::endl;
+  }
   if (read.getParameters().find("TimeSluster_us") !=read.getParameters().end()) 
   {
     time_range = stod(read.getParameters()["TimeSluster_us"]);
+  }
+  if (read.getParameters().find("ClockTICns") !=read.getParameters().end()) 
+  {
+    clocktic = stod(read.getParameters()["ClockTICns"]);
   }
   else time_range = 0.15;
   std::vector<double> Noise_shift;
@@ -137,25 +150,38 @@ void Analysis::ShiftTimes()
       double min =cham.Min_Max_Time_Windows["Default_Chamber" + cham.FindChamber(*it)].first;
       double max =cham.Min_Max_Time_Windows["Default_Chamber" + cham.FindChamber(*it)].second;
       int bin = ceil(max - min) + 1;
-      time_dist_strip[*it] =new TH1F(name_root.c_str(), time_distr2.c_str(), bin, min, max);
-      time_dist_strip2[*it] =new TH1F((name_root+" ").c_str(), time_distr22.c_str(), bin, min, max);
+      if(dontbrokemypc==false)
+      {
+        time_dist_strip[*it] =new TH1F(name_root.c_str(), time_distr2.c_str(), bin, min, max);
+        time_dist_strip2[*it] =new TH1F((name_root+" ").c_str(), time_distr22.c_str(), bin, min, max);
+      }
+    }
+    if(dataTree->GetListOfBranches()->FindObject("BIF_TS"))
+    {
+      issmallchamber=true;
+      std::cout<<"Is small chamber so I will fit anything ! "<<std::endl;
+      
     }
     RAWData data;
     data.TDCCh = new std::vector<int>;   // List of hits and their channels
     data.TDCTS = new std::vector<float>; // List of the corresponding timestamps
+    data.Thres=nullptr;
     data.TDCCh->clear();
     data.TDCTS->clear();
     dataTree->SetBranchAddress("EventNumber", &data.iEvent);
     dataTree->SetBranchAddress("number_of_hits", &data.TDCNHits);
     dataTree->SetBranchAddress("TDC_channel", &data.TDCCh);
     dataTree->SetBranchAddress("TDC_TimeStamp", &data.TDCTS);
-    std::vector<int> u;
-    
-    bool issmallchamber=false;
-    if(dataTree->GetListOfBranches()->FindObject("BIF_TS"))
+    if(issmallchamber==true)
     {
-      issmallchamber=true;
-      std::cout<<"Is small chamber so I will fit anything ! "<<std::endl;
+      data.Thres=new std::vector<int>;
+      dataTree->SetBranchAddress("ASICThreshold", &data.Thres);
+    }
+    data.Thres->clear();
+    std::vector<int> u;
+    if (read.getParameters().find("ASICThreshold") != read.getParameters().end()) 
+    {
+      ASICThreshold=stoi(read.getParameters()["ASICThreshold"]);
     }
     unsigned int nEntries = dataTree->GetEntries();
     for (unsigned int i = 0; i < nEntries; i++) 
@@ -168,16 +194,16 @@ void Analysis::ShiftTimes()
       }
     }
     std::string name1 = "Nbrhitspersecond*_File" + std::to_string(file);
-    //std::string name3 = "Timedistributionunaligned*_File" + std::to_string(file);
+    std::string name3 = "Timedistributionunaligned*_File" + std::to_string(file);
     std::string name4 = "Timedistributionaligned*_File" + std::to_string(file);
     cham.CreateTH2(name1);
-    //cham.CreateTH2(name3, trigger_max + 200,ceil((trigger_max + 200) / 10) + 1);
+    cham.CreateTH2(name3, trigger_max + 200,ceil((trigger_max + 200) / 10) + 1);
     cham.CreateTH2(name4, trigger_max + 200,ceil((trigger_max + 200) / 10) + 1);
     std::map<int, double> InHertzPerCm;
     for (unsigned int i = 0; i != read.getNbrChambers(); ++i) 
     {
       double duration_window=(cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(i + 1)].second -cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(1 + i)].first);
-      InHertzPerCm[i + 1] =1.0 /(nEntries*1.0e-9*read.getDimensions()[std::to_string(i+1)][0]*read.getDimensions()[std::to_string(i+1)][1]*duration_window);
+      InHertzPerCm[i + 1] =1.0 /(nEntries*1.0e-9*clocktic*read.getDimensions()[std::to_string(i+1)][0]*read.getDimensions()[std::to_string(i+1)][1]*duration_window);
     }
     for (unsigned int i = 0; i < nEntries; i++) 
     {
@@ -186,6 +212,10 @@ void Analysis::ShiftTimes()
       {
         // Maximal global Time (size of the windows trigger);
         if (TimeMax < data.TDCTS->at(h))TimeMax = data.TDCTS->at(h);
+        if(data.Thres!=nullptr)
+        {
+          if(ASICThreshold!=data.Thres->at(h))continue;
+        }
         if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h)))continue;
         sum_time_strip[data.TDCCh->at(h)].first += data.TDCTS->at(h);
         sum2_time_strip[data.TDCCh->at(h)].first +=data.TDCTS->at(h) * data.TDCTS->at(h);
@@ -199,8 +229,8 @@ void Analysis::ShiftTimes()
     {
       moy_time_strip[it->first] =(it->second).first * 1.0 / (it->second).second;
       ecart_type_strip[it->first] =sqrt((sum2_time_strip[it->first].first * 1.0 /sum2_time_strip[it->first].second) -moy_time_strip[it->first] * moy_time_strip[it->first]);
-      cham.FillTH1(th13, it->first, it->first, moy_time_strip[it->first]);
-      cham.FillTH1(th15, it->first, it->first, ecart_type_strip[it->first]);
+      //cham.FillTH1(th13, it->first, it->first, moy_time_strip[it->first]);
+      //cham.FillTH1(th15, it->first, it->first, ecart_type_strip[it->first]);
     }
     for (std::map<int, std::pair<int, int>>::iterator it =sum_time_chamber.begin();it != sum_time_chamber.end(); ++it) 
     {
@@ -210,32 +240,34 @@ void Analysis::ShiftTimes()
     TString name =Form("%s", GoodFolder(read.getDAQFiles()[file], read).Data());
     out.writeObject(name, Time_moy_per_chamber);
     delete Time_moy_per_chamber;
-    for (unsigned int i = 0; i < nEntries; i++) {
+    for (unsigned int i = 0; i < nEntries; i++) 
+    {
       dataTree->GetEntry(i);
-      for (int h = 0; h < data.TDCNHits; h++) {
-        if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h)))
-          continue;
-        cham.FillTH1(
-            th12, data.TDCCh->at(h),
-            data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +
+      for (int h = 0; h < data.TDCNHits; h++) 
+      {
+        if(data.Thres!=nullptr)
+        {
+          if(ASICThreshold!=data.Thres->at(h))continue;
+        }
+        if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h))) continue;
+        /*cham.FillTH1(th12, data.TDCCh->at(h),data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +
                 moy_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h))) -
                                  1]);
-        cham.FillTH1(th11, data.TDCCh->at(h), data.TDCTS->at(h));
-        time_dist_strip[data.TDCCh->at(h)]->Fill(data.TDCTS->at(h));
-        time_dist_strip2[data.TDCCh->at(h)]->Fill(
-            data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +
-            moy_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h))) - 1]);
-        cham.FillTH2(
-            name4, data.TDCCh->at(h),
-            data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +
+        cham.FillTH1(th11, data.TDCCh->at(h), data.TDCTS->at(h));*/
+        if(dontbrokemypc==false)
+        {
+          time_dist_strip[data.TDCCh->at(h)]->Fill(data.TDCTS->at(h));
+          time_dist_strip2[data.TDCCh->at(h)]->Fill(data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +moy_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h))) - 1]);
+        }
+        /*cham.FillTH2(name4, data.TDCCh->at(h),data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +
                 moy_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h))) -
                                  1]);
         cham.FillTH2(name1, data.TDCCh->at(h));
-        //cham.FillTH2(name3, data.TDCCh->at(h), data.TDCTS->at(h));
+        cham.FillTH2(name3, data.TDCCh->at(h), data.TDCTS->at(h));*/
       }
     }
     delete dataTree;
-    cham.ScaleTime(name1, InHertzPerCm);
+    //cham.ScaleTime(name1, InHertzPerCm);
     for (unsigned int i = 0; i != read.getNbrChambers(); ++i) 
     {
       double min =cham.Min_Max_Time_Windows["Default_Chamber" + std::to_string(i + 1)].first;
@@ -727,6 +759,12 @@ Analysis::Eff_ErrorEff(std::string &file)
       continue;
     }
     RAWData data;
+    data.Thres=nullptr;
+    if(issmallchamber==true)
+    {
+      data.Thres=new std::vector<int>;
+      dataTree->SetBranchAddress("ASICThreshold", &data.Thres); 
+    }
     data.TDCCh = new vector<int>;   // List of hits and their channels
     data.TDCTS = new vector<float>; // List of the corresponding time stamps
     data.TDCCh->clear();
@@ -737,19 +775,17 @@ Analysis::Eff_ErrorEff(std::string &file)
     dataTree->SetBranchAddress("TDC_TimeStamp", &data.TDCTS);
     numGoodEvents[it->first] = 0.0;
     TH1D *dataInfo = (TH1D *)dataFile.Get("ID");
-    float duration = -1.25;
     if (dataInfo) 
     {
       dataInfo->SetBinContent(4, dataInfo->GetBinContent(4) -dataInfo->GetBinContent(3));
       float diff = dataInfo->GetBinContent(4);
       delete dataInfo;
-      duration = std::ceil(diff / timespilltotal) * timespill;
     }
     unsigned int nEntries = dataTree->GetEntries();
     std::map<int, double> InHertzPerCm;
     for (unsigned int i = 0; i != read.getNbrChambers(); ++i) 
     {
-      InHertzPerCm[i + 1] =1.0 / (1.0e-9 * nEntries * (it->second.second - it->second.first) *read.getDimensions()[std::to_string(i+1)][0]*read.getDimensions()[std::to_string(i+1)][1]);
+      InHertzPerCm[i + 1] =1.0 / (1.0e-9 *clocktic* nEntries * (it->second.second - it->second.first) *read.getDimensions()[std::to_string(i+1)][0]*read.getDimensions()[std::to_string(i+1)][1]);
     }
     int totalisCh = 0;
     for (unsigned int i = 0; i < nEntries; i++) 
@@ -760,6 +796,10 @@ Analysis::Eff_ErrorEff(std::string &file)
       {
         int newstrip = 0;
         double newtime = 0.;
+        if(data.Thres!=nullptr)
+        {
+          if(ASICThreshold!=data.Thres->at(h))continue;
+        }
         if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h), file,it->first, newstrip, newtime))continue;
         cham.FillTH2(fr, data.TDCCh->at(h));
         cham.FillTH2(fr2, data.TDCCh->at(h), data.TDCTS->at(h));
@@ -767,6 +807,10 @@ Analysis::Eff_ErrorEff(std::string &file)
         {
           int newstrip2 = 0;
           double newtime2 = 0.;
+          if(data.Thres!=nullptr)
+          {
+            if(ASICThreshold!=data.Thres->at(h))continue;
+          }
           if (!cham.InsideZone(data.TDCCh->at(l), data.TDCTS->at(l), file,it->first, newstrip2, newtime2))continue;
           if (h != l)Correlation_time[p]->Fill(newtime - newtime2);
           for (int val = 0; val != Cor.size(); ++val) 
@@ -826,13 +870,13 @@ Analysis::Eff_ErrorEff(std::string &file)
       std::string name = fr + "_Chamber" + lolll[0];
       timer[p] = (it->second.second - it->second.first);
       int hhh = cham.ReturnTH2(name)->Integral();
-      if (duration != -1)cham.ScaleTime(fr, InHertzPerCm);
+      //if (duration != -1)cham.ScaleTime(fr, InHertzPerCm);
       int nbrpar = read.getSpatialWindows()[lolll[0]].size();
-      double val = cham.ReturnTH2(name)->Integral() / (16 * nbrpar);
-      double result = hhh / ((16 * nbrpar) * read.getDimensions()[lol[0]][0]*read.getDimensions()[lol[0]][1] * 1.0e-9 *(it->second.second - it->second.first) * nEntries);
+      //double val = cham.ReturnTH2(name)->Integral() / (16 * nbrpar);
+      double result = hhh / ((16 * nbrpar) * read.getDimensions()[lol[0]][0]*read.getDimensions()[lol[0]][1] * clocktic*1.0e-9 *(it->second.second - it->second.first) * nEntries);
       if(stof(lol[1])==0)std::cout <<red<<"Signal region ["<<it->second.first<<";"<<it->second.second<<"]";
       else std::cout <<green<<"Noise region ["<<it->second.first<<";"<<it->second.second<<"]";
-      std::cout<<" chamber"<<lol[0]<< " windows_nanosecondes : "<< 1.0e-9 * (it->second.second - it->second.first) << " area : "
+      std::cout<<" chamber"<<lol[0]<< " windows_nanosecondes : "<< 1.0e-9 * clocktic*(it->second.second - it->second.first) << " area : "
               << read.getDimensions()[lol[0]][0]*read.getDimensions()[lol[0]][1] << " nbrtiggers : " << nEntries;
     std::cout << " nbr strips : " << (16 * nbrpar) << " nbr hits : " << hhh<< " nbr hits.cm-2.s-1 : " << result << normal << std::endl;
     // std::cout<<red<<nbrpar<<"
@@ -842,7 +886,7 @@ Analysis::Eff_ErrorEff(std::string &file)
     // for(unsigned int u=0;u!=1000;++u)
     // std::cout<<red<<cham.ReturnTH2(name)->Integral()<<"  "<<nbrpar<<"
     // "<<val<<normal<<std::endl;
-    if (duration != -1)cham.ScaleTime(fr3, InHertzPerCm);
+    //if (duration != -1)cham.ScaleTime(fr3, InHertzPerCm);
     InHertzPerCm.clear();
   }
   for (std::map<std::string, std::map<std::string, TH2F *>>::iterator it =Correlation.begin();it != Correlation.end(); ++it) 
@@ -1025,8 +1069,8 @@ int Analysis::Loop()
     gr1->Draw("a3P");
     gr2->Draw("SAME a3P");
     writeObject(comp, cc);
-    Sigmoide(gr1,eff[itoo->first],out,itoo->first);
-    Sigmoide(gr2,eff[itoo->first],out,itoo->first);
+    Sigmoide(gr1,eff[itoo->first],out,itoo->first,read);
+    Sigmoide(gr2,eff[itoo->first],out,itoo->first,read);
     delete cc;
     delete gr1;
     delete gr2;
@@ -1228,8 +1272,8 @@ int Analysis::Loop()
     cannn->cd();
     gr11->Draw("A3PL");
     writeObject(comp2, cannn);
-    //delete cannn;
-    //delete gr11;
+    delete cannn;
+    delete gr11;
   }
   std::string compp = "";
   if (p2 > 0) 
@@ -1248,9 +1292,9 @@ int Analysis::Loop()
     compp = "Hits_combined";
     writeObject(compp, can2);
   }
-  //delete can1;
-  //delete can2;
-  //delete mg1;
-  //delete mg2;
+  delete can1;
+  delete can2;
+  delete mg1;
+  delete mg2;
   return 1;
 }

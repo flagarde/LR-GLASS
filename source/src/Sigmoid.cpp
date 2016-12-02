@@ -8,8 +8,11 @@
 #include "OutFileRoot.h"
 #include<iostream>
 #include"Colors.h"
-void Sigmoide(TGraphAsymmErrors* Efficiency,TGraphErrors* EfficiencyStat,OutFileRoot& out,std::string name)
+#include "Reader.h"
+void Sigmoide(TGraphAsymmErrors* Efficiency,TGraphErrors* EfficiencyStat,OutFileRoot& out,std::string name,Reader& read)
 {  
+  double min=999999;
+  double max=-99999;
   int lLimit=0; 
   int uLimit=0;
   for (int i = 0; i < Efficiency->GetN(); i++)
@@ -17,6 +20,8 @@ void Sigmoide(TGraphAsymmErrors* Efficiency,TGraphErrors* EfficiencyStat,OutFile
     double x=0.0;
     double y=0.0;
     Efficiency->GetPoint(i, x, y);
+    if(x>max)max=x;
+    if(x<min)min=x;
     double errorY = Efficiency->GetErrorYlow(i);
     double errorYlow_stat = EfficiencyStat->GetErrorYlow(i);
     double errorYhigh_stat = EfficiencyStat->GetErrorYhigh(i);
@@ -35,9 +40,25 @@ void Sigmoide(TGraphAsymmErrors* Efficiency,TGraphErrors* EfficiencyStat,OutFile
   TCanvas* c1 = new TCanvas();
   c1->SetTitle((name+Efficiency->GetTitle()).c_str());
   c1->SetName((name+Efficiency->GetTitle()).c_str());
-  TH1D* PLOTTER = new TH1D("PLOTTER", "", 1, lLimit-50, uLimit+50);	
+  TH1D* PLOTTER = new TH1D("PLOTTER", "", 1, min, max);	
   PLOTTER->SetStats(0);
   std::string xLabel = "HV_{eff} (V)";
+   if (read.getType() == "volEff" || read.getType() == "noisevolEff") 
+   {
+      xLabel = "HV_{eff} (V)";
+   } 
+   else if (read.getType() == "thrEff" ||read.getType() == "noisethrEff") 
+   {
+      xLabel = "Threshod (mV)";
+   } 
+   else if (read.getType() == "srcEff" ||read.getType() == "noisesrcEff") 
+   {
+      xLabel = "Attenuator";
+   } 
+   else if (read.getType() == "PulEff" ||read.getType() == "noisePulEff") 
+   {
+      xLabel = "Pulse (ns)";
+   }
   std::string lName = "Sigmoid for RE11 GRPC; " + xLabel + "; Efficiency";
   PLOTTER->SetTitle(lName.c_str());
   PLOTTER->SetMaximum(1);
