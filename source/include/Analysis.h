@@ -21,6 +21,7 @@ public:
   void LabelXaxis(std::string&);
 private:
   OutFileRoot& out;
+  std::string unitthr();
   Reader& read;
   Chambers& cham;
   void ShiftTimes();

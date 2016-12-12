@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
   Chambers cham(out,*reader);
   Analysis analysis(out,*reader,cham);
   int isLoop=analysis.Loop();
-  cham.Write();
+  //cham.Write();
   delete reader;
   if(isLoop == 1) std::cout<<green<<"The End."<<normal<< std::endl;
   if(isLoop == -1) 

@@ -8,6 +8,7 @@
 #include "TString.h"
 #include "TH1F.h"
 #include "TProfile2D.h"
+#include "TH2F.h"
 #include "Chambers.h"
 #include "Reader.h"
 #include "OutFileRoot.h"
@@ -15,9 +16,8 @@
 class Cluster
 {
   public:
-    Cluster(float _ct,float _cs,std::string& _p,Chambers& _cham,Reader& _read);
+    Cluster(float _ct,float _cs,std::string& _p,Chambers& _cham,Reader& _read,int& filenumber);
     ~Cluster();
-    static int nn;
     float getNumberOfClusters(){return nbrCluster;};
     void Fill(int&,double&,int&);
     void Clear();
@@ -40,6 +40,7 @@ class Cluster
     float ct;
     float cs;
     std::string p;
+    std::string fr3;
     TH1F* when;
     TH1F* when2;
     TH1F* when3;

@@ -2,22 +2,24 @@
 #include <algorithm>
 #include "TH1F.h"
 #include "TProfile2D.h"
+#include "TH2F.h"
 #include "TObject.h"
 #include "OutFileRoot.h"
-#include<array>
+#include <array>
 inline  bool comp(const std::pair<int, float> &a, const std::pair<int, float> &b) 
 {
   return a.second < b.second;
 }
 
-Cluster::Cluster(float _ct,float _cs,std::string& _p,Chambers& _cham,Reader& _read):ct(_ct),cs(_cs),p(_p),cham(_cham),read(_read)
+Cluster::Cluster(float _ct,float _cs,std::string& _p,Chambers& _cham,Reader& _read,int& filenumber):ct(_ct),cs(_cs),p(_p),cham(_cham),read(_read)
 {
-  nn++;
-  std::string n1=std::to_string(nn);
+  std::string n1="";
+  if(read.getWhichThreshold().size()!=0) n1=std::to_string(read.getWhichThreshold()[filenumber]);
   std::vector<std::string> lol2;
   tokenize(p, lol2, "*");
   std::vector<std::string> lol;
   tokenize(lol2[0], lol, "_");
+  fr3 = "Real_Spatial_Distribution_Center*" + lol2[0] + "_File" +std::to_string(filenumber);
   TString ti = Form("Fit %s Window +- %.2f shift %.2f %s", lol[3].c_str(),stof(lol[1]), stof(lol[2]), lol[4].c_str());
   Resolution = new TProfile2D(("Resol" + n1).c_str(), "Spatial Resolution",4, 0, 800, 32, 0, 32);
   when= new TH1F(("FirstTSCluster" + n1).c_str(),("First timestamp of the cluster " + ti), 10000, 0, 1000);
@@ -27,6 +29,7 @@ Cluster::Cluster(float _ct,float _cs,std::string& _p,Chambers& _cham,Reader& _re
   nbr_cluster = new TH1F(("NbrCluster" + n1).c_str(),("Number of Cluster " + ti), 65, 0, 65);
   when5 = new TH1F(("Time_between_hits_in_cluster" + n1).c_str(),("Time distribution in cluster" + ti), 10000, 0, 1000);
   cluster_multiplicity = new TH1F(("ClusterSize" + n1).c_str(),("Cluster size " + ti), 20, 0, 20);
+  cham.CreateTH2(fr3);
 }
 
 void Cluster::Fill(int& newstrip,double& newtime,int& oldstrip)
@@ -138,8 +141,11 @@ void Cluster::run()
     center->Fill(ceil(sumpos * 1.0 / ClusterG2[kpk].size()));
     std::pair<int, int> str = cham.FindPosition(stripnewold[std::round(sumpos * 1.0 / ClusterG2[kpk].size())]);
     std::string chambre=cham.FindChamber(stripnewold[std::round(sumpos * 1.0 / ClusterG2[kpk].size())]);
-    //Resolution->Fill((str.first * 2 + 1) * 100, str.second,(posmax - posmin) * read.getDimensions()[chambre][0] * 1.0 / sqrt(12));
-    //cham.FillTH2(fr3, stripnewold[std::round(std::round(sumpos * 1.0 / ClusterG2[kpk].size()))]);
+    if(chambre!="")
+    {
+      Resolution->Fill((str.first * 2 + 1) * 100,str.second ,(posmax - posmin) *read.getDimensions()[chambre][0]* 1.0 / sqrt(12));
+    }
+    cham.FillTH2(fr3, stripnewold[std::round(std::round(sumpos * 1.0 / ClusterG2[kpk].size()))]);
   }
   Clear();
 }

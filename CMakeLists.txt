@@ -8,10 +8,10 @@ add_compile_options(-std=c++1y)
 
 project( LRGRPC )
 set( ${PROJECT_NAME}_VERSION_MAJOR 5 )
-set( ${PROJECT_NAME}_VERSION_MINOR 0 )
+set( ${PROJECT_NAME}_VERSION_MINOR 1 )
 set( ${PROJECT_NAME}_VERSION_PATCH 0 )
 
-add_definitions( "-std=c++11 -O5 -Wall -ansi -Wno-long-long -Wno-sign-compare -fno-strict-aliasing -lpthread -ldl -lm" )
+add_definitions( "-std=c++11 -ggdb -Wall -ansi -Wno-long-long -Wno-sign-compare -fno-strict-aliasing -lpthread -ldl -lm" )
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/source/ROOT/)
 list( APPEND CMAKE_MODULE_PATH $ENV{ROOTSYS}/etc/cmake/)
 configure_file ("./source/include/Version.h.in" "${CMAKE_SOURCE_DIR}/build/include/Version.h")

@@ -17,14 +17,33 @@
 #include "TString.h"
 #include "Cluster.h"
 #include "Sigmoid.h"
+
 using namespace std;
 double time_range = 0;
-int Cluster::nn=0;
+double space_range = 0;
 bool issmallchamber=false;
+
+
+
+std::string Analysis::unitthr()
+{
+  std::string a="";
+  if (read.getWhichThreshold().size() !=0 )
+  {
+    a="pC";
+    return a;
+  }
+  else 
+  {
+    a="mV";
+    return a;
+  }
+}
+
 void Analysis::LabelXaxis(std::string & Xaxis)
 {
   if (read.getType() == "volEff" || read.getType() == "noisevolEff") Xaxis = "Applied HV(V)";
-  else if (read.getType() == "thrEff" || read.getType() == "noisethrEff") Xaxis = "Threshold (mV)";
+  else if (read.getType() == "thrEff" || read.getType() == "noisethrEff") Xaxis = "Threshold ("+unitthr()+")";
   else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff") Xaxis = "Attenuator Factor";
   else if (read.getType() == "PulEff" || read.getType() == "noisePulEff") Xaxis = "Pulse lenght (ns)";
 }
@@ -56,7 +75,6 @@ std::map<std::string, std::vector<double>> Standard_dev_Spatial_Resolution;
 std::map<std::string, std::vector<double>> clusterwithsup7hits;
 std::map<std::string, std::vector<double>> clusterwithsup7hits_std;
 double clocktic=1;
-int ASICThreshold=1;
 bool dontbrokemypc=false;
 void Analysis::writeObject(std::string &dirName, TObject *object) 
 {
@@ -77,6 +95,11 @@ void Analysis::ShiftTimes()
   {
     time_range = stod(read.getParameters()["TimeSluster_us"]);
   }
+   if (read.getParameters().find("SpaceCluster_strips") !=read.getParameters().end()) 
+  {
+    space_range = stod(read.getParameters()["SpaceCluster_strips"]);
+  }
+  else space_range=3;
   if (read.getParameters().find("ClockTICns") !=read.getParameters().end()) 
   {
     clocktic = stod(read.getParameters()["ClockTICns"]);
@@ -106,7 +129,7 @@ void Analysis::ShiftTimes()
   std::map<std::string, std::pair<std::vector<double>, std::vector<double>>>ParamValueError;
   for (unsigned int file = 0; file != read.getDAQFiles().size(); ++file) 
   {
-    std::cout << normal<< "Running ShiftTime for file : " << read.getDAQFiles()[file]<< normal << std::endl;
+    std::cout << green<< "Running ShiftTime for file : " << read.getDAQFiles()[file]<< normal << std::endl;
     std::map<int, std::pair<int, int>> sum_time_strip;
     std::map<int, std::pair<int, int>> sum2_time_strip;
     std::map<int, std::pair<int, int>> sum_time_chamber;
@@ -165,7 +188,7 @@ void Analysis::ShiftTimes()
     RAWData data;
     data.TDCCh = new std::vector<int>;   // List of hits and their channels
     data.TDCTS = new std::vector<float>; // List of the corresponding timestamps
-    data.Thres=nullptr;
+    data.Thres=new std::vector<int>;
     data.TDCCh->clear();
     data.TDCTS->clear();
     dataTree->SetBranchAddress("EventNumber", &data.iEvent);
@@ -174,15 +197,10 @@ void Analysis::ShiftTimes()
     dataTree->SetBranchAddress("TDC_TimeStamp", &data.TDCTS);
     if(issmallchamber==true)
     {
-      data.Thres=new std::vector<int>;
       dataTree->SetBranchAddress("ASICThreshold", &data.Thres);
     }
     data.Thres->clear();
     std::vector<int> u;
-    if (read.getParameters().find("ASICThreshold") != read.getParameters().end()) 
-    {
-      ASICThreshold=stoi(read.getParameters()["ASICThreshold"]);
-    }
     unsigned int nEntries = dataTree->GetEntries();
     for (unsigned int i = 0; i < nEntries; i++) 
     {
@@ -214,7 +232,7 @@ void Analysis::ShiftTimes()
         if (TimeMax < data.TDCTS->at(h))TimeMax = data.TDCTS->at(h);
         if(data.Thres!=nullptr)
         {
-          if(ASICThreshold!=data.Thres->at(h))continue;
+          if(read.getWhichThreshold()[file]>data.Thres->at(h))continue;
         }
         if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h)))continue;
         sum_time_strip[data.TDCCh->at(h)].first += data.TDCTS->at(h);
@@ -247,7 +265,7 @@ void Analysis::ShiftTimes()
       {
         if(data.Thres!=nullptr)
         {
-          if(ASICThreshold!=data.Thres->at(h))continue;
+          if(read.getWhichThreshold()[file]>data.Thres->at(h))continue;
         }
         if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h))) continue;
         /*cham.FillTH1(th12, data.TDCCh->at(h),data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +
@@ -531,15 +549,17 @@ void Analysis::ShiftTimes()
           }
           if (xmin >= 0 && xmax <= TimeMax) 
           {
-            std::cout << yellow << "[" << xmin << ";" << xmax << "]" << normal<< std::endl;
+            std::cout << yellow << "[" << xmin << ";" << xmax << "] " << normal;;
             cham.SelectionTimes[read.getDAQFiles()[file]][noise] = {xmin, xmax};
             cham.SelectionTimes[read.getDAQFiles()[file]][noise2] = {xmin,xmax};
           } 
           else std::cout << red << "xmin < 0 or xmax > TimeOfTheWindow" << normal<< std::endl;
         }
       }
+      std::cout<<std::endl;
     }
-
+    if(dontbrokemypc==false)
+    {
     for (std::map<int, TH1F *>::iterator it = time_dist_strip.begin();it != time_dist_strip.end(); ++it) 
     {
       TString name =Form("%s/Chamber%s/Time_Distribution_Channel_time_unaligned/Partition_%s/",GoodFolder(read.getDAQFiles()[file], read).Data(),cham.FindChamber(it->first).c_str(),cham.FindPartition(it->first).c_str());
@@ -551,6 +571,7 @@ void Analysis::ShiftTimes()
       TString name =Form("%s/Chamber%s/Time_Distribution_Channel_time_aligned/Partition_%s/",GoodFolder(read.getDAQFiles()[file], read).Data(),cham.FindChamber(it->first).c_str(),cham.FindPartition(it->first).c_str());
       out.writeObject(name.Data(), it->second);
       delete it->second;
+    }
     }
     sum_time_strip.clear();
     sum_time_chamber.clear();
@@ -633,8 +654,8 @@ std::map<std::string,TGraphErrors*> Analysis::Construct_Plot()
     {
       if (read.getType() == "volEff" || read.getType() == "noisevolEff") 
       {
-        gr->SetName(Form("%s Efficiency, threshold = %.2fmV, +-%.2f",bv.c_str(), thr, sig));
-        gr->SetTitle(Form("%s Efficiency, threshold = %.2fmV, +-%.2f",bv.c_str(), thr, sig));
+        gr->SetName(Form("%s Efficiency, threshold = %.2f%s, +-%.2f",bv.c_str(), thr,unitthr().c_str(), sig));
+        gr->SetTitle(Form("%s Efficiency, threshold = %.2f%s, +-%.2f",bv.c_str(), thr,unitthr().c_str(), sig));
       } 
       else if (read.getType() == "thrEff" ||read.getType() == "noisethrEff") 
       {
@@ -643,21 +664,21 @@ std::map<std::string,TGraphErrors*> Analysis::Construct_Plot()
       } 
       else if (read.getType() == "srcEff" ||read.getType() == "noisesrcEff") 
       {
-        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, +-%.2f",bv.c_str(), vol, thr, sig));
-        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, +-%.2f",bv.c_str(), vol, thr, sig));
+        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr().c_str(), sig));
+        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr().c_str(), sig));
       } 
       else if (read.getType() == "PulEff" ||read.getType() == "noisePulEff") 
       {
-        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, +-%.2f",bv.c_str(), vol, thr, sig));
-        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, +-%.2f",bv.c_str(), vol, thr, sig));
+        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr().c_str(), sig));
+        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr().c_str(), sig));
       }
     } 
     else 
     {
       if (read.getType() == "volEff" || read.getType() == "noisevolEff") 
       {
-        gr->SetName(Form("%s Efficiency, threshold = %.2fmV, +-%.2f, shift %.2fns",bv.c_str(), thr, sig, shift));
-        gr->SetTitle(Form("%s Efficiency, threshold = %.2fmV, +-%.2f, shift %.2fns",bv.c_str(), thr, sig, shift));
+        gr->SetName(Form("%s Efficiency, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), thr,unitthr().c_str(), sig, shift));
+        gr->SetTitle(Form("%s Efficiency, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), thr,unitthr().c_str(), sig, shift));
       } 
       else if (read.getType() == "thrEff" ||read.getType() == "noisethrEff") 
       {
@@ -666,13 +687,13 @@ std::map<std::string,TGraphErrors*> Analysis::Construct_Plot()
       } 
       else if (read.getType() == "srcEff" ||read.getType() == "noisesrcEff") 
       {
-        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, +-%.2f, shift %.2fns",bv.c_str(), vol, thr, sig, shift));
-        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, +-%.2f, shift %.2fns",bv.c_str(), vol, thr, sig, shift));
+        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr().c_str(), sig, shift));
+        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr().c_str(), sig, shift));
       } 
       else if (read.getType() == "PulEff" ||read.getType() == "noisePulEff") 
       {
-        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, +-%.2f, shift %.2fns",bv.c_str(), vol, thr, sig, shift));
-        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2fmV, +-%.2f, shift %.2fns",bv.c_str(), vol, thr, sig, shift));
+        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr().c_str(), sig, shift));
+        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr().c_str(), sig, shift));
       }
     }
     TString nameee =Form("Efficiency/Chamber%s/%.2f sigma/Shifted %.2fns/%s",tmp[0].c_str(), stof(tmp[1]), stof(tmp[2]), tmp[3].c_str());
@@ -723,7 +744,8 @@ Analysis::Eff_ErrorEff(std::string &file)
     
     ++nn;
     std::string p = it->first +"*"+ file;
-    Cluster clusters(7.0,3.0,p,cham,read);
+    Cluster clusters(time_range,space_range,p,cham,read,filenumber);
+    std::cout<<"I will clusterize the hits witch are closer one to other < "<<time_range*clocktic<<" ns and <"<<space_range<<" strips "<<std::endl;
     std::string n1 = std::to_string(nn);
     std::vector<std::string> lol;
     tokenize(it->first, lol, "_");
@@ -742,9 +764,9 @@ Analysis::Eff_ErrorEff(std::string &file)
     clu[p] = new TH1F(("MultiClusterized" + n1).c_str(),("Multipicity clusterised " + ti), 130, 0, 130);
     std::string fr = "Real_Spatial_Distribution*" + it->first + "_File" +std::to_string(filenumber);
     std::string fr2 = "Real_Spatial_Distribution2*" + it->first + "_File" +std::to_string(filenumber);
-    std::string fr3 = "Real_Spatial_Distribution_Center*" + it->first + "_File" +std::to_string(filenumber);
+    //std::string fr3 = "Real_Spatial_Distribution_Center*" + it->first + "_File" +std::to_string(filenumber);
     cham.CreateTH2(fr);
-    cham.CreateTH2(fr3);
+    //cham.CreateTH2(fr3);
     cham.CreateTH2(fr2, trigger_max + 200, ceil((trigger_max + 200) / 10) + 1);
     TFile dataFile(file.c_str());
     if (dataFile.IsOpen() != true) 
@@ -759,10 +781,10 @@ Analysis::Eff_ErrorEff(std::string &file)
       continue;
     }
     RAWData data;
-    data.Thres=nullptr;
+    data.Thres=new std::vector<int>;;
     if(issmallchamber==true)
     {
-      data.Thres=new std::vector<int>;
+      
       dataTree->SetBranchAddress("ASICThreshold", &data.Thres); 
     }
     data.TDCCh = new vector<int>;   // List of hits and their channels
@@ -778,7 +800,6 @@ Analysis::Eff_ErrorEff(std::string &file)
     if (dataInfo) 
     {
       dataInfo->SetBinContent(4, dataInfo->GetBinContent(4) -dataInfo->GetBinContent(3));
-      float diff = dataInfo->GetBinContent(4);
       delete dataInfo;
     }
     unsigned int nEntries = dataTree->GetEntries();
@@ -798,7 +819,7 @@ Analysis::Eff_ErrorEff(std::string &file)
         double newtime = 0.;
         if(data.Thres!=nullptr)
         {
-          if(ASICThreshold!=data.Thres->at(h))continue;
+          if(read.getWhichThreshold()[filenumber]>data.Thres->at(h))continue;
         }
         if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h), file,it->first, newstrip, newtime))continue;
         cham.FillTH2(fr, data.TDCCh->at(h));
@@ -809,7 +830,7 @@ Analysis::Eff_ErrorEff(std::string &file)
           double newtime2 = 0.;
           if(data.Thres!=nullptr)
           {
-            if(ASICThreshold!=data.Thres->at(h))continue;
+            if(read.getWhichThreshold()[filenumber]>data.Thres->at(h))continue;
           }
           if (!cham.InsideZone(data.TDCCh->at(l), data.TDCTS->at(l), file,it->first, newstrip2, newtime2))continue;
           if (h != l)Correlation_time[p]->Fill(newtime - newtime2);
@@ -879,13 +900,7 @@ Analysis::Eff_ErrorEff(std::string &file)
       std::cout<<" chamber"<<lol[0]<< " windows_nanosecondes : "<< 1.0e-9 * clocktic*(it->second.second - it->second.first) << " area : "
               << read.getDimensions()[lol[0]][0]*read.getDimensions()[lol[0]][1] << " nbrtiggers : " << nEntries;
     std::cout << " nbr strips : " << (16 * nbrpar) << " nbr hits : " << hhh<< " nbr hits.cm-2.s-1 : " << result << normal << std::endl;
-    // std::cout<<red<<nbrpar<<"
-    // "<<InHertzPerCm[std::stoi(lolll[0])]<<normal<<std::endl;
-    // if(isnan(double(val))==true)val=0;
     Mean_Noise[it->first].push_back(result);
-    // for(unsigned int u=0;u!=1000;++u)
-    // std::cout<<red<<cham.ReturnTH2(name)->Integral()<<"  "<<nbrpar<<"
-    // "<<val<<normal<<std::endl;
     //if (duration != -1)cham.ScaleTime(fr3, InHertzPerCm);
     InHertzPerCm.clear();
   }
@@ -1216,12 +1231,12 @@ int Analysis::Loop()
     }
   }
   std::vector<double> Vide(XS.size(), 0.0);
-  TMultiGraph *mg1 = new TMultiGraph;
-  TMultiGraph *mg2 = new TMultiGraph;
-  TCanvas *can1 = new TCanvas("Combined1", "Combined1");
-  TCanvas *can2 = new TCanvas("Combined2", "Combined2");
+  TMultiGraph *mg1 = new TMultiGraph("Noise_combined","Noise_combined");
+  TMultiGraph *mg2 = new TMultiGraph("Signal_combined","Signal_combined");
   int p = 0;
   int p2 = 0;
+  TGraphAsymmErrors *gr112 = nullptr;
+    TGraphAsymmErrors *gr113 = nullptr;
   for (std::map<std::string, std::vector<double>>::iterator it =Noise_Min.begin();it != Noise_Min.end(); ++it) 
   {
     TCanvas *cannn = new TCanvas(it->first.c_str(), it->first.c_str());
@@ -1233,8 +1248,9 @@ int Analysis::Loop()
     tokenize(it->first, tmp, "_");
     if (tmp[2] == "Noise") 
     {
-      Yaxis = "Noise in Hertz.cm-2";
       gr11 = new TGraphAsymmErrors(XS.size(), &(XS[0]), &(Noise_Max[it->first][0]), &(Vide[0]),&(Vide[0]), &(Noise_Min[it->first][0]), &(Vide[0]));
+      if(p2==0)gr112=new TGraphAsymmErrors(XS.size(), &(XS[0]), &(Noise_Max[it->first][0]), &(Vide[0]),&(Vide[0]), &(Noise_Min[it->first][0]), &(Vide[0]));
+      Yaxis = "Noise in Hertz.cm-2";
       gr11->SetName(it->first.c_str());
       gr11->SetTitle(it->first.c_str());
       gr11->SetMarkerStyle(20);
@@ -1249,8 +1265,9 @@ int Analysis::Loop()
     } 
     else 
     {
-      Yaxis = "hits in Hertz.cm-2";
-      gr11 =new TGraphAsymmErrors(XS.size(), &(XS[0]), &(Noise_Max[it->first][0]),&(Vide[0]), &(Vide[0]), &(Vide[0]), &(Vide[0]));
+      gr11 = new TGraphAsymmErrors(XS.size(), &(XS[0]), &(Noise_Max[it->first][0]), &(Vide[0]),&(Vide[0]), &(Vide[0]), &(Vide[0]));
+       if(p==0)gr113=new TGraphAsymmErrors(XS.size(), &(XS[0]), &(Noise_Max[it->first][0]), &(Vide[0]),&(Vide[0]), &(Noise_Min[it->first][0]), &(Vide[0]));
+      Yaxis = "hits in Hz.cm^{-2}";
       gr11->SetName(it->first.c_str());
       gr11->SetTitle(it->first.c_str());
       gr11->SetMarkerStyle(20);
@@ -1266,6 +1283,8 @@ int Analysis::Loop()
     LabelXaxis(Xaxis);
     gr11->GetXaxis()->SetTitle(Xaxis.c_str());
     gr11->GetYaxis()->SetTitle(Yaxis.c_str());
+    gr11->GetXaxis()->SetTitleOffset(0.4);
+    gr11->GetYaxis()->SetTitleOffset(0.4);
     std::string comp2 = "";
     if (tmp[2] == "Noise")comp2 = "Noise";
     else comp2 = "Hits";
@@ -1273,27 +1292,45 @@ int Analysis::Loop()
     gr11->Draw("A3PL");
     writeObject(comp2, cannn);
     delete cannn;
-    delete gr11;
   }
   std::string compp = "";
+  std::string Xaxis = "";
+  std::string Yaxis = "";
   if (p2 > 0) 
   {
+    TCanvas *can1 = new TCanvas("Noise_combined", "Noise_combined");
     can1->cd();
+    gr112->Draw("P");
+    Yaxis = "Noise hits in Hz.cm^{-2}";
+    LabelXaxis(Xaxis);
+    gr112->GetXaxis()->SetTitle(Xaxis.c_str());
+    gr112->GetYaxis()->SetTitle(Yaxis.c_str());
+    gr112->GetXaxis()->SetTitleOffset(0.4);
+    gr112->GetYaxis()->SetTitleOffset(0.4);
     mg1->Draw("A3PL");
     can1->BuildLegend();
     compp = "Noise_combined";
     writeObject(compp, can1);
+    //delete can1;
   }
   if (p > 0) 
   {
+    TCanvas *can2 = new TCanvas("Signal_combined", "Signal_combined");
     can2->cd();
+    gr113->Draw("P");
+    Yaxis = "Signal hits in Hz.cm^{-2}";
+    LabelXaxis(Xaxis);
+    gr113->GetXaxis()->SetTitle(Xaxis.c_str());
+    gr113->GetYaxis()->SetTitle(Yaxis.c_str());
+    gr113->GetXaxis()->SetTitleOffset(0.4);
+    gr113->GetYaxis()->SetTitleOffset(0.4);
     mg2->Draw("A3PL");
+    can2->cd();
     can2->BuildLegend();
     compp = "Hits_combined";
     writeObject(compp, can2);
+    //delete can2;
   }
-  delete can1;
-  delete can2;
   delete mg1;
   delete mg2;
   return 1;

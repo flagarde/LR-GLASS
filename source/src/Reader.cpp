@@ -73,11 +73,27 @@ std::vector<double>& Reader::getPulses()
 {
   return Pulses;
 }
+std::vector<double>& Reader::getWhichThreshold()
+{
+  return WhichThreshold;
+}
+
 std::vector<std::vector<double>> Reader::getConditions()
 {
    std::vector<std::vector<double>>tmp{Voltages,Thresholds,Attenuators,Pulses};
    return tmp;
 }
+
+double Reader::Threshold(int i,int j)
+{
+  int ASICThreshold=-1;
+  if (j==-1) return double(i);
+  if(j==1) return (i-90)*1.0/0.7;
+  else if(j==2) return (i-98)*1.0/0.08;
+  else if (j==3) return (i-98)*1.0e3/16.3;
+  else return -1;
+}
+
 void Reader::PrintConfig()
 {
   std::cout<<green<<"Parameters loaded : "<<normal<<std::endl;
@@ -110,7 +126,8 @@ void Reader::PrintConfig()
   std::cout<<green<<" -> Conditions : "<<normal<<std::endl;
   for(unsigned int i=0;i!=Voltages.size();++i)
   {
-    std::cout<<green<<"   *"<<normal<<" File["<<i+1<<"]"<<green<<" : HV : "<<Voltages[i]<<"V, Threshold : "<<Thresholds[i]<<normal;
+    if(WhichThreshold.size()!=0)std::cout<<green<<"   *"<<normal<<" File["<<i+1<<"]"<<green<<" : HV : "<<Voltages[i]<<"V,"<<WhichThreshold[i]<<" Threshold : "<<Thresholds[i]<<normal;
+    else std::cout<<green<<"   *"<<normal<<" File["<<i+1<<"]"<<green<<" : HV : "<<Voltages[i]<<"V, Threshold : "<<Thresholds[i]<<normal;
     if(Attenuators[i]!=-1) std::cout<<green<<", Attenuator factor : "<<Attenuators[i]<<","<<normal; 
     if(Pulses[i]!=-1) std::cout<<green<<" Pulse time : "<<Pulses[i]<<","<<normal;
     std::cout<<std::endl;

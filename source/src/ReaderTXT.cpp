@@ -8,13 +8,15 @@
 #include"Tokenize.h"
 #include "Colors.h"
 #include <cstdlib>
+
+
+
 ReaderTXT::ReaderTXT(std::string& aname):name(aname)
 {
   std::size_t found = name.find_last_of("/");
   std::string namet=name.substr(found+1);
   std::size_t found2 = namet.find_last_of(".");
   std::string names=namet.substr(0,found2);
-  std::system(("mkdir ./"+names).c_str());
   DatacardName=names;
   setType();
   setMask();
@@ -454,7 +456,15 @@ void ReaderTXT::setConditions()
           std::exit(1);
         }
         Voltages.push_back(stof(token[0].erase(token[0].find("V"),1)));
-        Thresholds.push_back(stof(token[1].erase(token[1].find("mV"),2)));    
+        std::string withoutmV=token[1].erase(token[1].find("mV"),2);
+        std::vector<std::string>usefull;
+        tokenize(withoutmV,usefull,",");
+        if(usefull.size()==1)Thresholds.push_back(Threshold(stoi(usefull[0]),-1));
+        else
+        {
+          Thresholds.push_back(Threshold(stoi(usefull[0]),stoi(usefull[1])));
+          WhichThreshold.push_back(stoi(usefull[1]));
+        }
         if(token.size()>=3)
         {
           Attenuators.push_back(stof(token[2]));

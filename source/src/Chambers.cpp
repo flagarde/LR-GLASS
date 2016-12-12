@@ -599,7 +599,7 @@ Chambers::Chambers(OutFileRoot &out_, Reader &read_) : out(out_), read(read_)
 
 void Chambers::Write() 
 {
-  /*std::string name = "";
+  std::string name = "";
   for (std::map<std::string, TH2F *>::iterator it = TChamberTH2.begin();it != TChamberTH2.end(); ++it) 
   {
     std::cout<<green<<it->first<<normal<<std::endl;
@@ -616,8 +616,8 @@ void Chambers::Write()
     tokenize(tmp4[1],tmp3,"_");
     TString good=GoodFolder(read.getDAQFiles()[filenumber],read);
     TString nameee="";
-    //if (tmp3.size() >= 4) nameee =Form("%s/Chamber%d/%.1f sigma/Shifted %.1fns/%s/%s/",good.Data(),chamber,stof(tmp3[1]), stof(tmp3[2]), tmp3[3].c_str(), tmp3[4].c_str());
-   // else nameee = Form("%s/Chamber%d/%s/",good.Data(),chamber,realname.c_str());
+    if (tmp3.size() >= 4) nameee =Form("%s/Chamber%d/%.1f sigma/Shifted %.1fns/%s/%s/",good.Data(),chamber,stof(tmp3[1]), stof(tmp3[2]), tmp3[3].c_str(), tmp3[4].c_str());
+    else nameee = Form("%s/Chamber%d/%s/",good.Data(),chamber,realname.c_str());
     std::cout<<nameee<<std::endl;
     if(it->second!=nullptr)writeObject(nameee.Data(), it->second);
   }
@@ -640,18 +640,18 @@ void Chambers::Write()
     std::cout<<std::endl;
     for(unsigned int y=0;y!=tmp3.size();++y) std::cout<<tmp3[y]<<" "<<std::endl;
     TString nameee="";
-    //if (tmp3.size() >= 4) nameee =Form("%s/Chamber%d/%0.2f sigma/Shifted %0.2fns/%s/%s",good.Data(),chamber,stof(tmp3[1]), stof(tmp3[2]), tmp3[3].c_str(), tmp3[4].c_str());
-   // else nameee = Form("%s/Chamber%d/%s",good.Data(),chamber,realname.c_str());
+    if (tmp3.size() >= 4) nameee =Form("%s/Chamber%d/%0.2f sigma/Shifted %0.2fns/%s/%s",good.Data(),chamber,stof(tmp3[1]), stof(tmp3[2]), tmp3[3].c_str(), tmp3[4].c_str());
+    else nameee = Form("%s/Chamber%d/%s",good.Data(),chamber,realname.c_str());
     
     std::cout<<red<<nameee<<normal<<std::endl;
     writeObject(nameee.Data(), it->second);
-  }*/
+  }
 }
 
 Chambers::~Chambers() 
 {
   //for (std::map<std::string, TH2F *>::iterator it = TChamberTH2.begin();it != TChamberTH2.end(); ++it)if(it->second!=nullptr)delete it->second;
-  for (std::map<std::string, TH1F *>::iterator it = TChamberTH1.begin();it != TChamberTH1.end(); ++it)if(it->second!=nullptr)delete it->second;
+  //for (std::map<std::string, TH1F *>::iterator it = TChamberTH1.begin();it != TChamberTH1.end(); ++it)if(it->second!=nullptr)delete it->second;
 };
 
 void Chambers::writeObject(std::string &dirName, TObject *object) 

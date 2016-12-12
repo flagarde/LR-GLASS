@@ -26,6 +26,7 @@ class Reader
   std::vector<double>& getAttenuators();
   std::vector<double>& getThresholds();
   std::vector<double>& getPulses();
+  std::vector<double>& getWhichThreshold();
   std::vector<std::string>& getToVerify();
   std::vector<std::vector<double>> getConditions();
   std::set<int>& getMask();
@@ -41,6 +42,7 @@ class Reader
   int& getNbrChambers();
   protected:
   int NbrChambers;
+  double Threshold(int i,int j);
   std::string DatacardName;
   std::string Type;
   std::set<int>Mask;
@@ -56,6 +58,7 @@ class Reader
   std::vector<double>Attenuators;
   std::vector<double>Thresholds;
   std::vector<double>Pulses;
+  std::vector<double>WhichThreshold;
   std::vector<std::string>ToVerify;
 };
 #endif

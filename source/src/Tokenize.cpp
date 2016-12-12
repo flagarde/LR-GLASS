@@ -33,10 +33,22 @@ TString GoodFolder(std::string badname, Reader &reader)
   int A = reader.getAttenuators()[filenumber];
   int T = reader.getThresholds()[filenumber];
   int P = reader.getPulses()[filenumber];
-  if (A == -1 && P == -1) newname = Form("%s_HV%d_Thr%d", tmp3[0].c_str(), V, T);
-  else if (P == -1) newname =Form("%s_HV%d_Thr%d_Attenuator%d", tmp3[0].c_str(), V, T, A);
-  else if (A == -1) newname = Form("%s_HV%d_Thr%d_Pulse%d", tmp3[0].c_str(), V, T, P);
-  else newname = Form("%s_HV%d_Thr%d_Attenuator%d_Pulse%d", tmp3[0].c_str(), V, T,A, P);
+  int Th =-1.0;
+  if(reader.getWhichThreshold().size()!=0)
+  {
+    Th =reader.getWhichThreshold()[filenumber];
+    if (A == -1 && P == -1) newname = Form("%s_HV%d_Thr%d_ThrNbr%d", tmp3[0].c_str(), V, T,Th);
+    else if (P == -1) newname =Form("%s_HV%d_Thr%d_ThrNbr%d_Attenuator%d", tmp3[0].c_str(), V, T,Th, A);
+    else if (A == -1) newname = Form("%s_HV%d_Thr%d_ThrNbr%d_Pulse%d", tmp3[0].c_str(), V, T,Th, P);
+    else newname = Form("%s_HV%d_Thr%d_ThrNbr%d_Attenuator%d_Pulse%d", tmp3[0].c_str(), V, T,Th,A, P);
+  }
+  else 
+  {
+    if (A == -1 && P == -1) newname = Form("%s_HV%d_Thr%d", tmp3[0].c_str(), V, T);
+    else if (P == -1) newname =Form("%s_HV%d_Thr%d_Attenuator%d", tmp3[0].c_str(), V, T, A);
+    else if (A == -1) newname = Form("%s_HV%d_Thr%d_Pulse%d", tmp3[0].c_str(), V, T, P);
+    else newname = Form("%s_HV%d_Thr%d_Attenuator%d_Pulse%d", tmp3[0].c_str(), V, T,A, P);
+  }
   return newname;
 }
 

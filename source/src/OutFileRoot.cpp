@@ -42,6 +42,7 @@ OutFileRoot::~OutFileRoot()
 
 bool OutFileRoot::writeObject(std::string& dirName, TObject *object)
 {
+  outFile_->cd("/");
   if(!outFile_->GetDirectory(dirName.c_str())) 
   {
     outFile_->mkdir(dirName.c_str());
