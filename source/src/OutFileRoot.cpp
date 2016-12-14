@@ -5,7 +5,7 @@
 #include "Tokenize.h"
 #include "tdrStyle.h"
 #include "TLatex.h"
-#include<iostream>
+#include <iostream>
 #include "Tokenize.h"
 
 std::string OutFileRoot::replaceStrChar(std::string str, const std::string& replace, char ch) 
@@ -40,7 +40,7 @@ OutFileRoot::~OutFileRoot()
   }
 }
 
-bool OutFileRoot::writeObject(std::string& dirName, TObject *object)
+bool OutFileRoot::writeObject(std::string& dirName,TObject *object)
 {
   outFile_->cd("/");
   if(!outFile_->GetDirectory(dirName.c_str())) 
@@ -79,8 +79,8 @@ bool OutFileRoot::writeObject(std::string& dirName, TObject *object)
     nameobj=replaceStrChar(nameobj," ",'_');
     nameobj=replaceStrChar(nameobj,"+",'p');
     nameobj=replaceStrChar(nameobj,"-",'m');
-    std::string trdStylePLot="./Results/"+namek+"/"+nameobj+".png";
-    std::string repertory="mkdir -p ./Results/"+namek+"/";
+    std::string trdStylePLot="./Results/"+_outputFileName+"/"+namek+"/"+nameobj+".png";
+    std::string repertory="mkdir -p ./Results/"+_outputFileName+"/"+namek+"/";
     std::system(repertory.c_str());
     can->SaveAs(trdStylePLot.c_str(),"Q");
     delete prelim;
@@ -127,8 +127,8 @@ bool OutFileRoot::writeObject(const char * dirName, TObject *object)
     nameobj=replaceStrChar(nameobj," ",'_');
     nameobj=replaceStrChar(nameobj,"+",'p');
     nameobj=replaceStrChar(nameobj,"-",'m');
-    std::string trdStylePLot="./Results/"+namek+nameobj+".png";
-    std::string repertory="mkdir -p ./Results/"+namek+"/";
+    std::string trdStylePLot="./Results/"+_outputFileName+"/"+namek+"/"+nameobj+".png";
+    std::string repertory="mkdir -p ./Results/"+_outputFileName+"/"+namek+"/";
     std::system(repertory.c_str());
     can->SaveAs(trdStylePLot.c_str(),"Q");
     delete prelim;

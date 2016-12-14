@@ -152,7 +152,7 @@ void Cluster::run()
 
 void Cluster::write(OutFileRoot& out)
 {
-  std::string namee = GoodName(p,read)+"/";
+  std::string namee = GoodName(p,read)+"/Clusterisation";
   out.writeObject(namee, Resolution);
   out.writeObject(namee, cluster_multiplicity);
   out.writeObject(namee, nbr_cluster);

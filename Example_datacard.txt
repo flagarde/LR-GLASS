@@ -1,0 +1,60 @@
+#TYPE:
+type=srcEff
+#TYPE END.
+
+#ANALYSIS:
+NbrChambers=2
+Partitions_Ch1=A1+A2+B1+B2+C1+C2+D1+D2
+Partitions_Ch2=A1+A2+B1+B2+C1+C2+D1+D2
+TimeWindows_Ch1=56-58
+TimeWindows_Ch2=56-58
+Dimensions_Ch1=0.2*30
+Dimensions_Ch2=0.2*30
+#ANALYSIS END.
+
+#VOL-THR-ATT-PUL:
+9300V_130,1mV_0.680272
+9300V_130,1mV_0.316455
+9300V_130,1mV_2.17e-5
+#VOL-THR-ATT-PUL END.
+
+#DAQ FILES:
+./Data/1/Scan733652_HV1_DAQ.root
+./Data/1/Scan733651_HV1_DAQ.root
+./Data/1/Scan733657_HV1_DAQ.root
+#DAQ FILES END.
+
+#MASK:
+#MASK END.
+
+#MAPPING:
+1A1=6000
+1A2=6016
+1B1=6032
+1B2=6048
+1C1=6064
+1C2=6080
+1D1=6096
+1D2=6112
+2A1=6500
+2A2=6516
+2B1=6532
+2B2=6548
+2C1=6564
+2C2=6580
+2D1=6596
+2D2=6612
+#MAPPING END.
+
+#PARAMETERS:
+ClockTICns=200
+#CorrelationTimeInClockTics
+CorrelationTime=0,5,10,15
+NoiseShift=-15,-25,-35,-40,25,15
+NoiseWindows=2
+NumberOfSigmas=3
+TimeSluster_us=1
+SpaceCluster_strips=3;
+#use this to supress some plots
+dontbreakemypc=PLEASE!!!
+#PARAMETERS END.

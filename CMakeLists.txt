@@ -7,8 +7,8 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 add_compile_options(-std=c++1y)
 
 project( LRGRPC )
-set( ${PROJECT_NAME}_VERSION_MAJOR 5 )
-set( ${PROJECT_NAME}_VERSION_MINOR 1 )
+set( ${PROJECT_NAME}_VERSION_MAJOR 6 )
+set( ${PROJECT_NAME}_VERSION_MINOR 0 )
 set( ${PROJECT_NAME}_VERSION_PATCH 0 )
 
 add_definitions( "-std=c++11 -ggdb -Wall -ansi -Wno-long-long -Wno-sign-compare -fno-strict-aliasing -lpthread -ldl -lm" )

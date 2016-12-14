@@ -16,6 +16,7 @@
 #include "TGraphAsymmErrors.h"
 #include "TString.h"
 #include "Cluster.h"
+#include "Correlation.h"
 #include "Sigmoid.h"
 
 using namespace std;
@@ -104,7 +105,7 @@ void Analysis::ShiftTimes()
   {
     clocktic = stod(read.getParameters()["ClockTICns"]);
   }
-  else time_range = 0.15;
+  else time_range = 9.1;
   std::vector<double> Noise_shift;
   std::vector<double> Noise_Window;
   std::vector<double> Window;
@@ -188,7 +189,7 @@ void Analysis::ShiftTimes()
     RAWData data;
     data.TDCCh = new std::vector<int>;   // List of hits and their channels
     data.TDCTS = new std::vector<float>; // List of the corresponding timestamps
-    data.Thres=new std::vector<int>;
+    data.Thres=nullptr;
     data.TDCCh->clear();
     data.TDCTS->clear();
     dataTree->SetBranchAddress("EventNumber", &data.iEvent);
@@ -197,9 +198,10 @@ void Analysis::ShiftTimes()
     dataTree->SetBranchAddress("TDC_TimeStamp", &data.TDCTS);
     if(issmallchamber==true)
     {
+      data.Thres=new std::vector<int>;
       dataTree->SetBranchAddress("ASICThreshold", &data.Thres);
+      data.Thres->clear();
     }
-    data.Thres->clear();
     std::vector<int> u;
     unsigned int nEntries = dataTree->GetEntries();
     for (unsigned int i = 0; i < nEntries; i++) 
@@ -712,12 +714,12 @@ Analysis::Eff_ErrorEff(std::string &file)
   static int filenumber = 0;
   std::map<std::string, TH1F *> general_multilicity;
   std::map<std::string, TH1F *> clu;
-  std::map<std::string, std::map<std::string, TH2F *>> Correlation;
+  /*std::map<std::string, std::map<std::string, TH2F *>> Correlation;
   std::map<std::string, std::map<std::string, TH2F *>> Correlation2;
   std::map<std::string, std::map<std::string, TH2F *>> Correlation21;
   std::map<std::string, std::map<std::string, TProfile2D *>> CorrelationProfile;
   std::map<std::string, std::map<std::string, TProfile2D *>>CorrelationProfile2;
-  std::map<std::string, TH1F *> Correlation_time;
+  std::map<std::string, TH1F *> Correlation_time;*/
   std::map<std::string, std::vector<std::pair<double, double>>> eff;
   std::cout << "Analysis for File : " << file << std::endl;
   static int nn = 0;
@@ -750,7 +752,7 @@ Analysis::Eff_ErrorEff(std::string &file)
     std::vector<std::string> lol;
     tokenize(it->first, lol, "_");
     TString ti = Form("Fit %s Window +- %.2f shift %.2f %s", lol[3].c_str(),stof(lol[1]), stof(lol[2]), lol[4].c_str());
-    for (unsigned int co = 0; co != Cor.size(); ++co) 
+    /*for (unsigned int co = 0; co != Cor.size(); ++co) 
     {
       ++nn;
       Correlation[p][tmp[co]]=new TH2F(("Cor_" +n1+ "_" +tmp[co]).c_str(),("Correlation "+ti+" "+tmp[co].c_str()+"ns"),130,0,130,130,0,130);
@@ -758,8 +760,8 @@ Analysis::Eff_ErrorEff(std::string &file)
       Correlation2[p][tmp[co]]=new TH2F(("Cor_" + n1 + "_" + tmp2[co] + "_" + tmp2[co + 1]).c_str(),("Correlation " + ti + " bettwen " + tmp2[co].c_str() + "_" +tmp2[co + 1].c_str() + "ns"),130, 0, 130, 130, 0, 130);
       Correlation21[p][tmp[co]] =new TH2F(("Cor21_" + n1 + "_" + tmp[co]).c_str(),("Correlation " + ti + " " + tmp[co].c_str() + "ns"),int(Cor[co]) + 1, 0, Cor[co] + 1, 130, 0, 130);
       CorrelationProfile2[p][tmp[co]] = new TProfile2D(("Cor2D" + n1 + "_" + tmp2[co] + "_" + tmp2[co + 1]).c_str(),("Correlation2D " + ti + " bettwen " + tmp2[co].c_str() + "_" +tmp2[co + 1].c_str() + "ns"),130, 0, 130, 130, 0, 130);
-    }
-    Correlation_time[p] =new TH1F(("Cortimr_" + n1).c_str(), "Correlation time distribution",1000, -500, 500);
+    }*/
+    //Correlation_time[p] =new TH1F(("Cortimr_" + n1).c_str(), "Correlation time distribution",1000, -500, 500);
     general_multilicity[p] = new TH1F(("Genmulti" + n1).c_str(), ("General Multiplicity " + ti), 128, 0, 128);
     clu[p] = new TH1F(("MultiClusterized" + n1).c_str(),("Multipicity clusterised " + ti), 130, 0, 130);
     std::string fr = "Real_Spatial_Distribution*" + it->first + "_File" +std::to_string(filenumber);
@@ -781,11 +783,13 @@ Analysis::Eff_ErrorEff(std::string &file)
       continue;
     }
     RAWData data;
-    data.Thres=new std::vector<int>;;
+    Correlation correlations(p,cham,read,data,filenumber);
+    data.Thres=nullptr;
     if(issmallchamber==true)
     {
-      
+      data.Thres=new std::vector<int>;
       dataTree->SetBranchAddress("ASICThreshold", &data.Thres); 
+      data.Thres->clear();
     }
     data.TDCCh = new vector<int>;   // List of hits and their channels
     data.TDCTS = new vector<float>; // List of the corresponding time stamps
@@ -824,7 +828,8 @@ Analysis::Eff_ErrorEff(std::string &file)
         if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h), file,it->first, newstrip, newtime))continue;
         cham.FillTH2(fr, data.TDCCh->at(h));
         cham.FillTH2(fr2, data.TDCCh->at(h), data.TDCTS->at(h));
-        for (int l = 0; l < data.TDCNHits; l++) 
+        correlations.run(h,newstrip,newtime);
+        /*for (int l = 0; l < data.TDCNHits; l++) 
         {
           int newstrip2 = 0;
           double newtime2 = 0.;
@@ -851,7 +856,7 @@ Analysis::Eff_ErrorEff(std::string &file)
               CorrelationProfile2[p][tmp2[val + 1]]->Fill(newstrip, newstrip2,newtime - newtime2);
             }
           }
-        }
+        }*/
         clusters.Fill(newstrip,newtime,data.TDCCh->at(h));
         ++isCh;
       }
@@ -876,6 +881,7 @@ Analysis::Eff_ErrorEff(std::string &file)
       sqrt(
       (clusters.getSup7hitCluster()[0]*1.0/nEntries)*(1-(clusters.getSup7hitCluster()[0]*1.0/nEntries))/sqrt(nEntries)));
       clusters.write(out);
+      correlations.write(out);
       eff[it->first].push_back({numGoodEvents[it->first] / nEntries,sqrt((numGoodEvents[it->first] *(nEntries - numGoodEvents[it->first])) /nEntries) /numGoodEvents[it->first]});
       if (stof(lol[2]) == 0) 
       {
@@ -904,7 +910,7 @@ Analysis::Eff_ErrorEff(std::string &file)
     //if (duration != -1)cham.ScaleTime(fr3, InHertzPerCm);
     InHertzPerCm.clear();
   }
-  for (std::map<std::string, std::map<std::string, TH2F *>>::iterator it =Correlation.begin();it != Correlation.end(); ++it) 
+  /*for (std::map<std::string, std::map<std::string, TH2F *>>::iterator it =Correlation.begin();it != Correlation.end(); ++it) 
   {
     std::string namee = GoodName(it->first, read);
     for (std::map<std::string, TH2F *>::iterator itt =Correlation[it->first].begin();itt != Correlation[it->first].end(); ++itt) 
@@ -919,8 +925,8 @@ Analysis::Eff_ErrorEff(std::string &file)
   }
   Correlation.clear();
   Correlation2.clear();
-  Correlation21.clear();
-  for (std::map<std::string, std::map<std::string, TProfile2D *>>::iterator it =CorrelationProfile.begin();it != CorrelationProfile.end(); ++it) 
+  Correlation21.clear();*/
+  /*for (std::map<std::string, std::map<std::string, TProfile2D *>>::iterator it =CorrelationProfile.begin();it != CorrelationProfile.end(); ++it) 
   {
     std::string namee = GoodName(it->first, read);
     for (std::map<std::string, TProfile2D *>::iterator itt =CorrelationProfile[it->first].begin();itt != CorrelationProfile[it->first].end(); ++itt) 
@@ -932,20 +938,20 @@ Analysis::Eff_ErrorEff(std::string &file)
     }
   }
   CorrelationProfile.clear();
-  CorrelationProfile2.clear();
+  CorrelationProfile2.clear();*/
   for (std::map<std::string, TH1F *>::iterator it = clu.begin();it != clu.end(); ++it) 
   {
     std::string namee = GoodName(it->first, read);
     writeObject(namee, general_multilicity[it->first]);
-    writeObject(namee, Correlation_time[it->first]);
+   // writeObject(namee, Correlation_time[it->first]);
     writeObject(namee, clu[it->first]);
     delete general_multilicity[it->first];
     delete clu[it->first];
-    delete Correlation_time[it->first];
+    //delete Correlation_time[it->first];
   }
   general_multilicity.clear();
   clu.clear();
-  Correlation_time.clear();
+  //Correlation_time.clear();
   filenumber++;
   return eff;
 }

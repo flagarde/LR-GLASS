@@ -17,7 +17,7 @@ class OutFileRoot
   public:
     ~OutFileRoot();
     OutFileRoot(){};
-    OutFileRoot(std::string& outputFileName)
+    OutFileRoot(std::string& outputFileName):_outputFileName(outputFileName)
     {
       setOutputFile(outputFileName);
     }

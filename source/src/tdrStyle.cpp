@@ -31,9 +31,9 @@ void setTDRStyle()
 // For the canvas:
   tdrStyle->SetCanvasBorderMode(0);
   tdrStyle->SetCanvasColor(kWhite);
-  tdrStyle->SetCanvasDefH(480); //Height of canvas
+  tdrStyle->SetCanvasDefH(768); //Height of canvas
   //  tdrStyle->SetCanvasDefH(450); //Height of canvas
-  tdrStyle->SetCanvasDefW(600); //Width of canvas
+  tdrStyle->SetCanvasDefW(1366); //Width of canvas
   tdrStyle->SetCanvasDefX(0);   //POsition on screen
   tdrStyle->SetCanvasDefY(0);
 
@@ -126,8 +126,8 @@ void setTDRStyle()
   tdrStyle->SetTitleSize(0.055, "XYZ");
   // tdrStyle->SetTitleXSize(Float_t size = 0.02); // Another way to set the size?
   //tdrStyle->SetTitleYSize(Float_t size = 0.02);
-  tdrStyle->SetTitleXOffset(1.00);
-  tdrStyle->SetTitleYOffset(1.35);
+  tdrStyle->SetTitleXOffset(0.5);
+  tdrStyle->SetTitleYOffset(0.5);
   // tdrStyle->SetTitleOffset(1.1, "Y"); // Another way to set the Offset
 
 // For the axis labels:
@@ -164,7 +164,12 @@ void setTDRStyle()
   // tdrStyle->SetPalette(Int_t ncolors = 0, Int_t* colors = 0);
   // tdrStyle->SetTimeOffset(Double_t toffset);
   // tdrStyle->SetHistMinimumZero(kTRUE);
-
+  tdrStyle->SetCanvasColor(-1); 
+tdrStyle->SetPadColor(-1); 
+tdrStyle->SetFrameFillColor(-1); 
+tdrStyle->SetHistFillColor(-1); 
+tdrStyle->SetTitleFillColor(-1); 
+tdrStyle->SetFillColor(-1); 
   tdrStyle->cd();
   gROOT->SetStyle("tdrStyle");
 

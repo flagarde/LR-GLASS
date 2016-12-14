@@ -24,6 +24,7 @@ using namespace std;
 
 int main(int argc, char* argv[]) 
 {
+  TH1::AddDirectory(kFALSE);
   gErrorIgnoreLevel=900000;
   setTDRStyle();
   if (argc < 3) 
