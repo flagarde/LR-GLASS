@@ -34,8 +34,10 @@ class Correlation
     std::vector<double> Cor2;
     RAWData& data;
     std::vector<std::string> tmp;
+    std::vector<std::string> tmp3;
     std::vector<std::string> tmp2;
     int filenumber;
     std::vector<std::string> lol2;
+    double clocktic;
 };
 #endif

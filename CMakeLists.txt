@@ -1,17 +1,20 @@
 ########################################################
 # cmake file for building LRGRPC
 # @author Lagarde François, IPNL
-cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 ########################################################
-
-add_compile_options(-std=c++1y)
+cmake_minimum_required(VERSION 2.8)
+if(CMAKE_VERSION VERSION_LESS "2.8.12")
+   add_definitions("-std=c++14")
+else()
+   add_compile_options(-std=c++14)
+endif()
 
 project( LRGRPC )
-set( ${PROJECT_NAME}_VERSION_MAJOR 6 )
+set( ${PROJECT_NAME}_VERSION_MAJOR 7 )
 set( ${PROJECT_NAME}_VERSION_MINOR 0 )
 set( ${PROJECT_NAME}_VERSION_PATCH 0 )
 
-add_definitions( "-std=c++11 -ggdb -Wall -ansi -Wno-long-long -Wno-sign-compare -fno-strict-aliasing -lpthread -ldl -lm" )
+add_definitions( "-D_GLIBCXX_USE_CXX11_ABI=0 -ggdb -Wall -ansi -fno-strict-aliasing -fPIC -O3" )
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/source/ROOT/)
 list( APPEND CMAKE_MODULE_PATH $ENV{ROOTSYS}/etc/cmake/)
 configure_file ("./source/include/Version.h.in" "${CMAKE_SOURCE_DIR}/build/include/Version.h")

@@ -15,12 +15,15 @@ class Chambers
 {
   public:
   std::map<std::string,std::map<int,float>>MoyTimeStrip;
+  std::vector<int> Useful_Strip(std::string& chamber);
   std::map<std::string,std::map<int,float>>MoyTimeChamber;
   std::map<std::string,std::map<std::string,std::pair<double,double>>>SelectionTimes;
   Chambers& operator=(Chambers& other);
   std::pair<int,int> FindPosition(int strip);
   std::string FindChamber(int strip);
   std::string FindPartition(int strip);
+  void Clear();
+  void WriteEasy(std::string str ,TH1* th);
   void FillTH2(std::string &name,int& strip,double X=0.0);
   void FillTH1(std::string &name,int strip,double value,double poids=1);
   void CreateTH2(std::string& name,double size=-1,int bin=-1);
@@ -30,7 +33,7 @@ class Chambers
   void CreateTH2(std::string& name,int binx,double xmin,double xmax,std::string ytype,std::string ymin_max);
   void CreateTH2(std::string& name,std::string xtype, std::string xmin_max,std::string ytype,std::string ymin_max);
   void CreateTH1(std::string& name,int bin,double min,double max);
-  void CreateTH1(std::string& name,int bin,std::string xtype,std::string xmin_max);
+  //void CreateTH1(std::string& name,int bin,std::string xtype,std::string xmin_max);
   void CreateTH1(std::string& name,std::string xtype,std::string xmin_max);
   void Scale(std::string& name,double value);
   void ScaleTime(std::string& name,std::map<int,double>& times);
@@ -38,7 +41,7 @@ class Chambers
   TH1F* ReturnTH1(std::string& name);
   TH2F* ReturnTH2(std::string& name);
   std::vector<int>Usefull_Strip;
-  void Create1TH1(std::string& name,int bin,std::string xtype,std::string xmin_max);
+  void CreateTH1(std::string& name,int bin,std::string xtype,std::string xmin_max);
   Chambers(OutFileRoot& out_, Reader& read);
   void Write();
   void AddTimeWindow(std::string&,std::string&,std::string&, double,double);

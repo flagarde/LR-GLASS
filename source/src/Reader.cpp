@@ -121,13 +121,29 @@ void Reader::PrintConfig()
   }
   std::cout<<std::endl;
   std::cout<<green<<" -> DAQ Files : "<<normal<<std::endl;
-  for(unsigned int i=0;i!=DAQFiles.size();++i) std::cout<<green<<"   *"<<normal<<" File["<<i+1<<"] : "<<green<<DAQFiles[i]<<normal<<std::endl;
+  for(unsigned int i=0;i!=DAQFiles.size();++i) 
+  {
+    std::string space="";
+    if(DAQFiles.size()>9) space=" ";
+    if(i<9)std::cout<<green<<"   *"<<normal<<" File["<<i+1<<space<<"] : "<<green<<DAQFiles[i]<<normal<<std::endl;
+    else std::cout<<green<<"   *"<<normal<<" File["<<i+1<<"] : "<<green<<DAQFiles[i]<<normal<<std::endl;
+  }
   std::cout<<std::endl;
   std::cout<<green<<" -> Conditions : "<<normal<<std::endl;
   for(unsigned int i=0;i!=Voltages.size();++i)
   {
-    if(WhichThreshold.size()!=0)std::cout<<green<<"   *"<<normal<<" File["<<i+1<<"]"<<green<<" : HV : "<<Voltages[i]<<"V,"<<WhichThreshold[i]<<" Threshold : "<<Thresholds[i]<<normal;
-    else std::cout<<green<<"   *"<<normal<<" File["<<i+1<<"]"<<green<<" : HV : "<<Voltages[i]<<"V, Threshold : "<<Thresholds[i]<<normal;
+    std::string space="";
+    if(Voltages.size()>9) space=" ";
+    if(WhichThreshold.size()!=0)
+    {
+      if(i<9) std::cout<<green<<"   *"<<normal<<" File["<<i+1<<space<<"]"<<green<<" : HV : "<<Voltages[i]<<"V,"<<WhichThreshold[i]<<" Threshold : "<<Thresholds[i]<<normal;
+      else std::cout<<green<<"   *"<<normal<<" File["<<i+1<<"]"<<green<<" : HV : "<<Voltages[i]<<"V,"<<WhichThreshold[i]<<" Threshold : "<<Thresholds[i]<<normal;
+    }
+    else
+    {
+       if(i<9)std::cout<<green<<"   *"<<normal<<" File["<<i+1<<space<<"]"<<green<<" : HV : "<<Voltages[i]<<"V, Threshold : "<<Thresholds[i]<<normal;
+       else std::cout<<green<<"   *"<<normal<<" File["<<i+1<<"]"<<green<<" : HV : "<<Voltages[i]<<"V, Threshold : "<<Thresholds[i]<<normal;
+    }
     if(Attenuators[i]!=-1) std::cout<<green<<", Attenuator factor : "<<Attenuators[i]<<","<<normal; 
     if(Pulses[i]!=-1) std::cout<<green<<" Pulse time : "<<Pulses[i]<<","<<normal;
     std::cout<<std::endl;
@@ -136,7 +152,13 @@ void Reader::PrintConfig()
   if(CAENFiles.size()!=0)
   {
     std::cout<<green<<" -> CAEN Files : "<<normal<<std::endl;
-    for(unsigned int i=0;i!=CAENFiles.size();++i) std::cout<<green<<"   *"<<normal<<" File["<<i+1<<"] : "<<green<<CAENFiles[i]<<normal<<std::endl;
+    for(unsigned int i=0;i!=CAENFiles.size();++i) 
+    { 
+      std::string space="";
+      if(CAENFiles.size()>9) space=" ";
+      if(i<9) std::cout<<green<<"   *"<<normal<<" File["<<i+1<<space<<"] : "<<green<<CAENFiles[i]<<normal<<std::endl;
+      else std::cout<<green<<"   *"<<normal<<" File["<<i+1<<"] : "<<green<<CAENFiles[i]<<normal<<std::endl;
+    }
     std::cout<<std::endl;
   }
   if(Mask.size()!=0)

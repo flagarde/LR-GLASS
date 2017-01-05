@@ -87,7 +87,7 @@ void Analysis::writeObject(const char *dirName, TObject *object)
 }
 void Analysis::ShiftTimes()
 {
-  if (read.getParameters().find("DontBreakeMyPC") !=read.getParameters().end()) 
+  if (read.getParameters().find("DontBreakMyPC") !=read.getParameters().end()) 
   {
     dontbrokemypc = true;
     std::cout<<yellow<<" OK I WILL TRY TO NOT KILL YOUR PC !!!"<<normal<<std::endl;
@@ -142,11 +142,11 @@ void Analysis::ShiftTimes()
     std::map<int, TH1F *> mean_time_strip;
     std::string time_distr = "Time Distribution Channel Time Unaligned";
     std::string time_distrr = "Time Distribution Channel Time Aligned";
-    std::string th11 = "profile_time_unaligned_File*" + std::to_string(file);
-    std::string th12 = "profile_time_aligned_File*" + std::to_string(file);
-    std::string th13 = "Mean_time_per_strip_File*" + std::to_string(file);
-    std::string th15 = "Ecart_type_per_strip_File*" + std::to_string(file);
-    std::string th14 = "Mean_time_per_chamber_File" + std::to_string(file);
+    std::string th11 = "profile time unaligned*_File" + std::to_string(file);
+    std::string th12 = "profile time aligned*_File" + std::to_string(file);
+    std::string th13 = "Mean time per strip*_File" + std::to_string(file);
+    std::string th15 = "Ecart type per strip*_File" + std::to_string(file);
+    std::string th14 = "Mean time per chamber*_File" + std::to_string(file);
     cham.CreateTH1(th13, "Spatial", "Default");
     cham.CreateTH1(th15, "Spatial", "Default");
     cham.CreateTH1(th11, "Time", "Default");
@@ -183,8 +183,7 @@ void Analysis::ShiftTimes()
     if(dataTree->GetListOfBranches()->FindObject("BIF_TS"))
     {
       issmallchamber=true;
-      std::cout<<"Is small chamber so I will fit anything ! "<<std::endl;
-      
+      std::cout<<"Is small chamber so I will fit anything ! "<<std::endl; 
     }
     RAWData data;
     data.TDCCh = new std::vector<int>;   // List of hits and their channels
@@ -249,8 +248,8 @@ void Analysis::ShiftTimes()
     {
       moy_time_strip[it->first] =(it->second).first * 1.0 / (it->second).second;
       ecart_type_strip[it->first] =sqrt((sum2_time_strip[it->first].first * 1.0 /sum2_time_strip[it->first].second) -moy_time_strip[it->first] * moy_time_strip[it->first]);
-      //cham.FillTH1(th13, it->first, it->first, moy_time_strip[it->first]);
-      //cham.FillTH1(th15, it->first, it->first, ecart_type_strip[it->first]);
+      cham.FillTH1(th13, it->first, it->first, moy_time_strip[it->first]);
+      cham.FillTH1(th15, it->first, it->first, ecart_type_strip[it->first]);
     }
     for (std::map<int, std::pair<int, int>>::iterator it =sum_time_chamber.begin();it != sum_time_chamber.end(); ++it) 
     {
@@ -270,20 +269,20 @@ void Analysis::ShiftTimes()
           if(read.getWhichThreshold()[file]>data.Thres->at(h))continue;
         }
         if (!cham.InsideZone(data.TDCCh->at(h), data.TDCTS->at(h))) continue;
-        /*cham.FillTH1(th12, data.TDCCh->at(h),data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +
+        cham.FillTH1(th12, data.TDCCh->at(h),data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +
                 moy_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h))) -
                                  1]);
-        cham.FillTH1(th11, data.TDCCh->at(h), data.TDCTS->at(h));*/
+        cham.FillTH1(th11, data.TDCCh->at(h), data.TDCTS->at(h));
         if(dontbrokemypc==false)
         {
           time_dist_strip[data.TDCCh->at(h)]->Fill(data.TDCTS->at(h));
           time_dist_strip2[data.TDCCh->at(h)]->Fill(data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +moy_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h))) - 1]);
         }
-        /*cham.FillTH2(name4, data.TDCCh->at(h),data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +
+        cham.FillTH2(name4, data.TDCCh->at(h),data.TDCTS->at(h) - moy_time_strip[data.TDCCh->at(h)] +
                 moy_time_chamber[stoi(cham.FindChamber(data.TDCCh->at(h))) -
                                  1]);
         cham.FillTH2(name1, data.TDCCh->at(h));
-        cham.FillTH2(name3, data.TDCCh->at(h), data.TDCTS->at(h));*/
+        cham.FillTH2(name3, data.TDCCh->at(h), data.TDCTS->at(h));
       }
     }
     delete dataTree;
@@ -602,6 +601,8 @@ void Analysis::ShiftTimes()
     out.writeObject(name, gr);
     delete gr;
   }
+  cham.Write();
+  cham.Clear();
 }
 
 std::map<std::string,TGraphErrors*> Analysis::Construct_Plot() 
@@ -708,39 +709,15 @@ std::map<std::string,TGraphErrors*> Analysis::Construct_Plot()
 }
 
 //-------------------------------------------------------
-std::map<std::string, std::vector<std::pair<double, double>>>
-Analysis::Eff_ErrorEff(std::string &file) 
+std::map<std::string, std::vector<std::pair<double, double>>>Analysis::Eff_ErrorEff(std::string &file) 
 {
   static int filenumber = 0;
   std::map<std::string, TH1F *> general_multilicity;
+  std::map<std::string, TH1F *> Hits_follow;
   std::map<std::string, TH1F *> clu;
-  /*std::map<std::string, std::map<std::string, TH2F *>> Correlation;
-  std::map<std::string, std::map<std::string, TH2F *>> Correlation2;
-  std::map<std::string, std::map<std::string, TH2F *>> Correlation21;
-  std::map<std::string, std::map<std::string, TProfile2D *>> CorrelationProfile;
-  std::map<std::string, std::map<std::string, TProfile2D *>>CorrelationProfile2;
-  std::map<std::string, TH1F *> Correlation_time;*/
   std::map<std::string, std::vector<std::pair<double, double>>> eff;
   std::cout << "Analysis for File : " << file << std::endl;
   static int nn = 0;
-  std::map<std::string, double> numGoodEvents;
-  // recuperer le parametre
-  std::vector<double> Cor;
-  std::vector<double> Cor2;
-  Cor2.push_back(0);
-  std::vector<std::string> tmp;
-  std::vector<std::string> tmp2;
-  tmp2.push_back("0");
-  if (read.getParameters().find("CorrelationTime") !=read.getParameters().end()) 
-  {
-    tokenize(read.getParameters()["CorrelationTime"], tmp, ",");
-    for (unsigned int i = 0; i != tmp.size(); ++i) 
-    {
-      Cor.push_back(stof(tmp[i]));
-      Cor2.push_back(stof(tmp[i]));
-      tmp2.push_back(tmp[i]);
-    }
-  }
   for (std::map<std::string, std::pair<double, double>>::iterator it =cham.SelectionTimes[file].begin();it != cham.SelectionTimes[file].end(); ++it) 
   {
     
@@ -752,23 +729,13 @@ Analysis::Eff_ErrorEff(std::string &file)
     std::vector<std::string> lol;
     tokenize(it->first, lol, "_");
     TString ti = Form("Fit %s Window +- %.2f shift %.2f %s", lol[3].c_str(),stof(lol[1]), stof(lol[2]), lol[4].c_str());
-    /*for (unsigned int co = 0; co != Cor.size(); ++co) 
-    {
-      ++nn;
-      Correlation[p][tmp[co]]=new TH2F(("Cor_" +n1+ "_" +tmp[co]).c_str(),("Correlation "+ti+" "+tmp[co].c_str()+"ns"),130,0,130,130,0,130);
-      CorrelationProfile[p][tmp[co]]=new TProfile2D(("Cor2D_" + n1 + "_" + tmp[co]).c_str(),("Correlation2D " + ti + " " + tmp[co].c_str() + "ns"),130, 0, 130, 130, 0, 130);
-      Correlation2[p][tmp[co]]=new TH2F(("Cor_" + n1 + "_" + tmp2[co] + "_" + tmp2[co + 1]).c_str(),("Correlation " + ti + " bettwen " + tmp2[co].c_str() + "_" +tmp2[co + 1].c_str() + "ns"),130, 0, 130, 130, 0, 130);
-      Correlation21[p][tmp[co]] =new TH2F(("Cor21_" + n1 + "_" + tmp[co]).c_str(),("Correlation " + ti + " " + tmp[co].c_str() + "ns"),int(Cor[co]) + 1, 0, Cor[co] + 1, 130, 0, 130);
-      CorrelationProfile2[p][tmp[co]] = new TProfile2D(("Cor2D" + n1 + "_" + tmp2[co] + "_" + tmp2[co + 1]).c_str(),("Correlation2D " + ti + " bettwen " + tmp2[co].c_str() + "_" +tmp2[co + 1].c_str() + "ns"),130, 0, 130, 130, 0, 130);
-    }*/
-    //Correlation_time[p] =new TH1F(("Cortimr_" + n1).c_str(), "Correlation time distribution",1000, -500, 500);
     general_multilicity[p] = new TH1F(("Genmulti" + n1).c_str(), ("General Multiplicity " + ti), 128, 0, 128);
     clu[p] = new TH1F(("MultiClusterized" + n1).c_str(),("Multipicity clusterised " + ti), 130, 0, 130);
     std::string fr = "Real_Spatial_Distribution*" + it->first + "_File" +std::to_string(filenumber);
     std::string fr2 = "Real_Spatial_Distribution2*" + it->first + "_File" +std::to_string(filenumber);
-    //std::string fr3 = "Real_Spatial_Distribution_Center*" + it->first + "_File" +std::to_string(filenumber);
+    std::string fr3 = "Real_Spatial_Distribution_Center*" + it->first + "_File" +std::to_string(filenumber);
     cham.CreateTH2(fr);
-    //cham.CreateTH2(fr3);
+    cham.CreateTH2(fr3);
     cham.CreateTH2(fr2, trigger_max + 200, ceil((trigger_max + 200) / 10) + 1);
     TFile dataFile(file.c_str());
     if (dataFile.IsOpen() != true) 
@@ -799,7 +766,6 @@ Analysis::Eff_ErrorEff(std::string &file)
     dataTree->SetBranchAddress("number_of_hits", &data.TDCNHits);
     dataTree->SetBranchAddress("TDC_channel", &data.TDCCh);
     dataTree->SetBranchAddress("TDC_TimeStamp", &data.TDCTS);
-    numGoodEvents[it->first] = 0.0;
     TH1D *dataInfo = (TH1D *)dataFile.Get("ID");
     if (dataInfo) 
     {
@@ -807,19 +773,27 @@ Analysis::Eff_ErrorEff(std::string &file)
       delete dataInfo;
     }
     unsigned int nEntries = dataTree->GetEntries();
-    std::map<int, double> InHertzPerCm;
-    for (unsigned int i = 0; i != read.getNbrChambers(); ++i) 
+    Hits_follow[p] = new TH1F(("Hit_follow" + n1).c_str(), ("number Hz followed " + ti),int(nEntries/10)+1, 0, int(nEntries/10)+1);
+    //std::map<int, double> InHertzPerCm;
+    /*for (unsigned int i = 0; i != read.getNbrChambers(); ++i) 
     {
       InHertzPerCm[i + 1] =1.0 / (1.0e-9 *clocktic* nEntries * (it->second.second - it->second.first) *read.getDimensions()[std::to_string(i+1)][0]*read.getDimensions()[std::to_string(i+1)][1]);
-    }
+    }*/
     int totalisCh = 0;
+    int sumCh = 0;
+    static int pp=0;
+    std::vector<std::string> lolll;
+    tokenize(it->first, lolll, "_");
+    std::string name = fr + "_Chamber" + lolll[0];
+    int nbrpar = read.getSpatialWindows()[lolll[0]].size();
+    double numGoodEvents=0;
     for (unsigned int i = 0; i < nEntries; i++) 
     {
       dataTree->GetEntry(i);
       int isCh = 0;
       for (int h = 0; h < data.TDCNHits; h++) 
       {
-        int newstrip = 0;
+        int newstrip = -1;
         double newtime = 0.;
         if(data.Thres!=nullptr)
         {
@@ -829,44 +803,22 @@ Analysis::Eff_ErrorEff(std::string &file)
         cham.FillTH2(fr, data.TDCCh->at(h));
         cham.FillTH2(fr2, data.TDCCh->at(h), data.TDCTS->at(h));
         correlations.run(h,newstrip,newtime);
-        /*for (int l = 0; l < data.TDCNHits; l++) 
-        {
-          int newstrip2 = 0;
-          double newtime2 = 0.;
-          if(data.Thres!=nullptr)
-          {
-            if(read.getWhichThreshold()[filenumber]>data.Thres->at(h))continue;
-          }
-          if (!cham.InsideZone(data.TDCCh->at(l), data.TDCTS->at(l), file,it->first, newstrip2, newtime2))continue;
-          if (h != l)Correlation_time[p]->Fill(newtime - newtime2);
-          for (int val = 0; val != Cor.size(); ++val) 
-          {
-            if (fabs(newtime2 - newtime) <= Cor[val]) 
-            {
-              Correlation[p][tmp[val]]->Fill(newstrip, newstrip2);
-              if (h > l)Correlation21[p][tmp[val]]->Fill(fabs(newtime - newtime2),fabs(newstrip - newstrip2));
-              CorrelationProfile[p][tmp[val]]->Fill(newstrip, newstrip2,fabs(newtime - newtime2));
-            }
-          }
-          for (int val = 0; val != Cor2.size() - 1; ++val) 
-          {
-            if (fabs(newtime2 - newtime) <= Cor2[val + 1] &&fabs(newtime2 - newtime) >= Cor2[val]) 
-            {
-              Correlation2[p][tmp2[val + 1]]->Fill(newstrip, newstrip2);
-              CorrelationProfile2[p][tmp2[val + 1]]->Fill(newstrip, newstrip2,newtime - newtime2);
-            }
-          }
-        }*/
         clusters.Fill(newstrip,newtime,data.TDCCh->at(h));
         ++isCh;
       }
       if (isCh > 0) 
       {
-        
+        sumCh+=isCh;
         clusters.run();
         totalisCh += isCh;
-        numGoodEvents[it->first]++;
+        numGoodEvents++;
         general_multilicity[p]->Fill(isCh);
+      }
+      if(i%10==0)
+      {
+        Hits_follow[p]->Fill(pp,sumCh*1.0/ ((16 * nbrpar) * read.getDimensions()[lol[0]][0]*read.getDimensions()[lol[0]][1] * clocktic*1.0e-9 *(it->second.second - it->second.first)*10));
+        ++pp;
+        sumCh=0;
       }
       }
       dataFile.Close();
@@ -882,7 +834,7 @@ Analysis::Eff_ErrorEff(std::string &file)
       (clusters.getSup7hitCluster()[0]*1.0/nEntries)*(1-(clusters.getSup7hitCluster()[0]*1.0/nEntries))/sqrt(nEntries)));
       clusters.write(out);
       correlations.write(out);
-      eff[it->first].push_back({numGoodEvents[it->first] / nEntries,sqrt((numGoodEvents[it->first] *(nEntries - numGoodEvents[it->first])) /nEntries) /numGoodEvents[it->first]});
+      eff[it->first].push_back({numGoodEvents / nEntries,sqrt((numGoodEvents *(nEntries - numGoodEvents)) /nEntries) /numGoodEvents});
       if (stof(lol[2]) == 0) 
       {
         real_comp_eff[p] = {eff[it->first][0].first,it->second.second - it->second.first};
@@ -892,13 +844,10 @@ Analysis::Eff_ErrorEff(std::string &file)
       {
         comp_eff[p] = {eff[it->first][0].first,totalisCh * 1.0 /(nEntries * (it->second.second - it->second.first))};
       }
-      std::vector<std::string> lolll;
-      tokenize(it->first, lolll, "_");
-      std::string name = fr + "_Chamber" + lolll[0];
       timer[p] = (it->second.second - it->second.first);
       int hhh = cham.ReturnTH2(name)->Integral();
       //if (duration != -1)cham.ScaleTime(fr, InHertzPerCm);
-      int nbrpar = read.getSpatialWindows()[lolll[0]].size();
+      
       //double val = cham.ReturnTH2(name)->Integral() / (16 * nbrpar);
       double result = hhh / ((16 * nbrpar) * read.getDimensions()[lol[0]][0]*read.getDimensions()[lol[0]][1] * clocktic*1.0e-9 *(it->second.second - it->second.first) * nEntries);
       if(stof(lol[1])==0)std::cout <<red<<"Signal region ["<<it->second.first<<";"<<it->second.second<<"]";
@@ -908,51 +857,25 @@ Analysis::Eff_ErrorEff(std::string &file)
     std::cout << " nbr strips : " << (16 * nbrpar) << " nbr hits : " << hhh<< " nbr hits.cm-2.s-1 : " << result << normal << std::endl;
     Mean_Noise[it->first].push_back(result);
     //if (duration != -1)cham.ScaleTime(fr3, InHertzPerCm);
-    InHertzPerCm.clear();
+    //InHertzPerCm.clear();
+    pp=0;
   }
-  /*for (std::map<std::string, std::map<std::string, TH2F *>>::iterator it =Correlation.begin();it != Correlation.end(); ++it) 
-  {
-    std::string namee = GoodName(it->first, read);
-    for (std::map<std::string, TH2F *>::iterator itt =Correlation[it->first].begin();itt != Correlation[it->first].end(); ++itt) 
-    {
-      writeObject(namee, Correlation[it->first][itt->first]);
-      writeObject(namee, Correlation2[it->first][itt->first]);
-      writeObject(namee, Correlation21[it->first][itt->first]);
-      delete Correlation[it->first][itt->first];
-      delete Correlation2[it->first][itt->first];
-      delete Correlation21[it->first][itt->first];
-    }
-  }
-  Correlation.clear();
-  Correlation2.clear();
-  Correlation21.clear();*/
-  /*for (std::map<std::string, std::map<std::string, TProfile2D *>>::iterator it =CorrelationProfile.begin();it != CorrelationProfile.end(); ++it) 
-  {
-    std::string namee = GoodName(it->first, read);
-    for (std::map<std::string, TProfile2D *>::iterator itt =CorrelationProfile[it->first].begin();itt != CorrelationProfile[it->first].end(); ++itt) 
-    {
-      writeObject(namee, CorrelationProfile[it->first][itt->first]);
-      writeObject(namee, CorrelationProfile2[it->first][itt->first]);
-      delete CorrelationProfile[it->first][itt->first];
-      delete CorrelationProfile2[it->first][itt->first];
-    }
-  }
-  CorrelationProfile.clear();
-  CorrelationProfile2.clear();*/
   for (std::map<std::string, TH1F *>::iterator it = clu.begin();it != clu.end(); ++it) 
   {
     std::string namee = GoodName(it->first, read);
     writeObject(namee, general_multilicity[it->first]);
-   // writeObject(namee, Correlation_time[it->first]);
+    writeObject(namee, Hits_follow[it->first]);
     writeObject(namee, clu[it->first]);
     delete general_multilicity[it->first];
     delete clu[it->first];
-    //delete Correlation_time[it->first];
+    delete Hits_follow[it->first];
   }
   general_multilicity.clear();
   clu.clear();
-  //Correlation_time.clear();
+  Hits_follow.clear();
   filenumber++;
+  cham.Write();
+  cham.Clear();
   return eff;
 }
 //-------------------------------------------------------
@@ -1169,7 +1092,8 @@ int Analysis::Loop()
       tokenize(lll->first, tmp, "*");
       std::vector<std::string> tmp2;
       tokenize(tmp[0], tmp2, "_");
-      if (stof(tmp2[2]) < 0) {
+      if (stof(tmp2[2]) < 0) 
+      {
         lll->second->SetMarkerStyle(20);
         lll->second->SetMarkerSize(1);
         lll->second->SetMarkerColor(kYellow - aa);
@@ -1177,9 +1101,7 @@ int Analysis::Loop()
         lll->second->SetFillColor(kYellow - aa);
         lll->second->SetLineWidth(1);
         lll->second->SetLineColor(kYellow - aa);
-        nameee = Form("Efficiency corrected simple (+-%.2fns Shifted %.2fns "
-                      "trigger's begining)",
-                      stof(tmp2[1]), fabs(stof(tmp2[2])));
+        nameee = Form("Efficiency corrected simple (+-%.2fns Shifted %.2fns trigger's begining)",stof(tmp2[1]), fabs(stof(tmp2[2])));
         ++aa;
       } 
       else if (stof(tmp2[2]) > 0) 
@@ -1191,9 +1113,7 @@ int Analysis::Loop()
         lll->second->SetFillColor(kMagenta - bb);
         lll->second->SetLineWidth(1);
         lll->second->SetLineColor(kMagenta - bb);
-        nameee = Form("Efficiency corrected simple (+-%.2fns Shifted %.2fns "
-                      "trigger's end)",
-                      stof(tmp2[1]), fabs(stof(tmp2[2])));
+        nameee = Form("Efficiency corrected simple (+-%.2fns Shifted %.2fns trigger's end)",stof(tmp2[1]), fabs(stof(tmp2[2])));
         ++bb;
       } 
       else ;
@@ -1317,7 +1237,7 @@ int Analysis::Loop()
     can1->BuildLegend();
     compp = "Noise_combined";
     writeObject(compp, can1);
-    //delete can1;
+    delete can1;
   }
   if (p > 0) 
   {
@@ -1335,7 +1255,7 @@ int Analysis::Loop()
     can2->BuildLegend();
     compp = "Hits_combined";
     writeObject(compp, can2);
-    //delete can2;
+    delete can2;
   }
   delete mg1;
   delete mg2;

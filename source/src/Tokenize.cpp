@@ -29,25 +29,25 @@ TString GoodFolder(std::string badname, Reader &reader)
   std::vector<std::string> tmp3;
   tokenize(namep, tmp3, "_");
   TString newname = "";
-  int V = reader.getVoltages()[filenumber];
-  int A = reader.getAttenuators()[filenumber];
-  int T = reader.getThresholds()[filenumber];
-  int P = reader.getPulses()[filenumber];
-  int Th =-1.0;
+  double V = reader.getVoltages()[filenumber];
+  double A = reader.getAttenuators()[filenumber];
+  double T = reader.getThresholds()[filenumber];
+  double P = reader.getPulses()[filenumber];
+  double Th =-1.0;
   if(reader.getWhichThreshold().size()!=0)
   {
     Th =reader.getWhichThreshold()[filenumber];
-    if (A == -1 && P == -1) newname = Form("%s_HV%d_Thr%d_ThrNbr%d", tmp3[0].c_str(), V, T,Th);
-    else if (P == -1) newname =Form("%s_HV%d_Thr%d_ThrNbr%d_Attenuator%d", tmp3[0].c_str(), V, T,Th, A);
-    else if (A == -1) newname = Form("%s_HV%d_Thr%d_ThrNbr%d_Pulse%d", tmp3[0].c_str(), V, T,Th, P);
-    else newname = Form("%s_HV%d_Thr%d_ThrNbr%d_Attenuator%d_Pulse%d", tmp3[0].c_str(), V, T,Th,A, P);
+    if (A == -1 && P == -1) newname = Form("%s_HV%i_Thr%0.2f_ThrNbr%i", tmp3[0].c_str(), int(V), T,int(Th));
+    else if (P == -1) newname =Form("%s_HV%i_Thr%f_ThrNbr%i_Attenuator%f", tmp3[0].c_str(), int(V), T,int(Th), A);
+    else if (A == -1) newname = Form("%s_HV%i_Thr%f_ThrNbr%i_Pulse%f", tmp3[0].c_str(), int(V), T,int(Th), P);
+    else newname = Form("%s_HV%i_Thr%f_ThrNbr%i_Attenuator%f_Pulse%f", tmp3[0].c_str(), int(V), T,int(Th),A, P);
   }
   else 
   {
-    if (A == -1 && P == -1) newname = Form("%s_HV%d_Thr%d", tmp3[0].c_str(), V, T);
-    else if (P == -1) newname =Form("%s_HV%d_Thr%d_Attenuator%d", tmp3[0].c_str(), V, T, A);
-    else if (A == -1) newname = Form("%s_HV%d_Thr%d_Pulse%d", tmp3[0].c_str(), V, T, P);
-    else newname = Form("%s_HV%d_Thr%d_Attenuator%d_Pulse%d", tmp3[0].c_str(), V, T,A, P);
+    if (A == -1 && P == -1) newname = Form("%s_HV%i_Thr%i", tmp3[0].c_str(), int(V), int(T));
+    else if (P == -1) newname =Form("%s_HV%i_Thr%i_Attenuator%f", tmp3[0].c_str(), int(V), int(T), A);
+    else if (A == -1) newname = Form("%s_HV%i_Thr%i_Pulse%f", tmp3[0].c_str(), int(V), int(T), P);
+    else newname = Form("%s_HV%i_Thr%i_Attenuator%f_Pulse%f", tmp3[0].c_str(), int(V), int(T),A, P);
   }
   return newname;
 }
@@ -74,26 +74,14 @@ std::string GoodName(std::string badname, Reader &reader)
     part1=gh2.substr(0,go-2);
     std::size_t go2 =part1.find_first_of("/");
     part1=part1.substr(0,go2);
-    std::cout<<yellow<<part1<<"  "<<red<<part2<<normal<<std::endl;
     newname=part1.c_str();
   }
- 
   tokenize(part2, tmp2, "_");
   TString nameee = "";
-  size_t spec =tmp2[1].find("###");
   float win_min=0.;
   float win_max=0.;
-  if(spec!=std::string::npos)
-  {
-    tmp2[1]=tmp2[1].erase(spec);
-    win_min=stof(tmp2[1]);
-    win_max=stof(tmp2[2]);
-  }
-  else
-  {
-    win_min=fabs(stof(tmp2[2]))-stof(tmp2[1]);
-    win_max=fabs(stof(tmp2[2]))+stof(tmp2[1]);
-  }
+  win_min=fabs(stof(tmp2[2]))-stof(tmp2[1]);
+  win_max=fabs(stof(tmp2[2]))+stof(tmp2[1]);
   if (stof(tmp2[2])==0.0)
   {
     nameee=Form("%s/Chamber%s/SignalWindows/%0.2fsigma/%s/%s",newname.Data(),tmp2[0].c_str(),stof(tmp2[1]),tmp2[3].c_str(),tmp2[4].c_str());
