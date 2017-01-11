@@ -1,6 +1,5 @@
 #ifndef ANALYSIS_h
 #define ANALYSIS_h
-
 #include "OutFileRoot.h"
 #include "TGraphErrors.h"
 #include <string>
@@ -21,7 +20,7 @@ public:
   void LabelXaxis(std::string&);
 private:
   OutFileRoot& out;
-  std::string unitthr();
+  //std::string unitthr();
   Reader& read;
   Chambers& cham;
   void ShiftTimes();

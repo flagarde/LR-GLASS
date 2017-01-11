@@ -18,33 +18,17 @@
 #include "Cluster.h"
 #include "Correlation.h"
 #include "Sigmoid.h"
-
+#include "Polya.h"
+#include "thr.h"
 using namespace std;
 double time_range = 0;
 double space_range = 0;
 bool issmallchamber=false;
 
-
-
-std::string Analysis::unitthr()
-{
-  std::string a="";
-  if (read.getWhichThreshold().size() !=0 )
-  {
-    a="pC";
-    return a;
-  }
-  else 
-  {
-    a="mV";
-    return a;
-  }
-}
-
 void Analysis::LabelXaxis(std::string & Xaxis)
 {
   if (read.getType() == "volEff" || read.getType() == "noisevolEff") Xaxis = "Applied HV(V)";
-  else if (read.getType() == "thrEff" || read.getType() == "noisethrEff") Xaxis = "Threshold ("+unitthr()+")";
+  else if (read.getType() == "thrEff" || read.getType() == "noisethrEff") Xaxis = "Threshold ("+unitthr(read)+")";
   else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff") Xaxis = "Attenuator Factor";
   else if (read.getType() == "PulEff" || read.getType() == "noisePulEff") Xaxis = "Pulse lenght (ns)";
 }
@@ -657,8 +641,8 @@ std::map<std::string,TGraphErrors*> Analysis::Construct_Plot()
     {
       if (read.getType() == "volEff" || read.getType() == "noisevolEff") 
       {
-        gr->SetName(Form("%s Efficiency, threshold = %.2f%s, +-%.2f",bv.c_str(), thr,unitthr().c_str(), sig));
-        gr->SetTitle(Form("%s Efficiency, threshold = %.2f%s, +-%.2f",bv.c_str(), thr,unitthr().c_str(), sig));
+        gr->SetName(Form("%s Efficiency, threshold = %.2f%s, +-%.2f",bv.c_str(), thr,unitthr(read).c_str(), sig));
+        gr->SetTitle(Form("%s Efficiency, threshold = %.2f%s, +-%.2f",bv.c_str(), thr,unitthr(read).c_str(), sig));
       } 
       else if (read.getType() == "thrEff" ||read.getType() == "noisethrEff") 
       {
@@ -667,21 +651,21 @@ std::map<std::string,TGraphErrors*> Analysis::Construct_Plot()
       } 
       else if (read.getType() == "srcEff" ||read.getType() == "noisesrcEff") 
       {
-        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr().c_str(), sig));
-        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr().c_str(), sig));
+        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr(read).c_str(), sig));
+        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr(read).c_str(), sig));
       } 
       else if (read.getType() == "PulEff" ||read.getType() == "noisePulEff") 
       {
-        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr().c_str(), sig));
-        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr().c_str(), sig));
+        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr(read).c_str(), sig));
+        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f",bv.c_str(), vol, thr,unitthr(read).c_str(), sig));
       }
     } 
     else 
     {
       if (read.getType() == "volEff" || read.getType() == "noisevolEff") 
       {
-        gr->SetName(Form("%s Efficiency, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), thr,unitthr().c_str(), sig, shift));
-        gr->SetTitle(Form("%s Efficiency, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), thr,unitthr().c_str(), sig, shift));
+        gr->SetName(Form("%s Efficiency, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), thr,unitthr(read).c_str(), sig, shift));
+        gr->SetTitle(Form("%s Efficiency, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), thr,unitthr(read).c_str(), sig, shift));
       } 
       else if (read.getType() == "thrEff" ||read.getType() == "noisethrEff") 
       {
@@ -690,13 +674,13 @@ std::map<std::string,TGraphErrors*> Analysis::Construct_Plot()
       } 
       else if (read.getType() == "srcEff" ||read.getType() == "noisesrcEff") 
       {
-        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr().c_str(), sig, shift));
-        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr().c_str(), sig, shift));
+        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr(read).c_str(), sig, shift));
+        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr(read).c_str(), sig, shift));
       } 
       else if (read.getType() == "PulEff" ||read.getType() == "noisePulEff") 
       {
-        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr().c_str(), sig, shift));
-        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr().c_str(), sig, shift));
+        gr->SetName(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr(read).c_str(), sig, shift));
+        gr->SetTitle(Form("%s Efficiency, voltage = %.2fV, threshold = %.2f%s, +-%.2f, shift %.2fns",bv.c_str(), vol, thr,unitthr(read).c_str(), sig, shift));
       }
     }
     TString nameee =Form("Efficiency/Chamber%s/%.2f sigma/Shifted %.2fns/%s",tmp[0].c_str(), stof(tmp[1]), stof(tmp[2]), tmp[3].c_str());
@@ -1013,8 +997,16 @@ int Analysis::Loop()
     gr1->Draw("a3P");
     gr2->Draw("SAME a3P");
     writeObject(comp, cc);
-    Sigmoide(gr1,eff[itoo->first],out,itoo->first,read);
-    Sigmoide(gr2,eff[itoo->first],out,itoo->first,read);
+    if(read.getType() == "volEff" || read.getType() == "noisevolEff")
+    {
+      Sigmoide(gr1,eff[itoo->first],out,itoo->first,read);
+      Sigmoide(gr2,eff[itoo->first],out,itoo->first,read);
+    }
+    else if(read.getType() == "thrEff" || read.getType() == "noisethrEff")
+    {
+      Polya(gr1,eff[itoo->first],out,itoo->first,read);
+      Polya(gr2,eff[itoo->first],out,itoo->first,read);
+    }
     delete cc;
     delete gr1;
     delete gr2;

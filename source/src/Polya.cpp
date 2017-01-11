@@ -1,3 +1,7 @@
+#include "Polya.h"
+#include <iostream>
+#include <Minuit2/Minuit2Minimizer.h>
+#include <Math/ProbFuncMathCore.h>
 #include<string>
 #include"TH1.h"
 #include"TCanvas.h"
@@ -11,7 +15,7 @@
 #include "Reader.h"
 #include "thr.h"
 
-void Sigmoide(TGraphAsymmErrors* Efficiency,TGraphErrors* EfficiencyStat,OutFileRoot& out,std::string name,Reader& read)
+void Polya(TGraphAsymmErrors* Efficiency,TGraphErrors* EfficiencyStat,OutFileRoot& out,std::string name,Reader& read)
 {  
   double min=999999;
   double max=-99999;
@@ -34,8 +38,7 @@ void Sigmoide(TGraphAsymmErrors* Efficiency,TGraphErrors* EfficiencyStat,OutFile
     Efficiency->SetPointEYlow (i, errorYlow);
     if (i == 0) lLimit = x;
     else if (i == Efficiency->GetN()-1) uLimit = x;
-    std::cout<<yellow << "HV = " << x << " eff = "  << y-errorY/2 << " errorY = " << errorY/2 << " errorYhigh_stat = " << errorYhigh_stat << " errorYlow_stat = " << errorYlow_stat <<normal<<std::endl;
-    
+    std::cout<<yellow << "Thr = " << x << " eff = "  << y-errorY/2 << " errorY = " << errorY/2 << " errorYhigh_stat = " << errorYhigh_stat << " errorYlow_stat = " << errorYlow_stat <<normal<<std::endl;
   }
   int color = 2;
   int marker = 20;
@@ -44,7 +47,7 @@ void Sigmoide(TGraphAsymmErrors* Efficiency,TGraphErrors* EfficiencyStat,OutFile
   c1->SetName((name+Efficiency->GetTitle()).c_str());
   TH1D* PLOTTER = new TH1D("PLOTTER", "", 1, min, max);	
   PLOTTER->SetStats(0);
-  std::string xLabel = "HV_{eff} (V)";
+  std::string xLabel = "Thr_{eff} (V)";
   if (read.getType() == "volEff" || read.getType() == "noisevolEff") 
   {
       xLabel = "Voltage_{eff} (V)";
@@ -61,7 +64,7 @@ void Sigmoide(TGraphAsymmErrors* Efficiency,TGraphErrors* EfficiencyStat,OutFile
   {
       xLabel = "Pulse (ns)";
   }
-  std::string lName = "Sigmoid for RE11 GRPC; " + xLabel + "; Efficiency";
+  std::string lName = "Polya for RE11 GRPC; " + xLabel + "; Efficiency";
   PLOTTER->SetTitle(lName.c_str());
   PLOTTER->SetMaximum(1);
   PLOTTER->SetMinimum(0);
@@ -69,42 +72,29 @@ void Sigmoide(TGraphAsymmErrors* Efficiency,TGraphErrors* EfficiencyStat,OutFile
   Efficiency->SetMarkerColor(color);
   Efficiency->SetMarkerStyle(marker);
   Efficiency->Draw("SAMEPE");
-  int HVhalf = (lLimit+uLimit)/2;
   //****************************************************
-  TF1* sigmoid = new TF1("sigmoid","[0]/(1+exp([1]*([2]-x)))",lLimit,uLimit);
-  sigmoid->SetParName(0,"#epsilon_{max}");
-  sigmoid->SetParName(1,"#lambda");
-  sigmoid->SetParName(2,"HV_{50%}");
-  sigmoid->SetParameter(0,0.98);
-  sigmoid->SetParameter(1,0.01);
-  sigmoid->SetParameter(2,HVhalf);
-  Efficiency->Fit(sigmoid);
-  Efficiency->GetFunction("sigmoid")->SetLineColor(kBlue);
-  double p1 = sigmoid->GetParameter(0);
-  double p2 = sigmoid->GetParameter(1);
-  double p3 = sigmoid->GetParameter(2);
+  TF1* Polya = new TF1("Polya","[2]*ROOT::Math::gamma_cdf_c(x ,[1]+1 ,[0]/([1] + 1) , 0.0)",lLimit,uLimit);
+  Polya->SetParName(0,"#theta");
+  Polya->SetParName(1,"#alpha");
+  Polya->SetParName(2,"constant");
+  //Polya->SetParameter(0,0.98);
+  //Polya->SetParameter(1,0.01);
+  Efficiency->Fit(Polya);
+  Efficiency->GetFunction("Polya")->SetLineColor(kBlue);
+  double p1 = Polya->GetParameter(0);
+  double p2 = Polya->GetParameter(1);
+  double p3 = Polya->GetParameter(2);
   TLatex* ltx = new TLatex();
   ltx->SetTextSize(0.04);
-  double knee = p3 - log(1/0.95-1)/p2;
-  TLine* lKnee = new TLine(knee, 0, knee, 1);
-  lKnee->SetLineStyle(2);
-  lKnee->Draw();
-  double WP = knee+150;
   double add = (uLimit-lLimit)/11.;
-  if (uLimit-knee < 4/11.*(uLimit-lLimit)) add = -add*4;
-  ltx->DrawLatex(knee+add, 0.22, Form("WP = %.f V", WP));
-  ltx->DrawLatex(knee+add, 0.15, Form("knee = %.f V", knee));
-  ltx->DrawLatex(knee+add, 0.08, Form("HV(50%) = %.f V", p3));
-  TLine* plateau = new TLine(lLimit-50, p1, uLimit+50, p1);
-  plateau->SetLineStyle(2);
-  plateau->Draw();
-  if ((knee - lLimit) < (uLimit-lLimit)*(3/11.)) add = knee + add;
-  else add = lLimit+add;
-  ltx->DrawLatex(add, p1+0.04, Form("plateau = %.2f", p1));
+  if (uLimit < 4/11.*(uLimit-lLimit)) add = -add*4;
+  ltx->DrawLatex(add, 0.22, Form("#theta = %.f ", p1));
+  ltx->DrawLatex(add, 0.15, Form("#alpha = %.f ", p2));
+  ltx->DrawLatex(add, 0.08, Form("constant = %.f ", p3));
   c1->Update();
-  out.writeObject("Sigmoid",c1);
+  out.writeObject("Polya",c1);
   delete c1;
   delete ltx;
-  delete sigmoid;
+  delete Polya;
   delete PLOTTER;
 } 
