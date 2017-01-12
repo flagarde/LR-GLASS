@@ -51,39 +51,43 @@ bool OutFileRoot::writeObject(std::string& dirName,TObject *object)
   if(object!=nullptr)
   { 
     object->Write();
-    TCanvas* can=nullptr;
-    if(std::string(object->ClassName())=="TCanvas") can=(TCanvas*)object;
-    else 
+    if(doPictures==true)
     {
-      can= new TCanvas();
-      object->Draw("colz");
+      TCanvas* can=nullptr;
+      if(std::string(object->ClassName())=="TCanvas") can=(TCanvas*)object;
+      else 
+      {
+        can= new TCanvas();
+        object->Draw("colz");
+      }
+      can->cd();
+      TLatex *prelim = new TLatex;
+      prelim->SetNDC();
+      prelim->DrawLatex(0.78, 0.83, "CMS");
+      TLatex *prelim2 = new TLatex;
+      prelim2->SetNDC();
+      prelim2->SetTextSize(0.025);
+      prelim2->DrawLatex(0.70, 0.83-0.025,"Work on progress");
+      if(std::string(object->ClassName())=="TCanvas")prelim->Draw("same");
+      else prelim->Draw();
+      if(std::string(object->ClassName())=="TCanvas")prelim->Draw("same");
+      else prelim2->Draw();
+      std::string namek=std::string(dirName);
+      namek=replaceStrChar(namek," ",'_');
+      namek=replaceStrChar(namek,"+",'p');
+      namek=replaceStrChar(namek,"-",'m');
+      std::string nameobj=std::string(object->GetTitle());
+      nameobj=replaceStrChar(nameobj," ",'_');
+      nameobj=replaceStrChar(nameobj,"+",'p');
+      nameobj=replaceStrChar(nameobj,"-",'m');
+      std::string trdStylePLot="./Results/"+_outputFileName+"/"+namek+"/"+nameobj+".png";
+      std::string repertory="mkdir -p ./Results/"+_outputFileName+"/"+namek+"/";
+      std::system(repertory.c_str());
+      can->SaveAs(trdStylePLot.c_str(),"Q");
+      delete prelim;
+      delete prelim2;
+      delete can;
     }
-    can->cd();
-    TLatex *prelim = new TLatex;
-    prelim->SetNDC();
-    prelim->DrawLatex(0.78, 0.83, "CMS");
-    TLatex *prelim2 = new TLatex;
-    prelim2->SetNDC();
-    prelim2->SetTextSize(0.025);
-    prelim2->DrawLatex(0.70, 0.83-0.025,"Work on progress");
-    if(std::string(object->ClassName())=="TCanvas")prelim->Draw("same");
-    else prelim->Draw();
-    if(std::string(object->ClassName())=="TCanvas")prelim->Draw("same");
-    else prelim2->Draw();
-    std::string namek=std::string(dirName);
-    namek=replaceStrChar(namek," ",'_');
-    namek=replaceStrChar(namek,"+",'p');
-    namek=replaceStrChar(namek,"-",'m');
-    std::string nameobj=std::string(object->GetTitle());
-    nameobj=replaceStrChar(nameobj," ",'_');
-    nameobj=replaceStrChar(nameobj,"+",'p');
-    nameobj=replaceStrChar(nameobj,"-",'m');
-    std::string trdStylePLot="./Results/"+_outputFileName+"/"+namek+"/"+nameobj+".png";
-    std::string repertory="mkdir -p ./Results/"+_outputFileName+"/"+namek+"/";
-    std::system(repertory.c_str());
-    can->SaveAs(trdStylePLot.c_str(),"Q");
-    delete prelim;
-    delete prelim2;
   }
   return true;
 }
@@ -99,39 +103,43 @@ bool OutFileRoot::writeObject(const char * dirName, TObject *object)
   if(object!=nullptr)
   { 
     object->Write();
-    TCanvas* can=nullptr;
-    if(std::string(object->ClassName())=="TCanvas") can=(TCanvas*)object;
-    else 
+    if(doPictures==true)
     {
-      can= new TCanvas();
-      object->Draw("colz");
+      TCanvas* can=nullptr;
+      if(std::string(object->ClassName())=="TCanvas") can=(TCanvas*)object;
+      else 
+      {
+        can= new TCanvas();
+        object->Draw("colz");
+      }
+      can->cd();
+      TLatex *prelim = new TLatex;
+      prelim->SetNDC();
+      prelim->DrawLatex(0.78, 0.83, "CMS");
+      TLatex *prelim2 = new TLatex;
+      prelim2->SetNDC();
+      prelim2->SetTextSize(0.025);
+      prelim2->DrawLatex(0.70, 0.83-0.025,"Work on progress");
+      if(std::string(object->ClassName())=="TCanvas")prelim->Draw("same");
+      else prelim->Draw();
+      if(std::string(object->ClassName())=="TCanvas")prelim->Draw("same");
+      else prelim2->Draw();
+      std::string namek=std::string(dirName);
+      namek=replaceStrChar(namek," ",'_');
+      namek=replaceStrChar(namek,"+",'p');
+      namek=replaceStrChar(namek,"-",'m');
+      std::string nameobj=std::string(object->GetTitle());
+      nameobj=replaceStrChar(nameobj," ",'_');
+      nameobj=replaceStrChar(nameobj,"+",'p');
+      nameobj=replaceStrChar(nameobj,"-",'m');
+      std::string trdStylePLot="./Results/"+_outputFileName+"/"+namek+"/"+nameobj+".png";
+      std::string repertory="mkdir -p ./Results/"+_outputFileName+"/"+namek+"/";
+      std::system(repertory.c_str());
+      can->SaveAs(trdStylePLot.c_str(),"Q");
+      delete prelim;
+      delete prelim2;
+      delete can;
     }
-    can->cd();
-    TLatex *prelim = new TLatex;
-    prelim->SetNDC();
-    prelim->DrawLatex(0.78, 0.83, "CMS");
-    TLatex *prelim2 = new TLatex;
-    prelim2->SetNDC();
-    prelim2->SetTextSize(0.025);
-    prelim2->DrawLatex(0.70, 0.83-0.025,"Work on progress");
-    if(std::string(object->ClassName())=="TCanvas")prelim->Draw("same");
-    else prelim->Draw();
-    if(std::string(object->ClassName())=="TCanvas")prelim->Draw("same");
-    else prelim2->Draw();
-    std::string namek=std::string(dirName);
-    namek=replaceStrChar(namek," ",'_');
-    namek=replaceStrChar(namek,"+",'p');
-    namek=replaceStrChar(namek,"-",'m');
-    std::string nameobj=std::string(object->GetTitle());
-    nameobj=replaceStrChar(nameobj," ",'_');
-    nameobj=replaceStrChar(nameobj,"+",'p');
-    nameobj=replaceStrChar(nameobj,"-",'m');
-    std::string trdStylePLot="./Results/"+_outputFileName+"/"+namek+"/"+nameobj+".png";
-    std::string repertory="mkdir -p ./Results/"+_outputFileName+"/"+namek+"/";
-    std::system(repertory.c_str());
-    can->SaveAs(trdStylePLot.c_str(),"Q");
-    delete prelim;
-    delete prelim2;
   }
   return true;
 }

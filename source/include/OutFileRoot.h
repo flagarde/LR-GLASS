@@ -17,7 +17,7 @@ class OutFileRoot
   public:
     ~OutFileRoot();
     OutFileRoot(){};
-    OutFileRoot(std::string& outputFileName):_outputFileName(outputFileName)
+    OutFileRoot(std::string& outputFileName,bool doPict):_outputFileName(outputFileName),doPictures(doPict)
     {
       setOutputFile(outputFileName);
     }
@@ -29,5 +29,6 @@ class OutFileRoot
     std::string _outputFileName;
     bool isOutFile_;
     TFile* outFile_;
+    bool doPictures;
 };
 #endif

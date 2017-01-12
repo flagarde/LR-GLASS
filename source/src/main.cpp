@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
   {
     std::cout<<red<<"#--------------------------------------------------#"<<normal<<std::endl;
     std::cout<<red<<"# To run LRGRPC:                                   #"<<normal<<std::endl;
-    std::cout<<red<<"# Syntax: ./LRGRPC outputFile.root card.{txt|csv}  #"<<normal<<std::endl;
+    std::cout<<red<<"# Syntax: ./LRGRPC outputFile.root card.{txt|csv} (true/false)  #"<<normal<<std::endl;
     std::cout<<red<<"#--------------------------------------------------#"<<normal<<std::endl;
     return 0;
   }
@@ -62,7 +62,9 @@ int main(int argc, char* argv[])
   }
   if(RootFile.find(".root")==std::string::npos-5/*||RootFile.find(".root")!=ConfigFile.size()-5*/)RootFile+=".root";
   std::string type=reader->getType();
-  OutFileRoot out(RootFile);
+  bool SavePictures=false;
+  if(argc>3) SavePictures=true;
+  OutFileRoot out(RootFile,SavePictures);
   Chambers cham(out,*reader);
   Analysis analysis(out,*reader,cham);
   int isLoop=analysis.Loop();
