@@ -29,7 +29,7 @@ void Analysis::LabelXaxis(std::string & Xaxis)
 {
   if (read.getType() == "volEff" || read.getType() == "noisevolEff") Xaxis = "Applied HV(V)";
   else if (read.getType() == "thrEff" || read.getType() == "noisethrEff") Xaxis = "Threshold ("+unitthr(read)+")";
-  else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff") Xaxis = "Attenuator Factor";
+  else if (read.getType() == "srcEff" || read.getType() == "noisesrcEff") Xaxis = "Attenuator Factor^{-1}";
   else if (read.getType() == "PulEff" || read.getType() == "noisePulEff") Xaxis = "Pulse lenght (ns)";
 }
 
@@ -44,6 +44,7 @@ bool comp(const std::pair<int, float> &a, const std::pair<int, float> &b)
 double trigger_max = 0;
 double longueur_strip=20.0;
 double largeur_strip=1.0;
+double numberwindows=0.0;
 double area_strip=longueur_strip*largeur_strip;
 std::map<std::string, std::pair<double, double>> real_comp_eff;
 std::map<std::string, std::pair<double, double>> real_comp_efff;
@@ -111,6 +112,7 @@ void Analysis::ShiftTimes()
     tokenize(read.getParameters()["NumberOfSigmas"], tmp, ",");
     for (unsigned int i = 0; i != tmp.size(); ++i)Window.push_back(stof(tmp[i]));
   }
+  numberwindows=Noise_Window.size()*Noise_shift.size();
   std::map<std::string, std::pair<std::vector<double>, std::vector<double>>>ParamValueError;
   for (unsigned int file = 0; file != read.getDAQFiles().size(); ++file) 
   {
@@ -876,27 +878,42 @@ int Analysis::Loop()
   {
     std::vector<double> tmp4(XS.size(), 0);
     std::vector<std::string> tmp2;
-    tokenize(it->first, tmp2, "_");
+    tokenize("Cluster*"+it->first, tmp2, "_");
+    std::cout<<it->first<<std::endl;
+    std::string good=GoodName(it->first,read);
+    std::cout<<good<<std::endl; 
     TString nameee = Form("Cluster/Chamber%s/%.2f sigma/Shifted %.2fns/%s/%s",tmp2[0].c_str(), stof(tmp2[1]), stof(tmp2[2]),tmp2[3].c_str(), tmp2[4].c_str());
     std::string namee = nameee.Data();
+    std::string nameplot="";
+    if(stof(tmp2[2])==0.0 && stof(tmp2[1])!=0.0) nameplot="Signal Region #sigma="+tmp2[1]+" Chamber "+tmp2[0];
+    else if (stof(tmp2[2])==0.0 && stof(tmp2[1])==0.0) nameplot="Signal Region  Chamber "+tmp2[0];
+    else nameplot="Noise Region Shift="+tmp2[2]+" Chamber "+tmp2[0];
+    if(tmp2[4]=="al") nameplot+=" aligned : ";
+    else nameplot+=" unaligned : ";
     TGraphErrors *fd = new TGraphErrors(XS.size(), &(XS[0]), &(Mean_cluster_size[it->first][0]), &(tmp4[0]),&(Standard_dev_cluster_size[it->first][0]));
-    fd->SetTitle((it->first + "_cluster_sizee_vs_").c_str());
+    fd->SetTitle((nameplot + " Cluster Size").c_str());
+    fd->SetName("Cluster_Size");
     writeObject(namee, fd);
     delete fd;
     TGraphErrors *fd2 =new TGraphErrors(XS.size(), &(XS[0]), &(Mean_cluster_nbr[it->first][0]),&(tmp4[0]), &(Standard_dev_cluster_nbr[it->first][0]));
-    fd2->SetTitle((it->first + "_cluster_nbr_vs_").c_str());
+    fd2->SetTitle((nameplot+ " Number of Clusters").c_str());
+    fd2->SetTitle("Number_of_Clusters");
     writeObject(namee, fd2);
     delete fd2;
     TGraphErrors *fd3 = new TGraphErrors(XS.size(), &(XS[0]), &(Mean_Spatial_Resolution[it->first][0]),&(tmp4[0]), &(Standard_dev_Spatial_Resolution[it->first][0]));
-    fd3->SetTitle((it->first + "_Spatial_Resolution_").c_str());
+    fd3->SetTitle((nameplot + "Spatial Resolution").c_str());
+    fd3->SetName("Spatial_Resolution");
     writeObject(namee, fd3);
     delete fd3;
     TGraphErrors *fd4 =new TGraphErrors(XS.size(), &(XS[0]), &(Mean_Noise[it->first][0]),&(tmp4[0]), &(tmp4[0]));
-    fd4->SetTitle((it->first + "_Mean_Noise_").c_str());
+    if(stof(tmp2[2])==0.0)fd4->SetTitle((it->first + " Mean Hits (Hz.cm-1)").c_str());
+    fd4->SetTitle((nameplot + " Mean Noise (Hz.cm-1)").c_str());
+    fd4->SetName("Mean_Noise_(Hz.cm-1)");
     writeObject(namee, fd4);
     delete fd4;
     TGraphErrors *fd5 =new TGraphErrors(XS.size(), &(XS[0]), &(clusterwithsup7hits[it->first][0]),&(tmp4[0]), &(clusterwithsup7hits_std[it->first][0]));
-    fd5->SetTitle((it->first + "_Probability_to_hav_cluster_sup7_").c_str());
+    fd5->SetTitle((nameplot + "Probability to have clusters with more than 7 hits").c_str());
+    fd5->SetName("Probability_to_have_clusters_with_more_than_7_hits");
     writeObject(namee, fd5);
     delete fd5;
   }
@@ -1127,6 +1144,7 @@ int Analysis::Loop()
 
   std::map<std::string, std::vector<double>> Noise_Min;
   std::map<std::string, std::vector<double>> Noise_Max;
+  std::map<std::string,std::vector<double>> Noise_Moy;
   for (std::map<std::string, std::vector<double>>::iterator it =Mean_Noise.begin();it != Mean_Noise.end(); ++it) 
   {
     std::vector<std::string> tmp;
@@ -1136,16 +1154,29 @@ int Analysis::Loop()
     else name = tmp[0] + "_" + tmp[1] + "_" + tmp[3] + "_" + tmp[4];
     if (Noise_Min.find(name) == Noise_Min.end()) 
     {
+      std::cout<<red<<name<<normal<<std::endl;
       Noise_Min[name] = it->second;
       Noise_Max[name] = it->second;
+      Noise_Moy[name]=std::vector<double>(it->second.size(),0.0);
     } 
-    else 
+    for (unsigned int j = 0; j != it->second.size(); ++j) 
     {
-      for (unsigned int j = 0; j != it->second.size(); ++j) 
+      if (Noise_Min[name][j] > it->second[j])Noise_Min[name][j] = it->second[j];
+      if (Noise_Max[name][j] < it->second[j])Noise_Max[name][j] = it->second[j];
+      Noise_Moy[name][j]+=it->second[j];
+      std::cout<<name<<"  "<<it->second[j]<<std::endl;
+    }
+  }
+  for(std::map<std::string, std::vector<double>>::iterator o=Noise_Moy.begin();o!=Noise_Moy.end();++o)
+  {
+    for(unsigned int y=0;y!=o->second.size();++y)
+    {
+      if(o->first.find("*")!=std::string::npos)
       {
-        if (Noise_Min[name][j] > it->second[j])Noise_Min[name][j] = it->second[j];
-        if (Noise_Max[name][j] < it->second[j])Noise_Max[name][j] = it->second[j];
+        o->second[y]/=numberwindows;
+        std::cout<<o->second[y]<<"  "<<numberwindows<<std::endl;
       }
+      else std::cout<<o->second[y]<<std::endl;
     }
   }
   std::vector<double> Vide(XS.size(), 0.0);
@@ -1153,22 +1184,26 @@ int Analysis::Loop()
   TMultiGraph *mg2 = new TMultiGraph("Signal_combined","Signal_combined");
   int p = 0;
   int p2 = 0;
-  TGraphAsymmErrors *gr112 = nullptr;
-    TGraphAsymmErrors *gr113 = nullptr;
   for (std::map<std::string, std::vector<double>>::iterator it =Noise_Min.begin();it != Noise_Min.end(); ++it) 
   {
     TCanvas *cannn = new TCanvas(it->first.c_str(), it->first.c_str());
     TGraphAsymmErrors *gr11 = nullptr;
+    TGraph*grmean = nullptr;
     cannn->cd();
     std::string Xaxis = "";
     std::string Yaxis = "";
+    std::string Yaxis2 = "";
     std::vector<std::string> tmp;
     tokenize(it->first, tmp, "_");
+    grmean=new TGraph(XS.size(), &(XS[0]), &(Noise_Moy[it->first][0]));
+    grmean->SetTitle(it->first.c_str());
+    grmean->SetName(it->first.c_str());
     if (tmp[2] == "Noise") 
     {
       gr11 = new TGraphAsymmErrors(XS.size(), &(XS[0]), &(Noise_Max[it->first][0]), &(Vide[0]),&(Vide[0]), &(Noise_Min[it->first][0]), &(Vide[0]));
-      if(p2==0)gr112=new TGraphAsymmErrors(XS.size(), &(XS[0]), &(Noise_Max[it->first][0]), &(Vide[0]),&(Vide[0]), &(Noise_Min[it->first][0]), &(Vide[0]));
-      Yaxis = "Noise in Hertz.cm-2";
+      
+      Yaxis = "Noise hits in Hz.cm^{-2}";
+      Yaxis2 = "Mean Noise hits in Hz.cm^{-2}";
       gr11->SetName(it->first.c_str());
       gr11->SetTitle(it->first.c_str());
       gr11->SetMarkerStyle(20);
@@ -1184,8 +1219,8 @@ int Analysis::Loop()
     else 
     {
       gr11 = new TGraphAsymmErrors(XS.size(), &(XS[0]), &(Noise_Max[it->first][0]), &(Vide[0]),&(Vide[0]), &(Vide[0]), &(Vide[0]));
-       if(p==0)gr113=new TGraphAsymmErrors(XS.size(), &(XS[0]), &(Noise_Max[it->first][0]), &(Vide[0]),&(Vide[0]), &(Noise_Min[it->first][0]), &(Vide[0]));
-      Yaxis = "hits in Hz.cm^{-2}";
+      Yaxis = "Signal hits in Hz.cm^{-2}";
+      Yaxis2 = "Mean Signal hits in Hz.cm^{-2}";
       gr11->SetName(it->first.c_str());
       gr11->SetTitle(it->first.c_str());
       gr11->SetMarkerStyle(20);
@@ -1201,14 +1236,15 @@ int Analysis::Loop()
     LabelXaxis(Xaxis);
     gr11->GetXaxis()->SetTitle(Xaxis.c_str());
     gr11->GetYaxis()->SetTitle(Yaxis.c_str());
-    gr11->GetXaxis()->SetTitleOffset(0.4);
-    gr11->GetYaxis()->SetTitleOffset(0.4);
+    grmean->GetXaxis()->SetTitle(Xaxis.c_str());
+    grmean->GetYaxis()->SetTitle(Yaxis2.c_str());
     std::string comp2 = "";
     if (tmp[2] == "Noise")comp2 = "Noise";
     else comp2 = "Hits";
     cannn->cd();
     gr11->Draw("A3PL");
     writeObject(comp2, cannn);
+    writeObject(comp2,grmean);
     delete cannn;
   }
   std::string compp = "";
@@ -1218,15 +1254,9 @@ int Analysis::Loop()
   {
     TCanvas *can1 = new TCanvas("Noise_combined", "Noise_combined");
     can1->cd();
-    gr112->Draw("P");
-    Yaxis = "Noise hits in Hz.cm^{-2}";
-    LabelXaxis(Xaxis);
-    gr112->GetXaxis()->SetTitle(Xaxis.c_str());
-    gr112->GetYaxis()->SetTitle(Yaxis.c_str());
-    gr112->GetXaxis()->SetTitleOffset(0.4);
-    gr112->GetYaxis()->SetTitleOffset(0.4);
     mg1->Draw("A3PL");
     can1->BuildLegend();
+    can1->cd();
     compp = "Noise_combined";
     writeObject(compp, can1);
     delete can1;
@@ -1235,16 +1265,9 @@ int Analysis::Loop()
   {
     TCanvas *can2 = new TCanvas("Signal_combined", "Signal_combined");
     can2->cd();
-    gr113->Draw("P");
-    Yaxis = "Signal hits in Hz.cm^{-2}";
-    LabelXaxis(Xaxis);
-    gr113->GetXaxis()->SetTitle(Xaxis.c_str());
-    gr113->GetYaxis()->SetTitle(Yaxis.c_str());
-    gr113->GetXaxis()->SetTitleOffset(0.4);
-    gr113->GetYaxis()->SetTitleOffset(0.4);
     mg2->Draw("A3PL");
-    can2->cd();
     can2->BuildLegend();
+    can2->cd();
     compp = "Hits_combined";
     writeObject(compp, can2);
     delete can2;
